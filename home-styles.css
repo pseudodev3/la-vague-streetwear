@@ -62,15 +62,15 @@
 
 .hero-logo {
     position: absolute;
-    top: 5px;
-    left: 50%;
-    transform: translateX(calc(-50% - 320px));
+    top: 0;
+    left: 0;
+    transform: translateX(-120px);
     margin-bottom: 0;
     z-index: 2;
 }
 
 .hero-logo img {
-    max-width: 70px;
+    max-width: 80px;
     height: auto;
 }
 
@@ -78,47 +78,35 @@
     margin-top: 0;
 }
 
-@media (max-width: 1400px) {
-    .hero-logo {
-        transform: translateX(calc(-50% - 280px));
-    }
-}
-
-@media (max-width: 1200px) {
-    .hero-logo {
-        transform: translateX(calc(-50% - 240px));
-    }
-}
-
 @media (max-width: 1024px) {
     .hero-logo {
-        transform: translateX(calc(-50% - 200px));
+        transform: translateX(-100px);
     }
     
     .hero-logo img {
-        max-width: 60px;
+        max-width: 65px;
     }
 }
 
 @media (max-width: 768px) {
     .hero-logo {
-        transform: translateX(calc(-50% - 160px));
-        top: 8px;
+        transform: translateX(-80px);
+        top: 2px;
     }
     
     .hero-logo img {
-        max-width: 50px;
+        max-width: 55px;
     }
 }
 
 @media (max-width: 480px) {
     .hero-logo {
-        transform: translateX(calc(-50% - 120px));
-        top: 10px;
+        transform: translateX(-60px);
+        top: 5px;
     }
     
     .hero-logo img {
-        max-width: 42px;
+        max-width: 45px;
     }
 }
 
