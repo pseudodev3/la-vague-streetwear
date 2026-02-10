@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmed | LA VAGUE Streetwear</title>
+    <meta name="description" content="Thank you for your order from LA VAGUE.">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="page-styles.css">
+    <style>
+        .confirmation {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8rem 2rem 4rem;
+            text-align: center;
+            background: var(--color-bg);
+        }
+        
+        .confirmation-icon {
+            width: 80px;
+            height: 80px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+        }
+        
+        .confirmation-icon svg {
+            color: white;
+        }
+        
+        .confirmation h1 {
+            font-family: var(--font-heading);
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .confirmation > p {
+            color: var(--color-text-muted);
+            font-size: 1.125rem;
+            max-width: 500px;
+            margin: 0 auto 2rem;
+            line-height: 1.7;
+        }
+        
+        .order-details {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            padding: 2rem;
+            max-width: 500px;
+            margin: 0 auto 2rem;
+            text-align: left;
+        }
+        
+        .order-number {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .order-email {
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .confirmation-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-text">LA VAGUE</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Confirmation -->
+    <main class="confirmation">
+        <div>
+            <div class="confirmation-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <h1>Thank You!</h1>
+            <p>Your order has been placed successfully. We've sent a confirmation email with your order details.</p>
+            
+            <div class="order-details">
+                <div class="order-number">Order #LV-<span id="orderNumber"></span></div>
+                <div class="order-email">A confirmation has been sent to your email</div>
+            </div>
+            
+            <div class="confirmation-actions">
+                <a href="shop.html" class="btn btn-primary">Continue Shopping</a>
+                <a href="index.html" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Generate random order number
+        document.getElementById('orderNumber').textContent = Math.random().toString(36).substr(2, 6).toUpperCase();
+        
+        // Nav scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('nav');
+            if (window.scrollY > 50) {
+                nav?.classList.add('scrolled');
+            } else {
+                nav?.classList.remove('scrolled');
+            }
+        }, { passive: true });
+    </script>
+</body>
+</html>
