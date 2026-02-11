@@ -112,14 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tabName === 'products') loadProducts();
     }
 
-    // ==========================================
-    // API CONFIG
-    // ==========================================
-    const API_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3000/api' 
-        : 'https://la-vague-api.onrender.com/api';
-    
-    const ADMIN_KEY = 'your-secret-admin-key-here'; // Should match server ADMIN_API_KEY
+    // Admin API Key (should match server ADMIN_API_KEY)
+    const ADMIN_KEY = 'your-secret-admin-key-here';
 
     // ==========================================
     // DATA LOADING
