@@ -48,6 +48,12 @@
     </div>
     
     <div class="section">
+        <h2>6. Database Test</h2>
+        <button onclick="testDb()">Test Database Connection</button>
+        <pre id="dbResult">Click button to test...</pre>
+    </div>
+    
+    <div class="section">
         <h2>6. Browser Console Logs</h2>
         <pre id="consoleLogs">Logs will appear here...</pre>
     </div>
@@ -162,6 +168,21 @@
                 document.getElementById('statsResult').innerHTML = 
                     `<span class="error">Error: ${e.message}</span>`;
                 log(`Stats fetch FAILED: ${e.message}`, 'error');
+            }
+        }
+        
+        async function testDb() {
+            log('Testing database connection...');
+            try {
+                const res = await fetch(`${API_URL}/db-test`);
+                const data = await res.json();
+                document.getElementById('dbResult').textContent = 
+                    `Status: ${res.status}\n${JSON.stringify(data, null, 2)}`;
+                log(`DB Test: ${res.status}, Orders: ${data.order_count || 'N/A'}`);
+            } catch (e) {
+                document.getElementById('dbResult').innerHTML = 
+                    `<span class="error">Error: ${e.message}</span>`;
+                log(`DB Test FAILED: ${e.message}`, 'error');
             }
         }
         

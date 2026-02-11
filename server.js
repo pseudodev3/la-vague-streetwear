@@ -251,15 +251,21 @@ async function seedProducts() {
 
 // Database query helpers
 async function query(sql, params = []) {
-    if (USE_POSTGRES) {
-        return await db.query(sql, params);
-    } else {
-        const stmt = db.prepare(sql.replace(/\$\d+/g, '?'));
-        if (sql.trim().toLowerCase().startsWith('select')) {
-            return { rows: stmt.all(...params) };
+    try {
+        if (USE_POSTGRES) {
+            const result = await db.query(sql, params);
+            return result;
         } else {
-            return stmt.run(...params);
+            const stmt = db.prepare(sql.replace(/\$\d+/g, '?'));
+            if (sql.trim().toLowerCase().startsWith('select')) {
+                return { rows: stmt.all(...params) };
+            } else {
+                return stmt.run(...params);
+            }
         }
+    } catch (error) {
+        console.error('[DB ERROR] Query failed:', sql.substring(0, 100), 'Error:', error.message);
+        throw error;
     }
 }
 
@@ -494,13 +500,46 @@ app.get('/api/admin/stats', async (req, res) => {
     }
 });
 
+// Test database connection endpoint
+app.get('/api/db-test', async (req, res) => {
+    try {
+        if (USE_POSTGRES) {
+            const result = await db.query('SELECT NOW() as time, COUNT(*) as order_count FROM orders');
+            res.json({ 
+                success: true, 
+                database: 'postgresql',
+                server_time: result.rows[0].time,
+                order_count: parseInt(result.rows[0].order_count)
+            });
+        } else {
+            const result = db.prepare('SELECT datetime("now") as time, COUNT(*) as order_count FROM orders').get();
+            res.json({ 
+                success: true, 
+                database: 'sqlite',
+                server_time: result.time,
+                order_count: result.order_count
+            });
+        }
+    } catch (error) {
+        console.error('[DB TEST] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Initialize and start server
 async function startServer() {
     await initDatabase();
     
+    // Log important info
+    console.log('========================================');
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📊 Database: ${USE_POSTGRES ? 'PostgreSQL' : 'SQLite'}`);
+    console.log(`🔑 ADMIN_KEY: ${process.env.ADMIN_KEY ? 'SET (' + process.env.ADMIN_KEY.substring(0, 3) + '...)' : 'NOT SET - ADMIN WILL FAIL!'}`);
+    console.log(`🔗 FRONTEND_URL: ${process.env.FRONTEND_URL || 'not set'}`);
+    console.log('========================================');
+    
     app.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
-        console.log(`📊 Database: ${USE_POSTGRES ? 'PostgreSQL' : 'SQLite'}`);
+        console.log('Server is ready to accept connections');
     });
 }
 
