@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Apply filter
         let filteredOrders = orders;
         if (filter !== 'all') {
-            filteredOrders = orders.filter(o => o.status === filter);
+            filteredOrders = orders.filter(o => (o.order_status || o.status) === filter);
         }
         
         if (filteredOrders.length === 0) {
@@ -261,19 +261,23 @@ document.addEventListener('DOMContentLoaded', () => {
         
         tbody.innerHTML = filteredOrders.map(order => {
             // Handle both API format (snake_case) and localStorage format (camelCase)
-            const firstName = order.first_name || order.firstName;
-            const lastName = order.last_name || order.lastName;
+            const customerName = order.customer_name || (order.firstName ? `${order.firstName} ${order.lastName}` : '');
+            const nameParts = customerName ? customerName.split(' ') : ['', ''];
+            const firstName = order.first_name || order.firstName || nameParts[0] || '';
+            const lastName = order.last_name || order.lastName || nameParts.slice(1).join(' ') || '';
+            const email = order.customer_email || order.email || '';
             const date = order.created_at || order.date;
+            const orderStatus = order.order_status || order.status || 'pending';
             
             return `
                 <tr>
                     <td><strong>${order.id}</strong></td>
                     <td>${firstName} ${lastName}</td>
-                    <td>${order.email}</td>
+                    <td>${email}</td>
                     <td>${new Date(date).toLocaleDateString()}</td>
                     <td>${order.items?.length || 0}</td>
-                    <td>$${order.total}</td>
-                    <td><span class="status-badge ${order.status}">${order.status}</span></td>
+                    <td>$${order.total || 0}</td>
+                    <td><span class="status-badge ${orderStatus}">${orderStatus}</span></td>
                     <td>
                         <button class="btn-action" onclick="viewOrder('${order.id}')">View</button>
                         <button class="btn-action" onclick="updateOrderStatus('${order.id}')">Update</button>
