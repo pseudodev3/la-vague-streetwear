@@ -271,33 +271,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         try {
-            tbody.innerHTML = filteredOrders.map(order => {
-            // Handle both API format (snake_case) and localStorage format (camelCase)
-            const customerName = order.customer_name || (order.firstName ? `${order.firstName} ${order.lastName}` : '');
-            const nameParts = customerName ? customerName.split(' ') : ['', ''];
-            const firstName = order.first_name || order.firstName || nameParts[0] || '';
-            const lastName = order.last_name || order.lastName || nameParts.slice(1).join(' ') || '';
-            const email = order.customer_email || order.email || '';
-            const date = order.created_at || order.date;
-            const orderStatus = order.order_status || order.status || 'pending';
+            const html = filteredOrders.map(order => {
+                // Handle both API format (snake_case) and localStorage format (camelCase)
+                const customerName = order.customer_name || (order.firstName ? `${order.firstName} ${order.lastName}` : '');
+                const nameParts = customerName ? customerName.split(' ') : ['', ''];
+                const firstName = order.first_name || order.firstName || nameParts[0] || '';
+                const lastName = order.last_name || order.lastName || nameParts.slice(1).join(' ') || '';
+                const email = order.customer_email || order.email || '';
+                const date = order.created_at || order.date;
+                const orderStatus = order.order_status || order.status || 'pending';
+                
+                return `
+                    <tr>
+                        <td><strong>${order.id}</strong></td>
+                        <td>${firstName} ${lastName}</td>
+                        <td>${email}</td>
+                        <td>${date ? new Date(date).toLocaleDateString() : 'N/A'}</td>
+                        <td>${order.items?.length || 0}</td>
+                        <td>$${order.total || 0}</td>
+                        <td><span class="status-badge ${orderStatus}">${orderStatus}</span></td>
+                        <td>
+                            <button class="btn-action" onclick="viewOrder('${order.id}')">View</button>
+                            <button class="btn-action" onclick="updateOrderStatus('${order.id}')">Update</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
             
-            return `
-                <tr>
-                    <td><strong>${order.id}</strong></td>
-                    <td>${firstName} ${lastName}</td>
-                    <td>${email}</td>
-                    <td>${new Date(date).toLocaleDateString()}</td>
-                    <td>${order.items?.length || 0}</td>
-                    <td>$${order.total || 0}</td>
-                    <td><span class="status-badge ${orderStatus}">${orderStatus}</span></td>
-                    <td>
-                        <button class="btn-action" onclick="viewOrder('${order.id}')">View</button>
-                        <button class="btn-action" onclick="updateOrderStatus('${order.id}')">Update</button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-            console.log('=== LOAD ORDERS END - Success ===');
+            tbody.innerHTML = html;
+            console.log('=== LOAD ORDERS END - Success, rendered', filteredOrders.length, 'orders');
         } catch (renderError) {
             console.error('Error rendering orders:', renderError);
             tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: red;">Error: ${renderError.message}</td></tr>`;
