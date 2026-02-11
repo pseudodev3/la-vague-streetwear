@@ -373,6 +373,8 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
             notes
         } = req.body;
 
+        console.log('[ORDER] Creating order:', { customerName, customerEmail, total, items: items?.length });
+
         const shippingAddressStr = JSON.stringify(shippingAddress);
         const itemsStr = JSON.stringify(items);
 
@@ -395,7 +397,7 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
         console.log(`✅ Order created: ${orderId} for ${customerEmail}`);
         res.json({ success: true, orderId });
     } catch (error) {
-        console.error('Error creating order:', error);
+        console.error('❌ Error creating order:', error);
         res.status(500).json({ success: false, error: 'Failed to create order' });
     }
 });
@@ -403,12 +405,17 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
 // Get orders (admin)
 app.get('/api/admin/orders', async (req, res) => {
     const adminKey = req.query.key;
+    console.log(`[ADMIN] Orders request - Key provided: ${adminKey ? 'YES' : 'NO'}, Expected: ${process.env.ADMIN_KEY ? 'SET' : 'NOT SET'}`);
+    
     if (adminKey !== process.env.ADMIN_KEY) {
+        console.log('[ADMIN] Unauthorized - key mismatch');
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
     
     try {
         const result = await query('SELECT * FROM orders ORDER BY created_at DESC');
+        console.log(`[ADMIN] Found ${result.rows.length} orders`);
+        
         const orders = result.rows.map(o => ({
             ...o,
             shippingAddress: JSON.parse(o.shipping_address || '{}'),
@@ -416,7 +423,7 @@ app.get('/api/admin/orders', async (req, res) => {
         }));
         res.json({ success: true, orders });
     } catch (error) {
-        console.error('Error fetching orders:', error);
+        console.error('[ADMIN] Error fetching orders:', error);
         res.status(500).json({ success: false, error: 'Failed to fetch orders' });
     }
 });
