@@ -449,15 +449,15 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.navLinks?.classList.toggle('active');
         });
         
-        // Cart
-        elements.cartBtn?.addEventListener('click', openCart);
-        elements.cartClose?.addEventListener('click', window.closeCart);
-        elements.cartOverlay?.addEventListener('click', window.closeCart);
+        // Cart - use global functions from cart.js (loaded before home.js)
+        elements.cartBtn?.addEventListener('click', () => window.openCart && window.openCart());
+        elements.cartClose?.addEventListener('click', () => window.closeCart && window.closeCart());
+        elements.cartOverlay?.addEventListener('click', () => window.closeCart && window.closeCart());
         
-        // Wishlist
-        elements.wishlistBtn?.addEventListener('click', openWishlist);
-        elements.wishlistClose?.addEventListener('click', window.closeWishlist);
-        elements.wishlistOverlay?.addEventListener('click', window.closeWishlist);
+        // Wishlist - use global functions from cart.js
+        elements.wishlistBtn?.addEventListener('click', () => window.openWishlist && window.openWishlist());
+        elements.wishlistClose?.addEventListener('click', () => window.closeWishlist && window.closeWishlist());
+        elements.wishlistOverlay?.addEventListener('click', () => window.closeWishlist && window.closeWishlist());
         
         // Search
         elements.searchBtn?.addEventListener('click', openSearch);
