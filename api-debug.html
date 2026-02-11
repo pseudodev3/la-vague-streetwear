@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Debug - La Vague</title>
+    <style>
+        body { font-family: monospace; background: #1a1a1a; color: #00ff00; padding: 20px; }
+        .section { border: 1px solid #00ff00; padding: 15px; margin: 15px 0; }
+        h2 { color: #ffff00; }
+        .error { color: #ff0000; }
+        .success { color: #00ff00; }
+        button { background: #00ff00; color: #000; padding: 10px 20px; cursor: pointer; font-size: 16px; }
+        pre { background: #000; padding: 10px; overflow-x: auto; }
+        input { padding: 10px; font-size: 16px; width: 300px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 API Debug Tool</h1>
+    
+    <div class="section">
+        <h2>1. Health Check</h2>
+        <button onclick="testHealth()">Test /api/health</button>
+        <pre id="healthResult">Click button to test...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>2. Create Test Order</h2>
+        <button onclick="createTestOrder()">Create Test Order</button>
+        <pre id="orderResult">Click button to test...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>3. Check Orders (No Auth)</h2>
+        <button onclick="getOrdersNoAuth()">Try /admin/orders (no key)</button>
+        <pre id="ordersNoAuth">Click button to test...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>4. Check Orders (With Auth)</h2>
+        <p>Admin Key: <input type="text" id="adminKey" value="lavague2024" placeholder="Enter admin key"></p>
+        <button onclick="getOrdersWithAuth()">Try /admin/orders (with key)</button>
+        <pre id="ordersWithAuth">Click button to test...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>5. Check Stats</h2>
+        <button onclick="getStats()">Try /admin/stats</button>
+        <pre id="statsResult">Click button to test...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>6. Browser Console Logs</h2>
+        <pre id="consoleLogs">Logs will appear here...</pre>
+    </div>
+
+    <script>
+        const API_URL = 'https://la-vague-api.onrender.com/api';
+        const logs = [];
+        
+        function log(msg, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const entry = `[${timestamp}] ${msg}`;
+            logs.push(entry);
+            document.getElementById('consoleLogs').textContent = logs.join('\n');
+            console.log(entry);
+        }
+        
+        async function testHealth() {
+            log('Testing health endpoint...');
+            try {
+                const res = await fetch(`${API_URL}/health`);
+                const data = await res.json();
+                document.getElementById('healthResult').textContent = 
+                    `Status: ${res.status}\n${JSON.stringify(data, null, 2)}`;
+                log(`Health check: ${res.status}`);
+            } catch (e) {
+                document.getElementById('healthResult').innerHTML = 
+                    `<span class="error">Error: ${e.message}</span>`;
+                log(`Health check FAILED: ${e.message}`, 'error');
+            }
+        }
+        
+        async function createTestOrder() {
+            log('Creating test order...');
+            const testOrder = {
+                customerName: 'Test Customer',
+                customerEmail: 'test@example.com',
+                customerPhone: '1234567890',
+                shippingAddress: {
+                    address: '123 Test St',
+                    apartment: 'Apt 1',
+                    city: 'Test City',
+                    state: 'TS',
+                    zip: '12345'
+                },
+                items: [{ name: 'Test Product', price: 50, quantity: 1, color: 'Red', size: 'M' }],
+                subtotal: 50,
+                shippingCost: 10,
+                discount: 0,
+                total: 60,
+                paymentMethod: 'test',
+                notes: 'Test order from debug page'
+            };
+            
+            try {
+                const res = await fetch(`${API_URL}/orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testOrder)
+                });
+                const data = await res.json();
+                document.getElementById('orderResult').textContent = 
+                    `Status: ${res.status}\n${JSON.stringify(data, null, 2)}`;
+                log(`Order created: ${data.success ? 'YES' : 'NO'} - ${data.orderId || data.error}`);
+            } catch (e) {
+                document.getElementById('orderResult').innerHTML = 
+                    `<span class="error">Error: ${e.message}</span>`;
+                log(`Order creation FAILED: ${e.message}`, 'error');
+            }
+        }
+        
+        async function getOrdersNoAuth() {
+            log('Fetching orders without auth...');
+            try {
+                const res = await fetch(`${API_URL}/admin/orders`);
+                const data = await res.json();
+                document.getElementById('ordersNoAuth').textContent = 
+                    `Status: ${res.status}\n${JSON.stringify(data, null, 2)}`;
+                log(`Orders (no auth): ${res.status}`);
+            } catch (e) {
+                document.getElementById('ordersNoAuth').innerHTML = 
+                    `<span class="error">Error: ${e.message}</span>`;
+                log(`Orders fetch FAILED: ${e.message}`, 'error');
+            }
+        }
+        
+        async function getOrdersWithAuth() {
+            const key = document.getElementById('adminKey').value;
+            log(`Fetching orders with auth key: ${key}...`);
+            try {
+                const res = await fetch(`${API_URL}/admin/orders?key=${key}`);
+                const data = await res.json();
+                document.getElementById('ordersWithAuth').textContent = 
+                    `Status: ${res.status}\nOrders count: ${data.orders?.length || 0}\n${JSON.stringify(data, null, 2)}`;
+                log(`Orders (with auth): ${res.status}, Count: ${data.orders?.length || 0}`);
+            } catch (e) {
+                document.getElementById('ordersWithAuth').innerHTML = 
+                    `<span class="error">Error: ${e.message}</span>`;
+                log(`Orders fetch FAILED: ${e.message}`, 'error');
+            }
+        }
+        
+        async function getStats() {
+            const key = document.getElementById('adminKey').value;
+            log('Fetching stats...');
+            try {
+                const res = await fetch(`${API_URL}/admin/stats?key=${key}`);
+                const data = await res.json();
+                document.getElementById('statsResult').textContent = 
+                    `Status: ${res.status}\n${JSON.stringify(data, null, 2)}`;
+                log(`Stats: ${res.status}`);
+            } catch (e) {
+                document.getElementById('statsResult').innerHTML = 
+                    `<span class="error">Error: ${e.message}</span>`;
+                log(`Stats fetch FAILED: ${e.message}`, 'error');
+            }
+        }
+        
+        // Auto-run health check on load
+        testHealth();
+    </script>
+</body>
+</html>
