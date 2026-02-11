@@ -254,9 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Order API error:', error);
+            console.error('Error stack:', error.stack);
             
-            // Show error to user
-            alert('API Error: ' + error.message + '\n\nFalling back to local storage. Order will NOT appear in admin panel until API is fixed.');
+            // Show detailed error to user
+            const errorDetails = `API Error: ${error.message}\n\nPlease check the browser console (F12) for more details.\n\nThe order will be saved locally but will NOT appear in the admin panel until the API connection is fixed.`;
+            alert(errorDetails);
             
             // Fallback: Save order locally (use format admin.js expects)
             const orders = JSON.parse(localStorage.getItem('orders') || '[]');
