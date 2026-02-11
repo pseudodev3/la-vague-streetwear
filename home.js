@@ -103,169 +103,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // CART
+    // CART (delegated to cart.js)
     // ==========================================
-    function renderCart() {
-        if (state.cart.length === 0) {
-            elements.cartItems.innerHTML = `
-                <div class="cart-empty">
-                    <p>Your cart is empty</p>
-                    <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()">Continue Shopping</a>
-                </div>
-            `;
-        } else {
-            elements.cartItems.innerHTML = state.cart.map((item, index) => `
-                <div class="cart-item">
-                    <div class="cart-item-image">
-                        <img src="${item.image}" alt="${item.name}">
-                    </div>
-                    <div class="cart-item-details">
-                        <h4>${item.name}</h4>
-                        <p class="cart-item-variant">${item.color} / ${item.size}</p>
-                        <div class="cart-item-actions">
-                            <div class="cart-item-qty">
-                                <button onclick="window.updateCartQty(${index}, -1)">−</button>
-                                <span>${item.quantity}</span>
-                                <button onclick="window.updateCartQty(${index}, 1)">+</button>
-                            </div>
-                            <span class="cart-item-price">$${item.price * item.quantity}</span>
-                        </div>
-                    </div>
-                    <button class="cart-item-remove" onclick="window.removeFromCart(${index})">×</button>
-                </div>
-            `).join('');
-        }
-        
-        const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        elements.cartSubtotal.textContent = `$${subtotal}`;
-    }
-
-    // Note: window.openCart is defined in cart.js (loaded before home.js)
-
-    // Note: window.closeCart is defined in cart.js (loaded before home.js)
-
-    window.updateCartQty = function(index, delta) {
-        const item = state.cart[index];
-        const newQty = item.quantity + delta;
-        
-        if (newQty < 1) {
-            state.cart.splice(index, 1);
-        } else {
-            item.quantity = newQty;
-        }
-        
-        saveCart();
-        renderCart();
-        updateCartCount();
-    };
-
-    window.removeFromCart = function(index) {
-        state.cart.splice(index, 1);
-        saveCart();
-        renderCart();
-        updateCartCount();
-        showToast('Item removed from cart', 'success');
-    };
-
-    function saveCart() {
-        localStorage.setItem('cart', JSON.stringify(state.cart));
-        // Sync with shared CartState
-        if (typeof CartState !== 'undefined') {
-            CartState.cart = [...state.cart];
-            CartState.updateCartCount();
-        }
-    }
-
+    // cart.js handles all cart functionality globally
+    // These functions are kept for backwards compatibility
+    
     function updateCartCount() {
-        const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-        elements.cartCount.textContent = count;
-        elements.cartCount.style.display = count > 0 ? 'flex' : 'none';
-    }
-
-    // ==========================================
-    // WISHLIST
-    // ==========================================
-    function renderWishlist() {
-        if (state.wishlist.length === 0) {
-            elements.wishlistItems.innerHTML = `
-                <div class="wishlist-empty">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                    </svg>
-                    <p>Your wishlist is empty</p>
-                    <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Start Shopping</a>
-                </div>
-            `;
-            return;
-        }
-        
-        const wishlistProducts = state.wishlist.map(id => ProductAPI.getById(id)).filter(p => p);
-        
-        elements.wishlistItems.innerHTML = wishlistProducts.map(product => `
-            <div class="wishlist-item">
-                <div class="wishlist-item-image">
-                    <img src="${product.images[0].src}" alt="${product.name}">
-                </div>
-                <div class="wishlist-item-details">
-                    <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
-                    <p class="wishlist-item-price">$${product.price}</p>
-                    <div class="wishlist-item-actions">
-                        <button class="btn-add-cart-sm" onclick="window.addToCartFromWishlist('${product.id}')">Add to Cart</button>
-                        <button class="btn-remove-sm" onclick="window.removeFromWishlist('${product.id}')">Remove</button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Note: window.openWishlist is defined in cart.js (loaded before home.js)
-
-    // Note: window.closeWishlist is defined in cart.js (loaded before home.js)
-
-    window.addToCartFromWishlist = function(productId) {
-        const product = ProductAPI.getById(productId);
-        if (!product) return;
-        
-        const item = {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            image: product.images[0].src,
-            color: product.colors[0]?.name || 'One Size',
-            size: product.sizes[0],
-            quantity: 1
-        };
-        
-        const existingItem = state.cart.find(i => 
-            i.id === item.id && i.color === item.color && i.size === item.size
-        );
-        
-        if (existingItem) {
-            existingItem.quantity++;
+        // Use CartState if available, otherwise fallback to local
+        if (typeof CartState !== 'undefined') {
+            const count = CartState.cart.reduce((sum, item) => sum + item.quantity, 0);
+            elements.cartCount.textContent = count;
+            elements.cartCount.style.display = count > 0 ? 'flex' : 'none';
         } else {
-            state.cart.push(item);
+            const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+            elements.cartCount.textContent = count;
+            elements.cartCount.style.display = count > 0 ? 'flex' : 'none';
         }
-        
-        saveCart();
-        updateCartCount();
-        showToast(`${product.name} added to cart`, 'success');
-    };
+    }
 
-    window.removeFromWishlist = function(productId) {
-        const index = state.wishlist.indexOf(productId);
-        if (index > -1) {
-            state.wishlist.splice(index, 1);
-            localStorage.setItem('wishlist', JSON.stringify(state.wishlist));
-            renderWishlist();
-            updateWishlistCount();
-            showToast('Removed from wishlist', 'success');
-        }
-    };
-
+    // ==========================================
+    // WISHLIST (delegated to cart.js)
+    // ==========================================
+    // cart.js handles all wishlist functionality globally
+    
     function updateWishlistCount() {
-        const count = state.wishlist.length;
-        elements.wishlistCount.textContent = count;
-        elements.wishlistCount.classList.toggle('active', count > 0);
+        // Use CartState if available
+        if (typeof CartState !== 'undefined') {
+            const count = CartState.wishlist.length;
+            elements.wishlistCount.textContent = count;
+            elements.wishlistCount.classList.toggle('active', count > 0);
+        } else {
+            const count = state.wishlist.length;
+            elements.wishlistCount.textContent = count;
+            elements.wishlistCount.classList.toggle('active', count > 0);
+        }
     }
 
     // ==========================================
