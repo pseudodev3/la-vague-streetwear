@@ -1,18 +1,26 @@
 /**
  * LA VAGUE - Backend Server
  * Express.js API with PostgreSQL database (or SQLite for local dev)
+ * ES Module version
  */
 
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const compression = require('compression');
-const path = require('path');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ES module __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Determine database type
 const USE_POSTGRES = !!process.env.DATABASE_URL;
@@ -20,7 +28,7 @@ const USE_POSTGRES = !!process.env.DATABASE_URL;
 let db;
 if (USE_POSTGRES) {
     // PostgreSQL for production (Render)
-    const { Pool } = require('pg');
+    const { Pool } = await import('pg');
     db = new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: { rejectUnauthorized: false } // Required for Render
@@ -28,7 +36,7 @@ if (USE_POSTGRES) {
     console.log('✅ Using PostgreSQL database');
 } else {
     // SQLite for local development
-    const Database = require('better-sqlite3');
+    const { default: Database } = await import('better-sqlite3');
     db = new Database('database.sqlite');
     console.log('✅ Using SQLite database (local)');
 }
