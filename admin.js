@@ -112,8 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tabName === 'products') loadProducts();
     }
 
-    // Admin API Key (should match server ADMIN_API_KEY)
-    const ADMIN_KEY = 'your-secret-admin-key-here';
+    // Admin API Key (should match server ADMIN_KEY env variable)
+    const ADMIN_KEY = 'lavague2024';
 
     // ==========================================
     // DATA LOADING
@@ -128,25 +128,24 @@ document.addEventListener('DOMContentLoaded', () => {
             let products = PRODUCTS || [];
             
             try {
-                const response = await fetch(`${API_URL}/admin/stats`, {
-                    headers: { 'x-admin-key': ADMIN_KEY }
-                });
+                const response = await fetch(`${API_URL}/admin/stats?key=${ADMIN_KEY}`);
                 
                 if (response.ok) {
                     const data = await response.json();
                     state.stats = data.stats;
                     
                     // Also fetch recent orders
-                    const ordersResponse = await fetch(`${API_URL}/admin/orders?limit=5`, {
-                        headers: { 'x-admin-key': ADMIN_KEY }
-                    });
+                    const ordersResponse = await fetch(`${API_URL}/admin/orders?key=${ADMIN_KEY}`);
                     
                     if (ordersResponse.ok) {
                         const ordersData = await ordersResponse.json();
                         orders = ordersData.orders || [];
+                        console.log('Orders loaded from API:', orders.length);
                     }
                 } else {
-                    throw new Error('API error');
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('API error:', response.status, errorData);
+                    throw new Error('API error: ' + (errorData.error || response.status));
                 }
             } catch (apiError) {
                 console.log('API not available, using localStorage fallback');
@@ -187,15 +186,22 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        tbody.innerHTML = orders.map(order => `
+        tbody.innerHTML = orders.map(order => {
+            // Handle both API format (snake_case) and localStorage format (camelCase)
+            const firstName = order.first_name || order.firstName || (order.customer_name ? order.customer_name.split(' ')[0] : '');
+            const lastName = order.last_name || order.lastName || (order.customer_name ? order.customer_name.split(' ').slice(1).join(' ') : '');
+            const date = order.created_at || order.date;
+            const orderStatus = order.order_status || order.status || 'pending';
+            
+            return `
             <tr onclick="viewOrder('${order.id}')" style="cursor: pointer;">
                 <td><strong>${order.id}</strong></td>
-                <td>${order.firstName} ${order.lastName}</td>
-                <td>${new Date(order.date).toLocaleDateString()}</td>
-                <td>$${order.total}</td>
-                <td><span class="status-badge ${order.status}">${order.status}</span></td>
+                <td>${firstName} ${lastName}</td>
+                <td>${new Date(date).toLocaleDateString()}</td>
+                <td>$${order.total || 0}</td>
+                <td><span class="status-badge ${orderStatus}">${orderStatus}</span></td>
             </tr>
-        `).join('');
+        `}).join('');
     }
 
     async function loadOrders() {
@@ -208,20 +214,21 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Try API first
         try {
-            let url = `${API_URL}/admin/orders`;
+            let url = `${API_URL}/admin/orders?key=${ADMIN_KEY}`;
             if (filter !== 'all') {
-                url += `?status=${filter}`;
+                url += `&status=${filter}`;
             }
             
-            const response = await fetch(url, {
-                headers: { 'x-admin-key': ADMIN_KEY }
-            });
+            const response = await fetch(url);
             
             if (response.ok) {
                 const data = await response.json();
                 orders = data.orders || [];
                 state.orders = orders;
-                console.log('Loaded orders from API:', orders.length);
+                console.log('Loaded orders from API:', orders.length, orders);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('API error loading orders:', response.status, errorData);
             }
         } catch (apiError) {
             console.log('API not available:', apiError);
@@ -320,11 +327,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Handle both API format (snake_case) and localStorage format (camelCase)
-        const firstName = order.first_name || order.firstName;
-        const lastName = order.last_name || order.lastName;
-        const shippingCost = order.shipping_cost || order.shippingCost;
-        const paystackRef = order.paystack_reference || order.paystackReference;
+        const customerName = order.customer_name || (order.firstName ? `${order.firstName} ${order.lastName}` : '');
+        const nameParts = customerName ? customerName.split(' ') : ['', ''];
+        const firstName = order.first_name || order.firstName || nameParts[0];
+        const lastName = order.last_name || order.lastName || nameParts.slice(1).join(' ');
+        const email = order.customer_email || order.email;
+        const phone = order.customer_phone || order.phone;
+        const shippingCost = order.shipping_cost || order.shippingCost || 0;
+        const paystackRef = order.payment_reference || order.paystack_reference || order.paystackReference;
         const createdAt = order.created_at || order.date;
+        const orderStatus = order.order_status || order.status || 'pending';
+        
+        // Parse shipping address (could be JSON string or object)
+        let shippingAddress = order.shipping_address || {};
+        if (typeof shippingAddress === 'string') {
+            try { shippingAddress = JSON.parse(shippingAddress); } catch(e) {}
+        }
+        const address = shippingAddress.address || order.address || '';
+        const apartment = shippingAddress.apartment || order.apartment || '';
+        const city = shippingAddress.city || order.city || '';
+        const state = shippingAddress.state || order.state || '';
+        const zip = shippingAddress.zip || order.zip || '';
+        
+        // Parse items (could be JSON string or array)
+        let items = order.items || [];
+        if (typeof items === 'string') {
+            try { items = JSON.parse(items); } catch(e) {}
+        }
         
         const modalBody = document.getElementById('orderModalBody');
         modalBody.innerHTML = `
@@ -333,44 +362,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4>Order Information</h4>
                     <p><strong>Order ID:</strong> ${order.id}</p>
                     <p><strong>Date:</strong> ${new Date(createdAt).toLocaleString()}</p>
-                    <p><strong>Status:</strong> <span class="status-badge ${order.status}">${order.status}</span></p>
+                    <p><strong>Status:</strong> <span class="status-badge ${orderStatus}">${orderStatus}</span></p>
                     <p><strong>Payment:</strong> ${paystackRef ? 'Paid via Paystack' : 'Pending'}</p>
                 </div>
                 
                 <div class="detail-section">
                     <h4>Customer</h4>
                     <p><strong>Name:</strong> ${firstName} ${lastName}</p>
-                    <p><strong>Email:</strong> ${order.email}</p>
-                    <p><strong>Phone:</strong> ${order.phone}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Phone:</strong> ${phone}</p>
                 </div>
                 
                 <div class="detail-section">
                     <h4>Shipping Address</h4>
-                    <p>${order.address}</p>
-                    ${order.apartment ? `<p>${order.apartment}</p>` : ''}
-                    <p>${order.city}, ${order.state} ${order.zip}</p>
+                    <p>${address}</p>
+                    ${apartment ? `<p>${apartment}</p>` : ''}
+                    <p>${city}, ${state} ${zip}</p>
                 </div>
                 
                 <div class="detail-section">
                     <h4>Items</h4>
                     <table class="items-table">
-                        ${order.items?.map(item => `
+                        ${items.map(item => `
                             <tr>
                                 <td>${item.name}</td>
                                 <td>${item.color || ''} / ${item.size || ''}</td>
                                 <td>x${item.quantity}</td>
                                 <td>$${item.price * item.quantity}</td>
                             </tr>
-                        `).join('') || ''}
+                        `).join('') || '<tr><td colspan="4">No items</td></tr>'}
                     </table>
                 </div>
                 
                 <div class="detail-section">
                     <h4>Payment Summary</h4>
-                    <p><strong>Subtotal:</strong> $${order.subtotal}</p>
+                    <p><strong>Subtotal:</strong> $${order.subtotal || 0}</p>
                     <p><strong>Shipping:</strong> $${shippingCost}</p>
                     ${order.discount ? `<p><strong>Discount:</strong> -$${order.discount}</p>` : ''}
-                    <p><strong>Total:</strong> $${order.total}</p>
+                    <p><strong>Total:</strong> $${order.total || 0}</p>
                 </div>
             </div>
         `;
@@ -402,17 +431,17 @@ document.addEventListener('DOMContentLoaded', () => {
             fromLocalStorage = true;
         }
         
-        const currentStatus = order.status;
+        // Handle both API format (order_status) and localStorage format (status)
+        const currentStatus = order.order_status || order.status || 'pending';
         const currentIndex = statuses.indexOf(currentStatus);
         const nextStatus = statuses[(currentIndex + 1) % statuses.length];
         
         try {
             // Try to update via API
-            const response = await fetch(`${API_URL}/admin/orders/${orderId}/status`, {
-                method: 'PUT',
+            const response = await fetch(`${API_URL}/admin/orders/${orderId}/status?key=${ADMIN_KEY}`, {
+                method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'x-admin-key': ADMIN_KEY 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ status: nextStatus })
             });

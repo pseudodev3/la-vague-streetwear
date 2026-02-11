@@ -168,24 +168,28 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Get form data
+        // Get form data - Match server.js expected format
+        const firstName = document.getElementById('firstName').value;
+        const lastName = document.getElementById('lastName').value;
         const orderData = {
-            email: document.getElementById('email').value,
-            firstName: document.getElementById('firstName').value,
-            lastName: document.getElementById('lastName').value,
-            address: document.getElementById('address').value,
-            apartment: document.getElementById('apartment')?.value || '',
-            city: document.getElementById('city').value,
-            state: document.getElementById('state').value,
-            zip: document.getElementById('zip').value,
-            phone: document.getElementById('phone').value,
+            customerEmail: document.getElementById('email').value,
+            customerName: `${firstName} ${lastName}`,
+            customerPhone: document.getElementById('phone').value,
+            shippingAddress: {
+                address: document.getElementById('address').value,
+                apartment: document.getElementById('apartment')?.value || '',
+                city: document.getElementById('city').value,
+                state: document.getElementById('state').value,
+                zip: document.getElementById('zip').value
+            },
             shippingMethod: document.querySelector('input[name="shipping"]:checked')?.value || 'standard',
             shippingCost: state.shipping,
             subtotal: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
             discount: state.discount,
             total: parseFloat(document.getElementById('summaryTotal').textContent.replace('$', '')) || 0,
             items: state.cart,
-            paystackReference: 'manual-order-' + Date.now() // Placeholder until payment integration
+            paymentMethod: 'manual',
+            notes: ''
         };
         
         // Show loading
@@ -212,14 +216,27 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('API Result:', result);
             
             if (result.success) {
-                // Save to localStorage for admin fallback
+                // Save to localStorage for admin fallback (use format admin.js expects)
                 const orders = JSON.parse(localStorage.getItem('orders') || '[]');
                 orders.unshift({
-                    ...orderData,
                     id: result.orderId,
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: orderData.customerEmail,
+                    phone: orderData.customerPhone,
+                    address: orderData.shippingAddress.address,
+                    apartment: orderData.shippingAddress.apartment,
+                    city: orderData.shippingAddress.city,
+                    state: orderData.shippingAddress.state,
+                    zip: orderData.shippingAddress.zip,
+                    shippingCost: orderData.shippingCost,
+                    subtotal: orderData.subtotal,
+                    discount: orderData.discount,
+                    total: orderData.total,
+                    items: orderData.items,
+                    status: 'pending',
                     date: new Date().toISOString(),
-                    created_at: new Date().toISOString(),
-                    status: 'pending'
+                    created_at: new Date().toISOString()
                 });
                 localStorage.setItem('orders', JSON.stringify(orders));
                 console.log('Order saved to localStorage:', result.orderId);
@@ -241,14 +258,27 @@ document.addEventListener('DOMContentLoaded', () => {
             // Show error to user
             alert('API Error: ' + error.message + '\n\nFalling back to local storage. Order will NOT appear in admin panel until API is fixed.');
             
-            // Fallback: Save order locally
+            // Fallback: Save order locally (use format admin.js expects)
             const orders = JSON.parse(localStorage.getItem('orders') || '[]');
             const fallbackOrder = {
-                ...orderData,
                 id: 'LV-' + Date.now().toString(36).toUpperCase(),
+                firstName: firstName,
+                lastName: lastName,
+                email: orderData.customerEmail,
+                phone: orderData.customerPhone,
+                address: orderData.shippingAddress.address,
+                apartment: orderData.shippingAddress.apartment,
+                city: orderData.shippingAddress.city,
+                state: orderData.shippingAddress.state,
+                zip: orderData.shippingAddress.zip,
+                shippingCost: orderData.shippingCost,
+                subtotal: orderData.subtotal,
+                discount: orderData.discount,
+                total: orderData.total,
+                items: orderData.items,
+                status: 'pending',
                 date: new Date().toISOString(),
-                created_at: new Date().toISOString(),
-                status: 'pending'
+                created_at: new Date().toISOString()
             };
             orders.unshift(fallbackOrder);
             localStorage.setItem('orders', JSON.stringify(orders));
