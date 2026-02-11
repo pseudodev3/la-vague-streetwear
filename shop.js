@@ -120,6 +120,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <img src="${product.images[0].src}" alt="${product.images[0].alt}" class="product-image" loading="lazy">
                     ${product.images[1] ? `<img src="${product.images[1].src}" alt="${product.images[1].alt}" class="product-image-hover" loading="lazy">` : ''}
                     <div class="product-actions">
+                        <button class="product-btn" onclick="event.stopPropagation(); window.addToCartFromCard('${product.id}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 6h15l-1.5 9h-12z"></path>
+                                <circle cx="9" cy="20" r="1"></circle>
+                                <circle cx="18" cy="20" r="1"></circle>
+                                <path d="M6 6L5 3H2"></path>
+                            </svg>
+                            Add to Cart
+                        </button>
                         <button class="product-btn" onclick="event.stopPropagation(); window.quickView('${product.id}')">Quick View</button>
                         <button class="product-btn wishlist ${state.wishlist.includes(product.id) ? 'active' : ''}" 
                                 onclick="event.stopPropagation(); window.toggleWishlist('${product.id}')">
@@ -418,6 +427,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveCart() {
         localStorage.setItem('cart', JSON.stringify(state.cart));
+        // Sync with shared CartState
+        if (typeof CartState !== 'undefined') {
+            CartState.cart = [...state.cart];
+            CartState.updateCartCount();
+        }
     }
 
     function updateCartCount() {
@@ -443,6 +457,35 @@ document.addEventListener('DOMContentLoaded', () => {
         saveWishlist();
         updateWishlistCount();
         renderProducts(); // Re-render to update heart icons
+        
+        // Also update shared CartState
+        if (typeof CartState !== 'undefined') {
+            CartState.wishlist = [...state.wishlist];
+            CartState.saveWishlist();
+        }
+    };
+    
+    window.addToCartFromCard = function(productId) {
+        const product = ProductAPI.getById(productId);
+        if (!product) return;
+        
+        const item = {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.images[0].src,
+            color: product.colors[0]?.name || 'Default',
+            size: product.sizes[0],
+            quantity: 1
+        };
+        
+        // Add to shared cart
+        if (typeof CartState !== 'undefined') {
+            CartState.addToCart(item);
+        } else {
+            // Fallback to local cart
+            addToCart(item);
+        }
     };
 
     function saveWishlist() {

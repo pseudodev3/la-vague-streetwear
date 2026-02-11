@@ -64,6 +64,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     function init() {
         renderFeaturedProducts();
+        
+        // Sync with shared CartState if available
+        if (typeof CartState !== 'undefined') {
+            state.cart = CartState.cart;
+            state.wishlist = CartState.wishlist;
+        }
+        
         updateCartCount();
         updateWishlistCount();
         bindEvents();
@@ -171,6 +178,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveCart() {
         localStorage.setItem('cart', JSON.stringify(state.cart));
+        // Sync with shared CartState
+        if (typeof CartState !== 'undefined') {
+            CartState.cart = [...state.cart];
+            CartState.updateCartCount();
+        }
     }
 
     function updateCartCount() {
