@@ -140,18 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.cartSubtotal.textContent = `$${subtotal}`;
     }
 
-    function openCart() {
-        renderCart();
-        elements.cartSidebar.classList.add('active');
-        elements.cartOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
+    // Note: window.openCart is defined in cart.js (loaded before home.js)
 
-    window.closeCart = function() {
-        elements.cartSidebar.classList.remove('active');
-        elements.cartOverlay.classList.remove('active');
-        document.body.style.overflow = '';
-    };
+    // Note: window.closeCart is defined in cart.js (loaded before home.js)
 
     window.updateCartQty = function(index, delta) {
         const item = state.cart[index];
@@ -227,18 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
-    function openWishlist() {
-        renderWishlist();
-        elements.wishlistSidebar.classList.add('active');
-        elements.wishlistOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
+    // Note: window.openWishlist is defined in cart.js (loaded before home.js)
 
-    window.closeWishlist = function() {
-        elements.wishlistSidebar.classList.remove('active');
-        elements.wishlistOverlay.classList.remove('active');
-        document.body.style.overflow = '';
-    };
+    // Note: window.closeWishlist is defined in cart.js (loaded before home.js)
 
     window.addToCartFromWishlist = function(productId) {
         const product = ProductAPI.getById(productId);
