@@ -134,26 +134,12 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false,
 }));
 
-// CORS - Allow Netlify frontend
-const allowedOrigins = process.env.FRONTEND_URL 
-    ? [process.env.FRONTEND_URL, process.env.FRONTEND_URL.replace('https://', 'http://')]
-    : ['http://localhost:3000', 'http://127.0.0.1:5500', 'http://localhost:5500', 'http://localhost:8888'];
-
+// CORS - Allow all origins for debugging (restrict in production)
 app.use(cors({
-    origin: function(origin, callback) {
-        // Allow requests with no origin (mobile apps, curl, etc.)
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.some(allowed => origin.includes(allowed))) {
-            callback(null, true);
-        } else {
-            console.log('CORS blocked origin:', origin);
-            callback(null, true); // Allow all in development
-        }
-    },
+    origin: '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Key']
 }));
 
 // Rate limiting
@@ -171,6 +157,12 @@ const orderLimiter = rateLimit({
     message: 'Order limit reached. Please try again later.'
 });
 
+// Request logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || 'no origin'}`);
+    next();
+});
+
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -186,6 +178,17 @@ initDatabase();
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Test endpoint - for debugging connectivity
+app.get('/api/test', (req, res) => {
+    console.log('TEST ENDPOINT CALLED');
+    res.json({ 
+        status: 'ok', 
+        message: 'API is reachable',
+        origin: req.headers.origin || 'no origin',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Get all products
