@@ -554,7 +554,7 @@ async function startServer() {
     console.log(`🔗 FRONTEND_URL: ${process.env.FRONTEND_URL || 'not set'}`);
     console.log('========================================');
     
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log('Server is ready to accept connections');
     });
 }
