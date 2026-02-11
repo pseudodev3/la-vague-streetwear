@@ -268,7 +268,19 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Debug script - must show in console -->
+    <script>
+        console.log('=== INLINE SCRIPT RUNNING ===');
+        console.log('localStorage orders:', localStorage.getItem('orders'));
+        console.log('sessionStorage auth:', sessionStorage.getItem('adminAuth'));
+    </script>
+    
     <script src="products.js"></script>
     <script src="admin.js"></script>
+    
+    <!-- Check if admin.js loaded -->
+    <script>
+        console.log('=== AFTER ADMIN.JS INCLUDE ===');
+    </script>
 </body>
 </html>
