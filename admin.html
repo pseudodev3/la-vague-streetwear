@@ -276,11 +276,16 @@
     </script>
     
     <script src="products.js"></script>
-    <script src="admin.js"></script>
+    <script src="admin.js?v=2" onerror="console.error('FAILED TO LOAD ADMIN.JS')"></script>
     
     <!-- Check if admin.js loaded -->
     <script>
         console.log('=== AFTER ADMIN.JS INCLUDE ===');
+        // Test if we can access global vars from admin.js
+        setTimeout(() => {
+            console.log('ADMIN_KEY exists?', typeof ADMIN_KEY !== 'undefined' ? 'YES: ' + ADMIN_KEY : 'NO');
+            console.log('API_URL exists?', typeof API_URL !== 'undefined' ? 'YES: ' + API_URL : 'NO');
+        }, 100);
     </script>
 </body>
 </html>
