@@ -1,47 +1,37 @@
-# Render Deployment Configuration
-# https://render.com/docs/yaml-spec
-
 services:
-  # Backend API Service
   - type: web
     name: la-vague-api
     runtime: node
+    region: ohio
     plan: free
-    region: oregon
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: FRONTEND_URL
-        value: https://la-vague.netlify.app
+        value: https://la-vague.store
+      - key: ADMIN_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: la-vague-db
+          property: connectionString
       - key: PAYSTACK_SECRET_KEY
-        sync: false  # Set in Render dashboard
-      - key: PAYSTACK_PUBLIC_KEY
-        sync: false
+        sync: false  # Set this manually in Render dashboard
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
-        value: 587
+        value: "587"
       - key: SMTP_USER
-        sync: false
+        sync: false  # Set manually
       - key: SMTP_PASS
-        sync: false
-    disk:
-      name: database
-      mountPath: /data
-      sizeGB: 1
+        sync: false  # Set manually
+    healthCheckPath: /api/health
 
-  # Static Frontend (alternative to Netlify)
-  # Uncomment if you want everything on Render
-  # - type: web
-  #   name: la-vague-store
-  #   runtime: static
-  #   plan: free
-  #   buildCommand: echo "Static site"
-  #   staticPublishPath: .
-  #   envVars:
-  #     - key: API_URL
-  #       value: https://la-vague-api.onrender.com
+databases:
+  - name: la-vague-db
+    region: ohio
+    plan: free
+    databaseName: la_vague_db
+    user: la_vague_user

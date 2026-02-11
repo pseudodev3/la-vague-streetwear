@@ -1,6 +1,6 @@
 /**
  * LA VAGUE - Backend Server
- * Express.js API with SQLite database
+ * Express.js API with PostgreSQL database (or SQLite for local dev)
  */
 
 const express = require('express');
@@ -9,224 +9,311 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const path = require('path');
-const Database = require('better-sqlite3');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize SQLite database
-const db = new Database('database.sqlite');
+// Determine database type
+const USE_POSTGRES = !!process.env.DATABASE_URL;
 
-// Create tables
-function initDatabase() {
-    // Products table
-    db.exec(`
-        CREATE TABLE IF NOT EXISTS products (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            slug TEXT UNIQUE NOT NULL,
-            category TEXT NOT NULL,
-            price INTEGER NOT NULL,
-            compare_at_price INTEGER,
-            description TEXT,
-            features TEXT,
-            images TEXT,
-            colors TEXT,
-            sizes TEXT,
-            inventory TEXT,
-            tags TEXT,
-            badge TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
+let db;
+if (USE_POSTGRES) {
+    // PostgreSQL for production (Render)
+    const { Pool } = require('pg');
+    db = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false } // Required for Render
+    });
+    console.log('✅ Using PostgreSQL database');
+} else {
+    // SQLite for local development
+    const Database = require('better-sqlite3');
+    db = new Database('database.sqlite');
+    console.log('✅ Using SQLite database (local)');
+}
 
-    // Orders table
-    db.exec(`
-        CREATE TABLE IF NOT EXISTS orders (
-            id TEXT PRIMARY KEY,
-            email TEXT NOT NULL,
-            first_name TEXT NOT NULL,
-            last_name TEXT NOT NULL,
-            address TEXT NOT NULL,
-            apartment TEXT,
-            city TEXT NOT NULL,
-            state TEXT NOT NULL,
-            zip TEXT NOT NULL,
-            phone TEXT NOT NULL,
-            shipping_method TEXT NOT NULL,
-            shipping_cost INTEGER NOT NULL,
-            subtotal INTEGER NOT NULL,
-            discount INTEGER DEFAULT 0,
-            total INTEGER NOT NULL,
-            status TEXT DEFAULT 'pending',
-            paystack_reference TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
+// Trust proxy (required for rate limiting behind Render's load balancer)
+app.set('trust proxy', 1);
 
-    // Order items table
-    db.exec(`
-        CREATE TABLE IF NOT EXISTS order_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            order_id TEXT NOT NULL,
-            product_id TEXT NOT NULL,
-            name TEXT NOT NULL,
-            price INTEGER NOT NULL,
-            quantity INTEGER NOT NULL,
-            color TEXT,
-            size TEXT,
-            FOREIGN KEY (order_id) REFERENCES orders(id)
-        )
-    `);
+// Initialize database tables
+async function initDatabase() {
+    if (USE_POSTGRES) {
+        // PostgreSQL tables
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS products (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                slug TEXT UNIQUE NOT NULL,
+                category TEXT NOT NULL,
+                price INTEGER NOT NULL,
+                compare_at_price INTEGER,
+                description TEXT,
+                features JSONB,
+                images JSONB,
+                colors JSONB,
+                sizes JSONB,
+                inventory JSONB,
+                tags JSONB,
+                badge TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS orders (
+                id TEXT PRIMARY KEY,
+                customer_name TEXT NOT NULL,
+                customer_email TEXT NOT NULL,
+                customer_phone TEXT,
+                shipping_address JSONB NOT NULL,
+                items JSONB NOT NULL,
+                subtotal INTEGER NOT NULL,
+                shipping_cost INTEGER NOT NULL,
+                discount INTEGER DEFAULT 0,
+                total INTEGER NOT NULL,
+                payment_method TEXT NOT NULL,
+                payment_status TEXT DEFAULT 'pending',
+                payment_reference TEXT,
+                order_status TEXT DEFAULT 'pending',
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS admin_sessions (
+                id SERIAL PRIMARY KEY,
+                session_key TEXT UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL
+            )
+        `);
+    } else {
+        // SQLite tables
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS products (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                slug TEXT UNIQUE NOT NULL,
+                category TEXT NOT NULL,
+                price INTEGER NOT NULL,
+                compare_at_price INTEGER,
+                description TEXT,
+                features TEXT,
+                images TEXT,
+                colors TEXT,
+                sizes TEXT,
+                inventory TEXT,
+                tags TEXT,
+                badge TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS orders (
+                id TEXT PRIMARY KEY,
+                customer_name TEXT NOT NULL,
+                customer_email TEXT NOT NULL,
+                customer_phone TEXT,
+                shipping_address TEXT NOT NULL,
+                items TEXT NOT NULL,
+                subtotal INTEGER NOT NULL,
+                shipping_cost INTEGER NOT NULL,
+                discount INTEGER DEFAULT 0,
+                total INTEGER NOT NULL,
+                payment_method TEXT NOT NULL,
+                payment_status TEXT DEFAULT 'pending',
+                payment_reference TEXT,
+                order_status TEXT DEFAULT 'pending',
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS admin_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_key TEXT UNIQUE NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME NOT NULL
+            )
+        `);
+    }
+    
+    // Seed products if empty
+    await seedProducts();
+    console.log('✅ Database initialized');
+}
 
-    // Insert sample products if empty
-    const count = db.prepare('SELECT COUNT(*) as count FROM products').get();
-    if (count.count === 0) {
-        seedProducts();
+// Seed sample products
+async function seedProducts() {
+    const products = [
+        {
+            id: 'prod-001',
+            name: 'Classic White Shirt',
+            slug: 'classic-white-shirt',
+            category: 'shirts',
+            price: 4500,
+            compare_at_price: 5500,
+            description: 'Premium cotton classic white shirt perfect for any occasion.',
+            features: JSON.stringify(['100% Cotton', 'Breathable fabric', 'Classic fit']),
+            images: JSON.stringify(['https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800']),
+            colors: JSON.stringify(['White', 'Blue']),
+            sizes: JSON.stringify(['S', 'M', 'L', 'XL']),
+            inventory: JSON.stringify({S: 10, M: 15, L: 8, XL: 5}),
+            tags: JSON.stringify(['classic', 'essential']),
+            badge: 'bestseller'
+        },
+        {
+            id: 'prod-002',
+            name: 'Slim Fit Chinos',
+            slug: 'slim-fit-chinos',
+            category: 'pants',
+            price: 6500,
+            compare_at_price: null,
+            description: 'Modern slim fit chinos for a sharp look.',
+            features: JSON.stringify(['Stretch cotton', 'Slim fit', 'Classic design']),
+            images: JSON.stringify(['https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=800']),
+            colors: JSON.stringify(['Khaki', 'Navy', 'Olive']),
+            sizes: JSON.stringify(['30', '32', '34', '36']),
+            inventory: JSON.stringify({'30': 8, '32': 12, '34': 10, '36': 6}),
+            tags: JSON.stringify(['casual', 'versatile']),
+            badge: null
+        },
+        {
+            id: 'prod-003',
+            name: 'Summer Floral Dress',
+            slug: 'summer-floral-dress',
+            category: 'dresses',
+            price: 8500,
+            compare_at_price: 10000,
+            description: 'Beautiful floral dress perfect for summer days.',
+            features: JSON.stringify(['Lightweight fabric', 'Floral print', 'A-line cut']),
+            images: JSON.stringify(['https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800']),
+            colors: JSON.stringify(['Pink Floral', 'Blue Floral']),
+            sizes: JSON.stringify(['XS', 'S', 'M', 'L']),
+            inventory: JSON.stringify({XS: 5, S: 10, M: 12, L: 8}),
+            tags: JSON.stringify(['summer', 'floral']),
+            badge: 'new'
+        },
+        {
+            id: 'prod-004',
+            name: 'Denim Jacket',
+            slug: 'denim-jacket',
+            category: 'jackets',
+            price: 12000,
+            compare_at_price: null,
+            description: 'Classic denim jacket that never goes out of style.',
+            features: JSON.stringify(['100% Denim', 'Classic cut', 'Durable']),
+            images: JSON.stringify(['https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?w=800']),
+            colors: JSON.stringify(['Light Blue', 'Dark Blue']),
+            sizes: JSON.stringify(['S', 'M', 'L', 'XL']),
+            inventory: JSON.stringify({S: 6, M: 10, L: 8, XL: 4}),
+            tags: JSON.stringify(['classic', 'denim']),
+            badge: null
+        }
+    ];
+    
+    if (USE_POSTGRES) {
+        const result = await db.query('SELECT COUNT(*) FROM products');
+        if (parseInt(result.rows[0].count) === 0) {
+            for (const p of products) {
+                await db.query(`
+                    INSERT INTO products (id, name, slug, category, price, compare_at_price, description, 
+                        features, images, colors, sizes, inventory, tags, badge)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                    ON CONFLICT (id) DO NOTHING
+                `, [p.id, p.name, p.slug, p.category, p.price, p.compare_at_price, p.description,
+                    p.features, p.images, p.colors, p.sizes, p.inventory, p.tags, p.badge]);
+            }
+            console.log('✅ Sample products seeded');
+        }
+    } else {
+        const count = db.prepare('SELECT COUNT(*) as count FROM products').get();
+        if (count.count === 0) {
+            const insert = db.prepare(`
+                INSERT INTO products (id, name, slug, category, price, compare_at_price, description, 
+                    features, images, colors, sizes, inventory, tags, badge)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            for (const p of products) {
+                insert.run(p.id, p.name, p.slug, p.category, p.price, p.compare_at_price, p.description,
+                    p.features, p.images, p.colors, p.sizes, p.inventory, p.tags, p.badge);
+            }
+            console.log('✅ Sample products seeded');
+        }
     }
 }
 
-function seedProducts() {
-    const products = require('./products.js');
-    const insert = db.prepare(`
-        INSERT INTO products (id, name, slug, category, price, compare_at_price, description, features, images, colors, sizes, inventory, tags, badge)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const insertMany = db.transaction((products) => {
-        for (const p of products) {
-            insert.run(
-                p.id,
-                p.name,
-                p.slug,
-                p.category,
-                p.price,
-                p.compareAtPrice,
-                p.description,
-                JSON.stringify(p.features),
-                JSON.stringify(p.images),
-                JSON.stringify(p.colors),
-                JSON.stringify(p.sizes),
-                JSON.stringify(p.inventory),
-                JSON.stringify(p.tags),
-                p.badge
-            );
+// Database query helpers
+async function query(sql, params = []) {
+    if (USE_POSTGRES) {
+        return await db.query(sql, params);
+    } else {
+        const stmt = db.prepare(sql.replace(/\$\d+/g, '?'));
+        if (sql.trim().toLowerCase().startsWith('select')) {
+            return { rows: stmt.all(...params) };
+        } else {
+            return stmt.run(...params);
         }
-    });
-
-    insertMany(products.PRODUCTS);
-    console.log('Products seeded successfully');
+    }
 }
 
-// Security middleware
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "https:", "blob:"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            connectSrc: ["'self'", "https://api.paystack.co"],
-        },
-    },
-    crossOriginEmbedderPolicy: false,
-}));
-
-// CORS - Allow all origins for debugging (restrict in production)
+// Middleware
+app.use(helmet());
 app.use(cors({
-    origin: '*',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Key']
+    origin: function(origin, callback) {
+        if (!origin) return callback(null, true);
+        callback(null, true);
+    },
+    credentials: true
 }));
+app.use(compression());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.static('public'));
 
 // Rate limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
-
-// Stricter rate limiting for orders
 const orderLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10, // 10 orders per hour per IP
-    message: 'Order limit reached. Please try again later.'
+    windowMs: 60 * 60 * 1000,
+    max: 10,
+    message: { success: false, error: 'Too many orders from this IP, please try again later.' }
 });
 
-// Request logging middleware
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100
+});
+
+// Request logging
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || 'no origin'}`);
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
     next();
 });
 
-app.use(compression());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-
-// Static files
-app.use(express.static(path.join(__dirname)));
-
-// Initialize database
-initDatabase();
-
-// ============ API ROUTES ============
-
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), database: USE_POSTGRES ? 'postgresql' : 'sqlite' });
 });
 
-// Test endpoint - for debugging connectivity
+// Test endpoint
 app.get('/api/test', (req, res) => {
-    console.log('TEST ENDPOINT CALLED');
     res.json({ 
         status: 'ok', 
         message: 'API is reachable',
-        origin: req.headers.origin || 'no origin',
+        origin: req.headers.origin,
         timestamp: new Date().toISOString()
     });
 });
 
 // Get all products
-app.get('/api/products', (req, res) => {
+app.get('/api/products', async (req, res) => {
     try {
-        const { category, search, sort = 'featured' } = req.query;
-        let sql = 'SELECT * FROM products WHERE 1=1';
-        const params = [];
-
-        if (category && category !== 'all') {
-            sql += ' AND category = ?';
-            params.push(category);
-        }
-
-        if (search) {
-            sql += ' AND (name LIKE ? OR description LIKE ?)';
-            params.push(`%${search}%`, `%${search}%`);
-        }
-
-        // Sorting
-        switch (sort) {
-            case 'price-low':
-                sql += ' ORDER BY price ASC';
-                break;
-            case 'price-high':
-                sql += ' ORDER BY price DESC';
-                break;
-            case 'newest':
-                sql += ' ORDER BY created_at DESC';
-                break;
-            default:
-                sql += ' ORDER BY created_at DESC';
-        }
-
-        const products = db.prepare(sql).all(...params);
-        
-        // Parse JSON fields
-        const parsedProducts = products.map(p => ({
+        const result = await query('SELECT * FROM products ORDER BY created_at DESC');
+        const products = result.rows.map(p => ({
             ...p,
             features: JSON.parse(p.features || '[]'),
             images: JSON.parse(p.images || '[]'),
@@ -235,167 +322,77 @@ app.get('/api/products', (req, res) => {
             inventory: JSON.parse(p.inventory || '{}'),
             tags: JSON.parse(p.tags || '[]')
         }));
-
-        res.json({ success: true, products: parsedProducts });
+        res.json({ success: true, products });
     } catch (error) {
         console.error('Error fetching products:', error);
         res.status(500).json({ success: false, error: 'Failed to fetch products' });
     }
 });
 
-// Get single product by slug
-app.get('/api/products/:slug', (req, res) => {
+// Get product by slug
+app.get('/api/products/:slug', async (req, res) => {
     try {
-        const product = db.prepare('SELECT * FROM products WHERE slug = ?').get(req.params.slug);
-        
-        if (!product) {
+        const result = await query('SELECT * FROM products WHERE slug = $1', [req.params.slug]);
+        if (result.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Product not found' });
         }
-
-        // Parse JSON fields
-        const parsedProduct = {
-            ...product,
-            features: JSON.parse(product.features || '[]'),
-            images: JSON.parse(product.images || '[]'),
-            colors: JSON.parse(product.colors || '[]'),
-            sizes: JSON.parse(product.sizes || '[]'),
-            inventory: JSON.parse(product.inventory || '{}'),
-            tags: JSON.parse(product.tags || '[]')
-        };
-
-        res.json({ success: true, product: parsedProduct });
+        const p = result.rows[0];
+        res.json({
+            success: true,
+            product: {
+                ...p,
+                features: JSON.parse(p.features || '[]'),
+                images: JSON.parse(p.images || '[]'),
+                colors: JSON.parse(p.colors || '[]'),
+                sizes: JSON.parse(p.sizes || '[]'),
+                inventory: JSON.parse(p.inventory || '{}'),
+                tags: JSON.parse(p.tags || '[]')
+            }
+        });
     } catch (error) {
         console.error('Error fetching product:', error);
         res.status(500).json({ success: false, error: 'Failed to fetch product' });
     }
 });
 
-// Check inventory
-app.post('/api/inventory/check', (req, res) => {
-    try {
-        const { productId, color, size } = req.body;
-        const product = db.prepare('SELECT inventory FROM products WHERE id = ?').get(productId);
-        
-        if (!product) {
-            return res.status(404).json({ success: false, error: 'Product not found' });
-        }
-
-        const inventory = JSON.parse(product.inventory || '{}');
-        const key = `${color}-${size}`;
-        const quantity = inventory[key] || 0;
-
-        res.json({ success: true, quantity, inStock: quantity > 0 });
-    } catch (error) {
-        console.error('Error checking inventory:', error);
-        res.status(500).json({ success: false, error: 'Failed to check inventory' });
-    }
-});
-
-// Initialize Paystack transaction
-app.post('/api/payment/initialize', orderLimiter, async (req, res) => {
-    try {
-        const { email, amount, metadata } = req.body;
-
-        if (!email || !amount) {
-            return res.status(400).json({ success: false, error: 'Email and amount required' });
-        }
-
-        const paystack = require('paystack-api')(process.env.PAYSTACK_SECRET_KEY);
-        
-        const response = await paystack.transaction.initialize({
-            email,
-            amount: amount * 100, // Paystack expects amount in kobo (multiply by 100)
-            metadata,
-            callback_url: `${process.env.FRONTEND_URL}/payment/callback`
-        });
-
-        if (response.status) {
-            res.json({ 
-                success: true, 
-                authorization_url: response.data.authorization_url,
-                reference: response.data.reference
-            });
-        } else {
-            res.status(400).json({ success: false, error: 'Payment initialization failed' });
-        }
-    } catch (error) {
-        console.error('Paystack error:', error);
-        res.status(500).json({ success: false, error: 'Payment service error' });
-    }
-});
-
-// Verify Paystack payment
-app.get('/api/payment/verify/:reference', async (req, res) => {
-    try {
-        const { reference } = req.params;
-        const paystack = require('paystack-api')(process.env.PAYSTACK_SECRET_KEY);
-        
-        const response = await paystack.transaction.verify({ reference });
-
-        res.json({ 
-            success: true, 
-            status: response.data.status,
-            amount: response.data.amount / 100,
-            paid_at: response.data.paid_at
-        });
-    } catch (error) {
-        console.error('Payment verification error:', error);
-        res.status(500).json({ success: false, error: 'Verification failed' });
-    }
-});
-
 // Create order
 app.post('/api/orders', orderLimiter, async (req, res) => {
     try {
-        const orderId = 'LV-' + Date.now().toString(36).toUpperCase();
-        const {
-            email,
-            firstName,
-            lastName,
-            address,
-            apartment,
-            city,
-            state,
-            zip,
-            phone,
-            shippingMethod,
-            shippingCost,
-            subtotal,
+        const orderId = 'LV-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+        const { 
+            customerName, 
+            customerEmail, 
+            customerPhone, 
+            shippingAddress, 
+            items, 
+            subtotal, 
+            shippingCost, 
             discount,
             total,
-            items,
-            paystackReference
+            paymentMethod,
+            notes
         } = req.body;
 
-        // Insert order
-        const insertOrder = db.prepare(`
-            INSERT INTO orders (id, email, first_name, last_name, address, apartment, city, state, zip, phone, 
-                              shipping_method, shipping_cost, subtotal, discount, total, paystack_reference, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid')
-        `);
+        const shippingAddressStr = JSON.stringify(shippingAddress);
+        const itemsStr = JSON.stringify(items);
 
-        insertOrder.run(
-            orderId, email, firstName, lastName, address, apartment, city, state, zip, phone,
-            shippingMethod, shippingCost, subtotal, discount, total, paystackReference
-        );
+        if (USE_POSTGRES) {
+            await db.query(`
+                INSERT INTO orders (id, customer_name, customer_email, customer_phone, shipping_address, 
+                    items, subtotal, shipping_cost, discount, total, payment_method, notes)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            `, [orderId, customerName, customerEmail, customerPhone, shippingAddressStr,
+                itemsStr, subtotal, shippingCost, discount || 0, total, paymentMethod, notes || '']);
+        } else {
+            db.prepare(`
+                INSERT INTO orders (id, customer_name, customer_email, customer_phone, shipping_address, 
+                    items, subtotal, shipping_cost, discount, total, payment_method, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(orderId, customerName, customerEmail, customerPhone, shippingAddressStr,
+                itemsStr, subtotal, shippingCost, discount || 0, total, paymentMethod, notes || '');
+        }
 
-        // Insert order items
-        const insertItem = db.prepare(`
-            INSERT INTO order_items (order_id, product_id, name, price, quantity, color, size)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        const insertItems = db.transaction((items) => {
-            for (const item of items) {
-                insertItem.run(orderId, item.id, item.name, item.price, item.quantity, item.color, item.size);
-            }
-        });
-
-        insertItems(items);
-
-        // Send confirmation email (async, don't wait)
-        sendOrderConfirmation(email, orderId, items, total).catch(console.error);
-
+        console.log(`✅ Order created: ${orderId} for ${customerEmail}`);
         res.json({ success: true, orderId });
     } catch (error) {
         console.error('Error creating order:', error);
@@ -403,144 +400,85 @@ app.post('/api/orders', orderLimiter, async (req, res) => {
     }
 });
 
-// Get order by ID
-app.get('/api/orders/:orderId', (req, res) => {
-    try {
-        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.orderId);
-        
-        if (!order) {
-            return res.status(404).json({ success: false, error: 'Order not found' });
-        }
-
-        const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(req.params.orderId);
-
-        res.json({ success: true, order: { ...order, items } });
-    } catch (error) {
-        console.error('Error fetching order:', error);
-        res.status(500).json({ success: false, error: 'Failed to fetch order' });
-    }
-});
-
-// Email service
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || 587,
-    secure: false,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    }
-});
-
-async function sendOrderConfirmation(email, orderId, items, total) {
-    const itemList = items.map(item => 
-        `<tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.quantity}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">$${item.price * item.quantity}</td>
-        </tr>`
-    ).join('');
-
-    const mailOptions = {
-        from: '"LA VAGUE" <orders@lavague.com>',
-        to: email,
-        subject: `Order Confirmation - ${orderId}`,
-        html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #dc2626;">Thank you for your order!</h2>
-                <p>Order Number: <strong>${orderId}</strong></p>
-                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-                    <thead>
-                        <tr style="background: #f5f5f5;">
-                            <th style="padding: 10px; text-align: left;">Product</th>
-                            <th style="padding: 10px; text-align: left;">Qty</th>
-                            <th style="padding: 10px; text-align: left;">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>${itemList}</tbody>
-                </table>
-                <p style="font-size: 18px; font-weight: bold;">Total: $${total}</p>
-                <p>We'll send you another email when your order ships.</p>
-                <p style="color: #666; font-size: 12px; margin-top: 30px;">
-                    If you have any questions, reply to this email or contact us at support@lavague.com
-                </p>
-            </div>
-        `
-    };
-
-    await transporter.sendMail(mailOptions);
-}
-
-// ============ ADMIN ROUTES ============
-
-// Admin authentication middleware
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'admin-secret-key-change-in-production';
-
-function requireAdminAuth(req, res, next) {
-    const apiKey = req.headers['x-admin-key'];
-    if (apiKey !== ADMIN_API_KEY) {
+// Get orders (admin)
+app.get('/api/admin/orders', async (req, res) => {
+    const adminKey = req.query.key;
+    if (adminKey !== process.env.ADMIN_KEY) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
-    next();
-}
-
-// Admin: Get all orders with details
-app.get('/api/admin/orders', requireAdminAuth, (req, res) => {
+    
     try {
-        const { status, limit = 50, offset = 0 } = req.query;
-        
-        let sql = 'SELECT * FROM orders';
-        const params = [];
-        
-        if (status && status !== 'all') {
-            sql += ' WHERE status = ?';
-            params.push(status);
-        }
-        
-        sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-        params.push(parseInt(limit), parseInt(offset));
-        
-        const orders = db.prepare(sql).all(...params);
-        
-        // Get items for each order
-        const ordersWithItems = orders.map(order => {
-            const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
-            return { ...order, items };
-        });
-        
-        res.json({ success: true, orders: ordersWithItems });
+        const result = await query('SELECT * FROM orders ORDER BY created_at DESC');
+        const orders = result.rows.map(o => ({
+            ...o,
+            shippingAddress: JSON.parse(o.shipping_address || '{}'),
+            items: JSON.parse(o.items || '[]')
+        }));
+        res.json({ success: true, orders });
     } catch (error) {
-        console.error('Error fetching admin orders:', error);
+        console.error('Error fetching orders:', error);
         res.status(500).json({ success: false, error: 'Failed to fetch orders' });
     }
 });
 
-// Admin: Get dashboard stats
-app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
+// Update order status (admin)
+app.post('/api/admin/orders/:id/status', async (req, res) => {
+    const adminKey = req.query.key;
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
     try {
-        const totalOrders = db.prepare('SELECT COUNT(*) as count FROM orders').get();
-        const totalSales = db.prepare('SELECT SUM(total) as total FROM orders').get();
-        const totalProducts = db.prepare('SELECT COUNT(*) as count FROM products').get();
-        const pendingOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'pending'").get();
+        const { status } = req.body;
+        if (USE_POSTGRES) {
+            await db.query('UPDATE orders SET order_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', 
+                [status, req.params.id]);
+        } else {
+            db.prepare('UPDATE orders SET order_status = ?, updated_at = datetime("now") WHERE id = ?')
+                .run(status, req.params.id);
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating order:', error);
+        res.status(500).json({ success: false, error: 'Failed to update order' });
+    }
+});
+
+// Get dashboard stats (admin)
+app.get('/api/admin/stats', async (req, res) => {
+    const adminKey = req.query.key;
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    try {
+        let totalOrders, pendingOrders, totalRevenue, recentOrdersResult;
         
-        // Recent orders (last 7 days)
-        const recentOrders = db.prepare(`
-            SELECT COUNT(*) as count, SUM(total) as sales 
-            FROM orders 
-            WHERE created_at >= datetime('now', '-7 days')
-        `).get();
+        if (USE_POSTGRES) {
+            totalOrders = await db.query('SELECT COUNT(*) FROM orders');
+            pendingOrders = await db.query("SELECT COUNT(*) FROM orders WHERE order_status = 'pending'");
+            totalRevenue = await db.query("SELECT COALESCE(SUM(total), 0) FROM orders WHERE payment_status = 'completed'");
+            recentOrdersResult = await db.query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 5');
+        } else {
+            totalOrders = { rows: [{ count: db.prepare('SELECT COUNT(*) as count FROM orders').get().count }] };
+            pendingOrders = { rows: [{ count: db.prepare("SELECT COUNT(*) as count FROM orders WHERE order_status = 'pending'").get().count }] };
+            totalRevenue = { rows: [{ sum: db.prepare("SELECT COALESCE(SUM(total), 0) as sum FROM orders WHERE payment_status = 'completed'").get().sum }] };
+            recentOrdersResult = { rows: db.prepare('SELECT * FROM orders ORDER BY created_at DESC LIMIT 5').all() };
+        }
+        
+        const recentOrders = recentOrdersResult.rows.map(o => ({
+            ...o,
+            shippingAddress: JSON.parse(o.shipping_address || '{}'),
+            items: JSON.parse(o.items || '[]')
+        }));
         
         res.json({
             success: true,
             stats: {
-                totalOrders: totalOrders.count,
-                totalSales: totalSales.total || 0,
-                totalProducts: totalProducts.count,
-                pendingOrders: pendingOrders.count,
-                recentOrders: recentOrders.count,
-                recentSales: recentOrders.sales || 0
+                totalOrders: parseInt(totalOrders.rows[0].count),
+                pendingOrders: parseInt(pendingOrders.rows[0].count),
+                totalRevenue: parseInt(totalRevenue.rows[0].sum || totalRevenue.rows[0].coalesce),
+                recentOrders
             }
         });
     } catch (error) {
@@ -549,109 +487,17 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
     }
 });
 
-// Admin: Update order status
-app.put('/api/admin/orders/:orderId/status', requireAdminAuth, (req, res) => {
-    try {
-        const { orderId } = req.params;
-        const { status } = req.body;
-        
-        const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ success: false, error: 'Invalid status' });
-        }
-        
-        const result = db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, orderId);
-        
-        if (result.changes === 0) {
-            return res.status(404).json({ success: false, error: 'Order not found' });
-        }
-        
-        res.json({ success: true, message: 'Status updated' });
-    } catch (error) {
-        console.error('Error updating order status:', error);
-        res.status(500).json({ success: false, error: 'Failed to update status' });
-    }
-});
+// Initialize and start server
+async function startServer() {
+    await initDatabase();
+    
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`📊 Database: ${USE_POSTGRES ? 'PostgreSQL' : 'SQLite'}`);
+    });
+}
 
-// Admin: Create/Update product
-app.post('/api/admin/products', requireAdminAuth, (req, res) => {
-    try {
-        const product = req.body;
-        const id = product.id || 'lv-' + Date.now().toString(36);
-        const slug = product.slug || product.name.toLowerCase().replace(/\s+/g, '-');
-        
-        const insert = db.prepare(`
-            INSERT INTO products (id, name, slug, category, price, compare_at_price, description, 
-                                features, images, colors, sizes, inventory, tags, badge)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                name = excluded.name,
-                price = excluded.price,
-                description = excluded.description,
-                inventory = excluded.inventory
-        `);
-        
-        insert.run(
-            id,
-            product.name,
-            slug,
-            product.category,
-            product.price,
-            product.compareAtPrice,
-            product.description,
-            JSON.stringify(product.features || []),
-            JSON.stringify(product.images || []),
-            JSON.stringify(product.colors || []),
-            JSON.stringify(product.sizes || []),
-            JSON.stringify(product.inventory || {}),
-            JSON.stringify(product.tags || []),
-            product.badge
-        );
-        
-        res.json({ success: true, productId: id });
-    } catch (error) {
-        console.error('Error saving product:', error);
-        res.status(500).json({ success: false, error: 'Failed to save product' });
-    }
+startServer().catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
 });
-
-// Admin: Delete product
-app.delete('/api/admin/products/:productId', requireAdminAuth, (req, res) => {
-    try {
-        const { productId } = req.params;
-        const result = db.prepare('DELETE FROM products WHERE id = ?').run(productId);
-        
-        if (result.changes === 0) {
-            return res.status(404).json({ success: false, error: 'Product not found' });
-        }
-        
-        res.json({ success: true, message: 'Product deleted' });
-    } catch (error) {
-        console.error('Error deleting product:', error);
-        res.status(500).json({ success: false, error: 'Failed to delete product' });
-    }
-});
-
-// 404 handler for API
-app.use('/api/*', (req, res) => {
-    res.status(404).json({ success: false, error: 'API endpoint not found' });
-});
-
-// Serve 404 page for all other routes
-app.use((req, res) => {
-    res.status(404).sendFile(path.join(__dirname, '404.html'));
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-});
-
-// Start server
-app.listen(PORT, () => {
-    console.log(`LA VAGUE Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
-
-module.exports = app;
