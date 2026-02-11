@@ -146,11 +146,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return value.replace(/\D/g, '').replace(/(\d{2})(\d{0,2})/, '$1 / $2').trim();
     }
 
-    function handlePlaceOrder(e) {
+    async function handlePlaceOrder(e) {
         e.preventDefault();
         
         // Basic validation
-        const requiredFields = ['email', 'firstName', 'lastName', 'address', 'city', 'state', 'zip', 'phone', 'cardNumber', 'expiry', 'cvv', 'cardName'];
+        const requiredFields = ['email', 'firstName', 'lastName', 'address', 'city', 'state', 'zip', 'phone'];
         let isValid = true;
         
         requiredFields.forEach(field => {
@@ -168,21 +168,90 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Simulate order processing
+        // Get form data
+        const orderData = {
+            email: document.getElementById('email').value,
+            firstName: document.getElementById('firstName').value,
+            lastName: document.getElementById('lastName').value,
+            address: document.getElementById('address').value,
+            apartment: document.getElementById('apartment')?.value || '',
+            city: document.getElementById('city').value,
+            state: document.getElementById('state').value,
+            zip: document.getElementById('zip').value,
+            phone: document.getElementById('phone').value,
+            shippingMethod: document.querySelector('input[name="shipping"]:checked')?.value || 'standard',
+            shippingCost: state.shipping,
+            subtotal: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+            discount: state.discount,
+            total: parseFloat(document.getElementById('summaryTotal').textContent.replace('$', '')) || 0,
+            items: state.cart,
+            paystackReference: 'manual-order-' + Date.now() // Placeholder until payment integration
+        };
+        
+        // Show loading
         elements.placeOrderBtn.textContent = 'Processing...';
         elements.placeOrderBtn.disabled = true;
         
-        setTimeout(() => {
+        try {
+            // Try to send to backend API
+            const API_URL = window.location.hostname === 'localhost' 
+                ? 'http://localhost:3000/api' 
+                : 'https://la-vague-api.onrender.com/api';
+            
+            const response = await fetch(`${API_URL}/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Also save to localStorage for the admin panel to read
+                const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+                orders.unshift({
+                    ...orderData,
+                    id: result.orderId,
+                    date: new Date().toISOString(),
+                    status: 'pending'
+                });
+                localStorage.setItem('orders', JSON.stringify(orders));
+                
+                // Clear cart
+                localStorage.removeItem('cart');
+                
+                // Show success and redirect
+                showToast('Order placed successfully!', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = `order-confirmation.html?order=${result.orderId}`;
+                }, 1500);
+            } else {
+                throw new Error(result.error || 'Order failed');
+            }
+        } catch (error) {
+            console.error('Order error:', error);
+            
+            // Fallback: Save order locally even if API fails
+            const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+            const fallbackOrder = {
+                ...orderData,
+                id: 'LV-' + Date.now().toString(36).toUpperCase(),
+                date: new Date().toISOString(),
+                status: 'pending'
+            };
+            orders.unshift(fallbackOrder);
+            localStorage.setItem('orders', JSON.stringify(orders));
+            
             // Clear cart
             localStorage.removeItem('cart');
             
-            // Show success and redirect
-            showToast('Order placed successfully!', 'success');
+            showToast('Order saved locally (API unavailable)', 'success');
             
             setTimeout(() => {
-                window.location.href = 'order-confirmation.html';
+                window.location.href = `order-confirmation.html?order=${fallbackOrder.id}`;
             }, 1500);
-        }, 2000);
+        }
     }
 
     // ==========================================

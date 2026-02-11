@@ -106,23 +106,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
+    // API CONFIG
+    // ==========================================
+    const API_URL = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000/api' 
+        : 'https://la-vague-api.onrender.com/api';
+    
+    const ADMIN_KEY = 'your-secret-admin-key-here'; // Should match server ADMIN_API_KEY
+
+    // ==========================================
     // DATA LOADING
     // ==========================================
     async function loadDashboardData() {
         try {
-            // Load stats from localStorage (in production, fetch from API)
-            const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-            const products = PRODUCTS || [];
+            // Try to fetch from API first
+            let orders = [];
+            let products = PRODUCTS || [];
             
-            state.stats.totalOrders = orders.length;
-            state.stats.totalProducts = products.length;
-            state.stats.totalSales = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+            try {
+                const response = await fetch(`${API_URL}/admin/stats`, {
+                    headers: { 'x-admin-key': ADMIN_KEY }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    state.stats = data.stats;
+                    
+                    // Also fetch recent orders
+                    const ordersResponse = await fetch(`${API_URL}/admin/orders?limit=5`, {
+                        headers: { 'x-admin-key': ADMIN_KEY }
+                    });
+                    
+                    if (ordersResponse.ok) {
+                        const ordersData = await ordersResponse.json();
+                        orders = ordersData.orders || [];
+                    }
+                } else {
+                    throw new Error('API error');
+                }
+            } catch (apiError) {
+                console.log('API not available, using localStorage fallback');
+                // Fallback to localStorage
+                orders = JSON.parse(localStorage.getItem('orders') || '[]');
+                state.stats.totalOrders = orders.length;
+                state.stats.totalProducts = products.length;
+                state.stats.totalSales = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+            }
             
             // Update UI
-            document.getElementById('totalSales').textContent = '$' + state.stats.totalSales.toLocaleString();
-            document.getElementById('totalOrders').textContent = state.stats.totalOrders;
-            document.getElementById('totalProducts').textContent = state.stats.totalProducts;
-            document.getElementById('ordersBadge').textContent = state.stats.totalOrders;
+            document.getElementById('totalSales').textContent = '$' + (state.stats.totalSales || 0).toLocaleString();
+            document.getElementById('totalOrders').textContent = state.stats.totalOrders || 0;
+            document.getElementById('totalProducts').textContent = state.stats.totalProducts || products.length;
+            document.getElementById('ordersBadge').textContent = state.stats.totalOrders || 0;
             
             // Load recent orders
             loadRecentOrders(orders.slice(0, 5));
@@ -151,36 +186,81 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
-    function loadOrders() {
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    async function loadOrders() {
         const tbody = document.getElementById('ordersTable');
         const filter = document.getElementById('orderStatusFilter')?.value || 'all';
         
-        let filteredOrders = orders;
-        if (filter !== 'all') {
-            filteredOrders = orders.filter(o => o.status === filter);
+        try {
+            // Try to fetch from API
+            let url = `${API_URL}/admin/orders`;
+            if (filter !== 'all') {
+                url += `?status=${filter}`;
+            }
+            
+            const response = await fetch(url, {
+                headers: { 'x-admin-key': ADMIN_KEY }
+            });
+            
+            let orders = [];
+            
+            if (response.ok) {
+                const data = await response.json();
+                orders = data.orders || [];
+                state.orders = orders;
+            } else {
+                throw new Error('API error');
+            }
+            
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No orders found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = orders.map(order => `
+                <tr>
+                    <td><strong>${order.id}</strong></td>
+                    <td>${order.first_name} ${order.last_name}</td>
+                    <td>${order.email}</td>
+                    <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                    <td>${order.items?.length || 0}</td>
+                    <td>$${order.total}</td>
+                    <td><span class="status-badge ${order.status}">${order.status}</span></td>
+                    <td>
+                        <button class="btn-action" onclick="viewOrder('${order.id}')">View</button>
+                        <button class="btn-action" onclick="updateOrderStatus('${order.id}')">Update</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (error) {
+            console.log('API not available, using localStorage');
+            // Fallback to localStorage
+            const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+            let filteredOrders = orders;
+            if (filter !== 'all') {
+                filteredOrders = orders.filter(o => o.status === filter);
+            }
+            
+            if (filteredOrders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No orders found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = filteredOrders.map(order => `
+                <tr>
+                    <td><strong>${order.id}</strong></td>
+                    <td>${order.firstName} ${order.lastName}</td>
+                    <td>${order.email}</td>
+                    <td>${new Date(order.date).toLocaleDateString()}</td>
+                    <td>${order.items?.length || 0}</td>
+                    <td>$${order.total}</td>
+                    <td><span class="status-badge ${order.status}">${order.status}</span></td>
+                    <td>
+                        <button class="btn-action" onclick="viewOrder('${order.id}')">View</button>
+                        <button class="btn-action" onclick="updateOrderStatus('${order.id}')">Update</button>
+                    </td>
+                </tr>
+            `).join('');
         }
-        
-        if (filteredOrders.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No orders found</td></tr>';
-            return;
-        }
-        
-        tbody.innerHTML = filteredOrders.map(order => `
-            <tr>
-                <td><strong>${order.id}</strong></td>
-                <td>${order.firstName} ${order.lastName}</td>
-                <td>${order.email}</td>
-                <td>${new Date(order.date).toLocaleDateString()}</td>
-                <td>${order.items?.length || 0}</td>
-                <td>$${order.total}</td>
-                <td><span class="status-badge ${order.status}">${order.status}</span></td>
-                <td>
-                    <button class="btn-action" onclick="viewOrder('${order.id}')">View</button>
-                    <button class="btn-action" onclick="updateOrderStatus('${order.id}')">Update</button>
-                </td>
-            </tr>
-        `).join('');
     }
 
     function loadProducts() {
@@ -209,14 +289,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // ORDER MANAGEMENT
     // ==========================================
-    window.viewOrder = function(orderId) {
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-        const order = orders.find(o => o.id === orderId);
+    window.viewOrder = async function(orderId) {
+        let order = null;
+        
+        // Try to find in state first (from API)
+        order = state.orders.find(o => o.id === orderId);
+        
+        // If not found, try localStorage
+        if (!order) {
+            const localOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+            order = localOrders.find(o => o.id === orderId);
+        }
         
         if (!order) {
             showToast('Order not found', 'error');
             return;
         }
+        
+        // Handle both API format (snake_case) and localStorage format (camelCase)
+        const firstName = order.first_name || order.firstName;
+        const lastName = order.last_name || order.lastName;
+        const shippingCost = order.shipping_cost || order.shippingCost;
+        const paystackRef = order.paystack_reference || order.paystackReference;
+        const createdAt = order.created_at || order.date;
         
         const modalBody = document.getElementById('orderModalBody');
         modalBody.innerHTML = `
@@ -224,14 +319,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="detail-section">
                     <h4>Order Information</h4>
                     <p><strong>Order ID:</strong> ${order.id}</p>
-                    <p><strong>Date:</strong> ${new Date(order.date).toLocaleString()}</p>
+                    <p><strong>Date:</strong> ${new Date(createdAt).toLocaleString()}</p>
                     <p><strong>Status:</strong> <span class="status-badge ${order.status}">${order.status}</span></p>
-                    <p><strong>Payment:</strong> ${order.paystackReference ? 'Paid via Paystack' : 'Pending'}</p>
+                    <p><strong>Payment:</strong> ${paystackRef ? 'Paid via Paystack' : 'Pending'}</p>
                 </div>
                 
                 <div class="detail-section">
                     <h4>Customer</h4>
-                    <p><strong>Name:</strong> ${order.firstName} ${order.lastName}</p>
+                    <p><strong>Name:</strong> ${firstName} ${lastName}</p>
                     <p><strong>Email:</strong> ${order.email}</p>
                     <p><strong>Phone:</strong> ${order.phone}</p>
                 </div>
@@ -249,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${order.items?.map(item => `
                             <tr>
                                 <td>${item.name}</td>
-                                <td>${item.color} / ${item.size}</td>
+                                <td>${item.color || ''} / ${item.size || ''}</td>
                                 <td>x${item.quantity}</td>
                                 <td>$${item.price * item.quantity}</td>
                             </tr>
@@ -260,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="detail-section">
                     <h4>Payment Summary</h4>
                     <p><strong>Subtotal:</strong> $${order.subtotal}</p>
-                    <p><strong>Shipping:</strong> $${order.shippingCost}</p>
+                    <p><strong>Shipping:</strong> $${shippingCost}</p>
                     ${order.discount ? `<p><strong>Discount:</strong> -$${order.discount}</p>` : ''}
                     <p><strong>Total:</strong> $${order.total}</p>
                 </div>
@@ -276,22 +371,58 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('orderModal').classList.remove('active');
     };
 
-    window.updateOrderStatus = function(orderId) {
+    window.updateOrderStatus = async function(orderId) {
         const statuses = ['pending', 'processing', 'shipped', 'delivered'];
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-        const orderIndex = orders.findIndex(o => o.id === orderId);
         
-        if (orderIndex === -1) return;
+        // Try to find order
+        let order = state.orders.find(o => o.id === orderId);
+        let fromLocalStorage = false;
         
-        const currentStatus = orders[orderIndex].status;
+        if (!order) {
+            const localOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+            const orderIndex = localOrders.findIndex(o => o.id === orderId);
+            if (orderIndex === -1) {
+                showToast('Order not found', 'error');
+                return;
+            }
+            order = localOrders[orderIndex];
+            fromLocalStorage = true;
+        }
+        
+        const currentStatus = order.status;
         const currentIndex = statuses.indexOf(currentStatus);
         const nextStatus = statuses[(currentIndex + 1) % statuses.length];
         
-        orders[orderIndex].status = nextStatus;
-        localStorage.setItem('orders', JSON.stringify(orders));
+        try {
+            // Try to update via API
+            const response = await fetch(`${API_URL}/admin/orders/${orderId}/status`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-key': ADMIN_KEY 
+                },
+                body: JSON.stringify({ status: nextStatus })
+            });
+            
+            if (response.ok) {
+                showToast(`Order ${orderId} updated to ${nextStatus}`, 'success');
+            } else {
+                throw new Error('API update failed');
+            }
+        } catch (error) {
+            // Fallback to localStorage
+            if (fromLocalStorage) {
+                const localOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+                const orderIndex = localOrders.findIndex(o => o.id === orderId);
+                if (orderIndex !== -1) {
+                    localOrders[orderIndex].status = nextStatus;
+                    localStorage.setItem('orders', JSON.stringify(localOrders));
+                }
+            }
+            showToast(`Order ${orderId} updated to ${nextStatus} (local only)`, 'success');
+        }
         
         loadOrders();
-        showToast(`Order ${orderId} updated to ${nextStatus}`, 'success');
     };
 
     // ==========================================
