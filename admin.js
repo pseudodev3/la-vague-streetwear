@@ -917,14 +917,28 @@ elements.saveProductBtn.addEventListener('click', async () => {
     const productId = elements.productId.value;
     const isEdit = !!productId;
     
+    // Validate required fields
+    if (!elements.productName.value.trim()) {
+        showToast('Product name is required', 'error');
+        return;
+    }
+    if (!elements.productCategory.value) {
+        showToast('Category is required', 'error');
+        return;
+    }
+    if (!elements.productPrice.value || parseInt(elements.productPrice.value) <= 0) {
+        showToast('Valid price is required', 'error');
+        return;
+    }
+    
     // Build product data
     const productData = {
-        name: elements.productName.value,
+        name: elements.productName.value.trim(),
         category: elements.productCategory.value,
         price: parseInt(elements.productPrice.value),
         compareAtPrice: elements.productComparePrice.value ? parseInt(elements.productComparePrice.value) : null,
         badge: elements.productBadge.value || null,
-        description: elements.productDescription.value,
+        description: elements.productDescription.value.trim(),
         features: elements.productFeatures.value.split('\n').filter(f => f.trim()),
         colors: state.productForm.colors,
         sizes: state.productForm.sizes,
@@ -956,15 +970,31 @@ elements.saveProductBtn.addEventListener('click', async () => {
             formData.append('images', file);
         });
         
+        const token = sessionStorage.getItem('adminToken');
+        if (!token) {
+            throw new Error('Not authenticated. Please login again.');
+        }
+        
         const response = await fetch(`${API_URL}${url}`, {
             method,
             headers: {
-                'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`
+                'Authorization': `Bearer ${token}`
             },
             body: formData
         });
         
-        const data = await response.json();
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            throw new Error(`Server error: ${response.status} - ${text.substring(0, 200)}`);
+        }
+        
+        if (!response.ok) {
+            throw new Error(data.error || data.message || `Server error: ${response.status}`);
+        }
         
         if (data.success) {
             showToast(isEdit ? 'Product updated!' : 'Product created!', 'success');
@@ -975,7 +1005,8 @@ elements.saveProductBtn.addEventListener('click', async () => {
             throw new Error(data.error || 'Failed to save product');
         }
     } catch (error) {
-        showToast(error.message || 'Failed to save product', 'error');
+        console.error('Save product error:', error);
+        showToast(error.message || 'Failed to save product. Check console for details.', 'error');
     } finally {
         setLoading(elements.saveProductBtn, false);
     }

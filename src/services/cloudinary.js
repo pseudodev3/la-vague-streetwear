@@ -6,12 +6,20 @@ import { v2 as cloudinary } from 'cloudinary';
 import streamifier from 'streamifier';
 
 // Configure Cloudinary
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-    secure: true
-});
+const hasCloudinaryConfig = process.env.CLOUDINARY_CLOUD_NAME && 
+                           process.env.CLOUDINARY_API_KEY && 
+                           process.env.CLOUDINARY_API_SECRET;
+
+if (hasCloudinaryConfig) {
+    cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+        secure: true
+    });
+} else {
+    console.warn('[CLOUDINARY] Configuration missing - image uploads will use placeholder URLs');
+}
 
 /**
  * Upload an image buffer to Cloudinary
@@ -21,6 +29,15 @@ cloudinary.config({
  * @returns {Promise<Object>} Cloudinary upload result
  */
 export async function uploadImage(fileBuffer, folder = 'products', publicId = null) {
+    // If Cloudinary is not configured, return a placeholder
+    if (!hasCloudinaryConfig) {
+        console.warn('[CLOUDINARY] Not configured, returning placeholder URL');
+        return {
+            secure_url: `https://via.placeholder.com/800x1000/333/fff?text=Product+Image`,
+            public_id: `placeholder-${Date.now()}`
+        };
+    }
+    
     return new Promise((resolve, reject) => {
         const uploadOptions = {
             folder: `la-vague/${folder}`,

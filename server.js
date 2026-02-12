@@ -1019,18 +1019,23 @@ app.post('/api/admin/products',
     verifyAdminToken, 
     upload.array('images', 5),
     asyncHandler(async (req, res) => {
-        const productData = {
-            ...req.body,
-            features: JSON.parse(req.body.features || '[]'),
-            colors: JSON.parse(req.body.colors || '[]'),
-            sizes: JSON.parse(req.body.sizes || '[]'),
-            inventory: JSON.parse(req.body.inventory || '{}'),
-            tags: JSON.parse(req.body.tags || '[]')
-        };
-        
-        const product = await productService.create(productData, req.files);
-        console.log(`[PRODUCT] Created: ${product.id} - ${product.name}`);
-        res.status(201).json({ success: true, product });
+        try {
+            const productData = {
+                ...req.body,
+                features: JSON.parse(req.body.features || '[]'),
+                colors: JSON.parse(req.body.colors || '[]'),
+                sizes: JSON.parse(req.body.sizes || '[]'),
+                inventory: JSON.parse(req.body.inventory || '{}'),
+                tags: JSON.parse(req.body.tags || '[]')
+            };
+            
+            const product = await productService.create(productData, req.files);
+            console.log(`[PRODUCT] Created: ${product.id} - ${product.name}`);
+            res.status(201).json({ success: true, product });
+        } catch (error) {
+            console.error('[PRODUCT] Create error:', error.message);
+            throw new APIError(`Failed to create product: ${error.message}`, 500, 'CREATE_ERROR');
+        }
     })
 );
 
