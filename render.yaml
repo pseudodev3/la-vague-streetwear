@@ -1,37 +1,39 @@
 services:
-  - type: web
-    name: la-vague-api
-    runtime: node
-    region: ohio
-    plan: free
-    buildCommand: npm install
-    startCommand: node server.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: FRONTEND_URL
-        value: https://la-vague.store
-      - key: ADMIN_PASSWORD
-        value: lavague2024  # ⚠️ CHANGE THIS to a secure password in Render dashboard!
-      - key: DATABASE_URL
-        fromDatabase:
-          name: la-vague-db
-          property: connectionString
-      - key: PAYSTACK_SECRET_KEY
-        sync: false  # Set this manually in Render dashboard
-      - key: SMTP_HOST
-        value: smtp.gmail.com
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
-        sync: false  # Set manually
-      - key: SMTP_PASS
-        sync: false  # Set manually
-    healthCheckPath: /api/health
+    - type: web
+      name: la-vague-api
+      runtime: node
+      region: ohio
+      plan: free
+      buildCommand: npm install
+      startCommand: node server.js
+      envVars:
+          - key: NODE_VERSION
+            value: 20.18.0
+          - key: NODE_ENV
+            value: production
+          - key: FRONTEND_URL
+            value: https://la-vague.store
+          - key: ADMIN_PASSWORD
+            value: lavague2024 # ⚠️ CHANGE THIS to a secure password in Render dashboard!
+          - key: DATABASE_URL
+            fromDatabase:
+                name: la-vague-db
+                property: connectionString
+          - key: PAYSTACK_SECRET_KEY
+            sync: false # Set this manually in Render dashboard
+          - key: SMTP_HOST
+            value: smtp.gmail.com
+          - key: SMTP_PORT
+            value: '587'
+          - key: SMTP_USER
+            sync: false # Set manually
+          - key: SMTP_PASS
+            sync: false # Set manually
+      healthCheckPath: /api/health
 
 databases:
-  - name: la-vague-db
-    region: ohio
-    plan: free
-    databaseName: la_vague_db
-    user: la_vague_user
+    - name: la-vague-db
+      region: ohio
+      plan: free
+      databaseName: la_vague_db
+      user: la_vague_user
