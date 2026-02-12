@@ -18,13 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
             bestseller: false,
             maxPrice: 200
         },
-        cart: JSON.parse(localStorage.getItem('cart')) || [],
-        wishlist: JSON.parse(localStorage.getItem('wishlist')) || [],
         quickViewProduct: null,
         selectedColor: null,
         selectedSize: null,
         selectedQuantity: 1
     };
+    
+    // Use shared CartState for cart and wishlist
+    const getCart = () => typeof CartState !== 'undefined' ? CartState.cart : [];
+    const getWishlist = () => typeof CartState !== 'undefined' ? CartState.wishlist : [];
 
     // ==========================================
     // DOM ELEMENTS
@@ -93,8 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             hideLoading();
             renderProducts();
-            updateCartCount();
-            updateWishlistCount();
+            CartState.updateCartCount();
+            CartState.updateWishlistCount();
         }, 500);
         
         // Bind events
@@ -140,9 +142,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             Add to Cart
                         </button>
                         <button class="product-btn" onclick="event.stopPropagation(); window.quickView('${product.id}')">Quick View</button>
-                        <button class="product-btn wishlist ${state.wishlist.includes(product.id) ? 'active' : ''}" 
+                        <button class="product-btn wishlist ${getWishlist().includes(product.id) ? 'active' : ''}" 
                                 onclick="event.stopPropagation(); window.toggleWishlist('${product.id}')">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="${state.wishlist.includes(product.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="${getWishlist().includes(product.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                             </svg>
                         </button>
@@ -417,63 +419,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // CART
+    // CART & WISHLIST HELPERS
     // ==========================================
-    function addToCart(item) {
-        const existingItem = state.cart.find(i => 
-            i.id === item.id && i.color === item.color && i.size === item.size
-        );
-        
-        if (existingItem) {
-            existingItem.quantity += item.quantity;
-        } else {
-            state.cart.push(item);
-        }
-        
-        saveCart();
-        updateCartCount();
-        showToast(`${item.name} added to cart`, 'success', 'View Cart');
-    }
-
-    function saveCart() {
-        localStorage.setItem('cart', JSON.stringify(state.cart));
-        // Sync with shared CartState
-        if (typeof CartState !== 'undefined') {
-            CartState.cart = [...state.cart];
-            CartState.updateCartCount();
-        }
-    }
-
-    function updateCartCount() {
-        const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-        elements.cartCount.textContent = count;
-        elements.cartCount.style.display = count > 0 ? 'flex' : 'none';
-    }
-
-    // ==========================================
-    // WISHLIST
-    // ==========================================
-    window.toggleWishlist = function(productId) {
-        const index = state.wishlist.indexOf(productId);
-        
-        if (index > -1) {
-            state.wishlist.splice(index, 1);
-            showToast('Removed from wishlist', 'success');
-        } else {
-            state.wishlist.push(productId);
-            showToast('Added to wishlist', 'success');
-        }
-        
-        saveWishlist();
-        updateWishlistCount();
-        renderProducts(); // Re-render to update heart icons
-        
-        // Also update shared CartState
-        if (typeof CartState !== 'undefined') {
-            CartState.wishlist = [...state.wishlist];
-            CartState.saveWishlist();
-        }
-    };
     
     window.addToCartFromCard = function(productId) {
         const product = ProductAPI.getById(productId);
@@ -489,24 +436,13 @@ document.addEventListener('DOMContentLoaded', () => {
             quantity: 1
         };
         
-        // Add to shared cart
-        if (typeof CartState !== 'undefined') {
-            CartState.addToCart(item);
-        } else {
-            // Fallback to local cart
-            addToCart(item);
-        }
+        CartState.addToCart(item);
     };
-
-    function saveWishlist() {
-        localStorage.setItem('wishlist', JSON.stringify(state.wishlist));
-    }
-
-    function updateWishlistCount() {
-        const count = state.wishlist.length;
-        elements.wishlistCount.textContent = count;
-        elements.wishlistCount.classList.toggle('active', count > 0);
-    }
+    
+    window.toggleWishlist = function(productId) {
+        CartState.addToWishlist(productId);
+        renderProducts(); // Re-render to update heart icons
+    };
 
     // ==========================================
     // SEARCH
@@ -691,15 +627,15 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.navLinks?.classList.toggle('active');
         });
         
-        // Cart
-        elements.cartBtn?.addEventListener('click', openCart);
-        elements.cartClose?.addEventListener('click', closeCart);
-        elements.cartOverlay?.addEventListener('click', closeCart);
+        // Cart - use CartState functions
+        elements.cartBtn?.addEventListener('click', window.openCart);
+        elements.cartClose?.addEventListener('click', window.closeCart);
+        elements.cartOverlay?.addEventListener('click', window.closeCart);
         
-        // Wishlist
-        elements.wishlistBtn?.addEventListener('click', openWishlist);
-        elements.wishlistClose?.addEventListener('click', closeWishlist);
-        elements.wishlistOverlay?.addEventListener('click', closeWishlist);
+        // Wishlist - use CartState functions
+        elements.wishlistBtn?.addEventListener('click', window.openWishlist);
+        elements.wishlistClose?.addEventListener('click', window.closeWishlist);
+        elements.wishlistOverlay?.addEventListener('click', window.closeWishlist);
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -739,31 +675,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // CART & WISHLIST
+    // CART & WISHLIST (Using CartState)
     // ==========================================
-    function openCart() {
-        renderCart();
-        elements.cartSidebar.classList.add('active');
-        elements.cartOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
     
-    function closeCart() {
-        elements.cartSidebar.classList.remove('active');
-        elements.cartOverlay.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-    
-    function renderCart() {
-        if (state.cart.length === 0) {
+    // Override CartState render functions for this page's UI
+    const originalRenderCart = CartState.renderCart;
+    CartState.renderCart = function() {
+        const cart = getCart();
+        if (cart.length === 0) {
             elements.cartItems.innerHTML = `
                 <div class="cart-empty">
                     <p>Your cart is empty</p>
-                    <a href="shop.html" class="btn btn-secondary" onclick="closeCart()">Continue Shopping</a>
+                    <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()">Continue Shopping</a>
                 </div>
             `;
         } else {
-            elements.cartItems.innerHTML = state.cart.map((item, index) => `
+            elements.cartItems.innerHTML = cart.map((item, index) => `
                 <div class="cart-item">
                     <div class="cart-item-image">
                         <img src="${item.image}" alt="${item.name}">
@@ -773,79 +700,48 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="cart-item-variant">${item.color} / ${item.size}</p>
                         <div class="cart-item-actions">
                             <div class="cart-item-qty">
-                                <button onclick="updateCartQty(${index}, -1)">−</button>
+                                <button onclick="window.shopUpdateCartQty(${index}, -1)">−</button>
                                 <span>${item.quantity}</span>
-                                <button onclick="updateCartQty(${index}, 1)">+</button>
+                                <button onclick="window.shopUpdateCartQty(${index}, 1)">+</button>
                             </div>
                             <span class="cart-item-price">$${item.price * item.quantity}</span>
                         </div>
                     </div>
-                    <button class="cart-item-remove" onclick="removeFromCart(${index})">×</button>
+                    <button class="cart-item-remove" onclick="window.shopRemoveFromCart(${index})">×</button>
                 </div>
             `).join('');
         }
-        const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         elements.cartSubtotal.textContent = `$${subtotal}`;
-    }
-    
-    window.updateCartQty = function(index, delta) {
-        const item = state.cart[index];
-        const newQty = item.quantity + delta;
-        if (newQty < 1) {
-            state.cart.splice(index, 1);
-        } else {
-            item.quantity = newQty;
-        }
-        saveCart();
-        renderCart();
-        updateCartCount();
     };
     
-    window.removeFromCart = function(index) {
-        state.cart.splice(index, 1);
-        saveCart();
-        renderCart();
-        updateCartCount();
+    window.shopUpdateCartQty = function(index, delta) {
+        CartState.updateCartItemQuantity(index, delta);
+        CartState.renderCart();
+    };
+    
+    window.shopRemoveFromCart = function(index) {
+        CartState.removeFromCart(index);
         showToast('Item removed from cart', 'success');
     };
     
-    function saveCart() {
-        localStorage.setItem('cart', JSON.stringify(state.cart));
-    }
-    
-    function updateCartCount() {
-        const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-        elements.cartCount.textContent = count;
-        elements.cartCount.style.display = count > 0 ? 'flex' : 'none';
-    }
-    
-    function openWishlist() {
-        renderWishlist();
-        elements.wishlistSidebar.classList.add('active');
-        elements.wishlistOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-    
-    function closeWishlist() {
-        elements.wishlistSidebar.classList.remove('active');
-        elements.wishlistOverlay.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-    
-    function renderWishlist() {
-        if (state.wishlist.length === 0) {
+    // Override wishlist render for this page
+    const originalRenderWishlist = CartState.renderWishlist;
+    CartState.renderWishlist = function() {
+        const wishlist = getWishlist();
+        if (wishlist.length === 0) {
             elements.wishlistItems.innerHTML = `
                 <div class="wishlist-empty">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                     </svg>
                     <p>Your wishlist is empty</p>
-                    <a href="shop.html" class="btn btn-secondary" onclick="closeWishlist()">Start Shopping</a>
+                    <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Start Shopping</a>
                 </div>
             `;
             return;
         }
-        const wishlistProducts = state.wishlist.map(id => ProductAPI.getById(id)).filter(p => p);
+        const wishlistProducts = wishlist.map(id => ProductAPI.getById(id)).filter(p => p);
         elements.wishlistItems.innerHTML = wishlistProducts.map(product => `
             <div class="wishlist-item">
                 <div class="wishlist-item-image">
@@ -855,15 +751,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
                     <p class="wishlist-item-price">$${product.price}</p>
                     <div class="wishlist-item-actions">
-                        <button class="btn-add-cart-sm" onclick="addToCartFromWishlist('${product.id}')">Add to Cart</button>
-                        <button class="btn-remove-sm" onclick="removeFromWishlist('${product.id}')">Remove</button>
+                        <button class="btn-add-cart-sm" onclick="window.shopAddToCartFromWishlist('${product.id}')">Add to Cart</button>
+                        <button class="btn-remove-sm" onclick="window.shopRemoveFromWishlist('${product.id}')">Remove</button>
                     </div>
                 </div>
             </div>
         `).join('');
-    }
+    };
     
-    window.addToCartFromWishlist = function(productId) {
+    window.shopAddToCartFromWishlist = function(productId) {
         const product = ProductAPI.getById(productId);
         if (!product) return;
         const item = {
@@ -875,24 +771,14 @@ document.addEventListener('DOMContentLoaded', () => {
             size: product.sizes[0],
             quantity: 1
         };
-        const existingItem = state.cart.find(i => i.id === item.id && i.color === item.color && i.size === item.size);
-        if (existingItem) {
-            existingItem.quantity++;
-        } else {
-            state.cart.push(item);
-        }
-        saveCart();
-        updateCartCount();
+        CartState.addToCart(item);
         showToast(`${product.name} added to cart`, 'success');
     };
     
-    window.removeFromWishlist = function(productId) {
-        const index = state.wishlist.indexOf(productId);
+    window.shopRemoveFromWishlist = function(productId) {
+        const index = getWishlist().indexOf(productId);
         if (index > -1) {
-            state.wishlist.splice(index, 1);
-            localStorage.setItem('wishlist', JSON.stringify(state.wishlist));
-            renderWishlist();
-            updateWishlistCount();
+            CartState.removeFromWishlist(index);
             showToast('Removed from wishlist', 'success');
         }
     };
