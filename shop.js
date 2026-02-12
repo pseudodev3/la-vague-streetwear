@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <img src="${firstImage.src}" alt="${firstImage.alt}" class="product-image" loading="lazy">
                     ${secondImage ? `<img src="${secondImage.src}" alt="${secondImage.alt}" class="product-image-hover" loading="lazy">` : ''}
                     <div class="product-actions">
-                        <button class="product-btn" onclick="event.stopPropagation(); window.addToCartFromCard('${product.id}')">
+                        <button class="product-btn" onclick="event.preventDefault(); event.stopPropagation(); window.addToCartFromCard('${product.id}'); return false;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M6 6h15l-1.5 9h-12z"></path>
                                 <circle cx="9" cy="20" r="1"></circle>
@@ -239,9 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             </svg>
                             Add to Cart
                         </button>
-                        <button class="product-btn" onclick="event.stopPropagation(); window.quickView('${product.id}')">Quick View</button>
+                        <button class="product-btn" onclick="event.preventDefault(); event.stopPropagation(); window.quickView('${product.id}'); return false;">Quick View</button>
                         <button class="product-btn wishlist ${getWishlist().includes(product.id) ? 'active' : ''}" 
-                                onclick="event.stopPropagation(); window.toggleWishlist('${product.id}')">
+                                onclick="event.preventDefault(); event.stopPropagation(); window.toggleWishlist('${product.id}'); return false;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="${getWishlist().includes(product.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                             </svg>
@@ -352,20 +352,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // QUICK VIEW
     // ==========================================
     window.quickView = function(productId) {
-        // Use state.products (from API) instead of ProductAPI (static)
-        const product = state.products.find(p => p.id === productId);
-        if (!product) {
-            console.error(`[QuickView] Product ${productId} not found in state.products`);
-            return;
+        try {
+            // Use state.products (from API) instead of ProductAPI (static)
+            const product = state.products.find(p => p.id === productId);
+            if (!product) {
+                console.error(`[QuickView] Product ${productId} not found in state.products`);
+                showToast('Product not found', 'error');
+                return;
+            }
+            
+            state.quickViewProduct = product;
+            state.selectedColor = product.colors?.[0]?.name || 'Default';
+            state.selectedSize = product.sizes?.[0] || 'OS';
+            state.selectedQuantity = 1;
+            
+            renderQuickView();
+            openQuickView();
+        } catch (error) {
+            console.error('[QuickView] Error:', error);
+            showToast('Failed to open quick view', 'error');
         }
-        
-        state.quickViewProduct = product;
-        state.selectedColor = product.colors?.[0]?.name || 'Default';
-        state.selectedSize = product.sizes?.[0] || 'OS';
-        state.selectedQuantity = 1;
-        
-        renderQuickView();
-        openQuickView();
     };
 
     function renderQuickView() {
@@ -495,6 +501,11 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.quickViewOverlay.classList.remove('active');
         document.body.style.overflow = '';
     }
+
+    // Prevent clicks inside modal content from closing the modal
+    elements.quickViewContent?.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
 
     // ==========================================
     // SIZE GUIDE

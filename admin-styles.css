@@ -1223,6 +1223,7 @@ textarea {
     opacity: 0;
     transform: translateX(100%);
     transition: all 0.3s ease;
+    color: var(--color-text);
 }
 
 .toast.show {
