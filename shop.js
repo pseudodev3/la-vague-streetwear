@@ -3,6 +3,86 @@
  * Complete e-commerce functionality
  */
 
+/**
+ * LA VAGUE - Shop Page JavaScript
+ * Connected to Backend API
+ */
+
+// ==========================================
+// API CONFIGURATION
+// ==========================================
+const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/api' 
+    : '/api';
+
+// API Client for Shop
+const ShopAPI = {
+    async getProducts() {
+        try {
+            const response = await fetch(`${API_URL}/products`);
+            if (!response.ok) throw new Error('Failed to fetch products');
+            const data = await response.json();
+            return data.products || [];
+        } catch (error) {
+            console.warn('API unavailable, using static data');
+            return null;
+        }
+    },
+    
+    async getProductBySlug(slug) {
+        try {
+            const response = await fetch(`${API_URL}/products/${encodeURIComponent(slug)}`);
+            if (!response.ok) throw new Error('Product not found');
+            const data = await response.json();
+            return data.product;
+        } catch (error) {
+            return null;
+        }
+    },
+    
+    async checkStock(productId, color, size) {
+        try {
+            const response = await fetch(`${API_URL}/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            return { available: 999, inStock: true }; // Default to available on error
+        }
+    }
+};
+
+// Transform database product to frontend format
+function transformProduct(dbProduct) {
+    return {
+        id: dbProduct.id,
+        name: dbProduct.name,
+        slug: dbProduct.slug,
+        category: dbProduct.category,
+        price: dbProduct.price,
+        compareAtPrice: dbProduct.compare_at_price || dbProduct.compareAtPrice,
+        description: dbProduct.description,
+        features: Array.isArray(dbProduct.features) ? dbProduct.features : JSON.parse(dbProduct.features || '[]'),
+        images: Array.isArray(dbProduct.images) ? dbProduct.images : JSON.parse(dbProduct.images || '[]'),
+        colors: Array.isArray(dbProduct.colors) ? dbProduct.colors : JSON.parse(dbProduct.colors || '[]'),
+        sizes: Array.isArray(dbProduct.sizes) ? dbProduct.sizes : JSON.parse(dbProduct.sizes || '[]'),
+        inventory: typeof dbProduct.inventory === 'object' ? dbProduct.inventory : JSON.parse(dbProduct.inventory || '{}'),
+        tags: Array.isArray(dbProduct.tags) ? dbProduct.tags : JSON.parse(dbProduct.tags || '[]'),
+        badge: dbProduct.badge,
+        createdAt: dbProduct.created_at || dbProduct.createdAt,
+        sizeGuide: getSizeGuideForCategory(dbProduct.category)
+    };
+}
+
+function getSizeGuideForCategory(category) {
+    const guides = {
+        hoodies: 'oversized',
+        tees: 'regular',
+        bottoms: 'pants',
+        accessories: 'none'
+    };
+    return guides[category] || 'regular';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // STATE
@@ -21,7 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
         quickViewProduct: null,
         selectedColor: null,
         selectedSize: null,
-        selectedQuantity: 1
+        selectedQuantity: 1,
+        usingStaticData: false
     };
     
     // Use shared CartState for cart and wishlist
@@ -83,21 +164,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // INITIALIZATION
     // ==========================================
-    function init() {
-        // Load products
-        state.products = ProductAPI.getAll();
-        state.filteredProducts = [...state.products];
-        
+    async function init() {
         // Initialize UI
         showLoading();
         
-        // Simulate loading delay
-        setTimeout(() => {
-            hideLoading();
-            renderProducts();
-            CartState.updateCartCount();
-            CartState.updateWishlistCount();
-        }, 500);
+        // Try to load from API first
+        const apiProducts = await ShopAPI.getProducts();
+        
+        if (apiProducts && apiProducts.length > 0) {
+            // Use API data (from admin/database)
+            state.products = apiProducts.map(transformProduct);
+            state.usingStaticData = false;
+        } else {
+            // Fallback to static data (for demo/offline)
+            state.products = ProductAPI.getAll();
+            state.usingStaticData = true;
+        }
+        
+        state.filteredProducts = [...state.products];
+        
+        // Initialize UI
+        hideLoading();
+        renderProducts();
+        CartState.updateCartCount();
+        CartState.updateWishlistCount();
         
         // Bind events
         bindEvents();
@@ -352,8 +442,18 @@ document.addEventListener('DOMContentLoaded', () => {
         renderQuickView();
     };
 
-    window.addToCartFromQuickView = function() {
+    window.addToCartFromQuickView = async function() {
         const product = state.quickViewProduct;
+        
+        // Check inventory if using API
+        if (!state.usingStaticData) {
+            const stockCheck = await ShopAPI.checkStock(product.id, state.selectedColor, state.selectedSize);
+            if (!stockCheck.inStock || stockCheck.available < state.selectedQuantity) {
+                showToast(`Only ${stockCheck.available} items available in this variant`, 'error');
+                return;
+            }
+        }
+        
         addToCart({
             id: product.id,
             name: product.name,
@@ -422,17 +522,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // CART & WISHLIST HELPERS
     // ==========================================
     
-    window.addToCartFromCard = function(productId) {
-        const product = ProductAPI.getById(productId);
+    window.addToCartFromCard = async function(productId) {
+        // Find product in state (from API or static)
+        const product = state.products.find(p => p.id === productId);
         if (!product) return;
+        
+        const color = product.colors[0]?.name || 'Default';
+        const size = product.sizes[0];
+        
+        // Check inventory if using API
+        if (!state.usingStaticData) {
+            const stockCheck = await ShopAPI.checkStock(product.id, color, size);
+            if (!stockCheck.inStock) {
+                showToast('Sorry, this item is out of stock', 'error');
+                return;
+            }
+        }
         
         const item = {
             id: product.id,
             name: product.name,
             price: product.price,
-            image: product.images[0].src,
-            color: product.colors[0]?.name || 'Default',
-            size: product.sizes[0],
+            image: product.images[0]?.src || '',
+            color: color,
+            size: size,
             quantity: 1
         };
         

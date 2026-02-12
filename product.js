@@ -1,6 +1,81 @@
 /**
  * LA VAGUE - Product Detail Page JavaScript
+ * Connected to Backend API
  */
+
+// ==========================================
+// API CONFIGURATION
+// ==========================================
+const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/api' 
+    : '/api';
+
+// API Client for Product Page
+const ProductDetailAPI = {
+    async getProductBySlug(slug) {
+        try {
+            const response = await fetch(`${API_URL}/products/${encodeURIComponent(slug)}`);
+            if (!response.ok) throw new Error('Product not found');
+            const data = await response.json();
+            return data.product ? transformProduct(data.product) : null;
+        } catch (error) {
+            // Fallback to static data
+            return ProductAPI.getBySlug(slug);
+        }
+    },
+    
+    async getAllProducts() {
+        try {
+            const response = await fetch(`${API_URL}/products`);
+            const data = await response.json();
+            return data.products ? data.products.map(transformProduct) : [];
+        } catch (error) {
+            return ProductAPI.getAll();
+        }
+    },
+    
+    async checkStock(productId, color, size) {
+        try {
+            const response = await fetch(`${API_URL}/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            return { available: 999, inStock: true };
+        }
+    }
+};
+
+// Transform database product to frontend format
+function transformProduct(dbProduct) {
+    return {
+        id: dbProduct.id,
+        name: dbProduct.name,
+        slug: dbProduct.slug,
+        category: dbProduct.category,
+        price: dbProduct.price,
+        compareAtPrice: dbProduct.compare_at_price || dbProduct.compareAtPrice,
+        description: dbProduct.description,
+        features: Array.isArray(dbProduct.features) ? dbProduct.features : JSON.parse(dbProduct.features || '[]'),
+        images: Array.isArray(dbProduct.images) ? dbProduct.images : JSON.parse(dbProduct.images || '[]'),
+        colors: Array.isArray(dbProduct.colors) ? dbProduct.colors : JSON.parse(dbProduct.colors || '[]'),
+        sizes: Array.isArray(dbProduct.sizes) ? dbProduct.sizes : JSON.parse(dbProduct.sizes || '[]'),
+        inventory: typeof dbProduct.inventory === 'object' ? dbProduct.inventory : JSON.parse(dbProduct.inventory || '{}'),
+        tags: Array.isArray(dbProduct.tags) ? dbProduct.tags : JSON.parse(dbProduct.tags || '[]'),
+        badge: dbProduct.badge,
+        createdAt: dbProduct.created_at || dbProduct.createdAt,
+        sizeGuide: getSizeGuideForCategory(dbProduct.category)
+    };
+}
+
+function getSizeGuideForCategory(category) {
+    const guides = {
+        hoodies: 'oversized',
+        tees: 'regular',
+        bottoms: 'pants',
+        accessories: 'none'
+    };
+    return guides[category] || 'regular';
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
@@ -11,7 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentImageIndex: 0,
         selectedColor: null,
         selectedSize: null,
-        quantity: 1
+        quantity: 1,
+        usingStaticData: false
     };
     
     // Use shared CartState for cart and wishlist
@@ -89,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // INITIALIZATION
     // ==========================================
-    function init() {
+    async function init() {
         // Get product from URL
         const urlParams = new URLSearchParams(window.location.search);
         const slug = urlParams.get('slug');
@@ -99,7 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        state.product = ProductAPI.getBySlug(slug);
+        // Try API first, fallback to static
+        state.product = await ProductDetailAPI.getProductBySlug(slug);
+        state.usingStaticData = !state.product?._fromAPI;
         
         if (!state.product) {
             window.location.href = 'shop.html';
@@ -112,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Render product
         renderProduct();
-        renderRelatedProducts();
+        await renderRelatedProducts();
         CartState.updateCartCount();
         CartState.updateWishlistCount();
         updateWishlistButton();
@@ -209,14 +287,29 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.selectedSize.textContent = state.selectedSize;
     }
 
-    function renderRelatedProducts() {
-        const related = ProductAPI.getRelated(state.product.id, 4);
+    async function renderRelatedProducts() {
+        // Get all products and filter for related (same category, excluding current)
+        let allProducts;
+        try {
+            allProducts = await ProductDetailAPI.getAllProducts();
+        } catch (e) {
+            allProducts = ProductAPI.getAll();
+        }
+        
+        const related = allProducts
+            .filter(p => p.category === state.product.category && p.id !== state.product.id)
+            .slice(0, 4);
+        
+        if (related.length === 0) {
+            elements.relatedGrid.innerHTML = '';
+            return;
+        }
         
         elements.relatedGrid.innerHTML = related.map(product => `
             <article class="product-card" onclick="window.location.href='product.html?slug=${product.slug}'">
                 <div class="product-image-wrapper">
                     ${product.badge ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : ''}
-                    <img src="${product.images[0].src}" alt="${product.images[0].alt}" class="product-image" loading="lazy">
+                    <img src="${product.images[0]?.src || ''}" alt="${product.images[0]?.alt || product.name}" class="product-image" loading="lazy">
                 </div>
                 <div class="product-info">
                     <p class="product-category">${CATEGORIES.find(c => c.id === product.category)?.name}</p>
@@ -264,12 +357,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // CART
     // ==========================================
-    function addToCart() {
+    async function addToCart() {
+        // Check inventory if using API
+        if (!state.usingStaticData) {
+            const stockCheck = await ProductDetailAPI.checkStock(
+                state.product.id, 
+                state.selectedColor, 
+                state.selectedSize
+            );
+            
+            if (!stockCheck.inStock) {
+                showToast('Sorry, this item is out of stock', 'error');
+                return;
+            }
+            
+            if (stockCheck.available < state.quantity) {
+                showToast(`Only ${stockCheck.available} items available`, 'error');
+                return;
+            }
+        }
+        
         const item = {
             id: state.product.id,
             name: state.product.name,
             price: state.product.price,
-            image: state.product.images[0].src,
+            image: state.product.images[0]?.src || '',
             color: state.selectedColor,
             size: state.selectedSize,
             quantity: state.quantity
