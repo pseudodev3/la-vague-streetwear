@@ -215,12 +215,20 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.emptyState.style.display = 'none';
         elements.resultsCount.textContent = `${state.filteredProducts.length} product${state.filteredProducts.length !== 1 ? 's' : ''}`;
         
-        elements.productsGrid.innerHTML = state.filteredProducts.map(product => `
+        elements.productsGrid.innerHTML = state.filteredProducts.map(product => {
+            // Safely get first image with fallback
+            const firstImage = product.images && product.images[0] ? product.images[0] : {
+                src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
+                alt: product.name
+            };
+            const secondImage = product.images && product.images[1] ? product.images[1] : null;
+            
+            return `
             <article class="product-card reveal-up" data-product-id="${product.id}">
                 <div class="product-image-wrapper" onclick="window.openProductPage('${product.slug}')">
                     ${product.badge ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : ''}
-                    <img src="${product.images[0].src}" alt="${product.images[0].alt}" class="product-image" loading="lazy">
-                    ${product.images[1] ? `<img src="${product.images[1].src}" alt="${product.images[1].alt}" class="product-image-hover" loading="lazy">` : ''}
+                    <img src="${firstImage.src}" alt="${firstImage.alt}" class="product-image" loading="lazy">
+                    ${secondImage ? `<img src="${secondImage.src}" alt="${secondImage.alt}" class="product-image-hover" loading="lazy">` : ''}
                     <div class="product-actions">
                         <button class="product-btn" onclick="event.stopPropagation(); window.addToCartFromCard('${product.id}')">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -247,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="current-price">$${product.price}</span>
                         ${product.compareAtPrice ? `<span class="original-price">$${product.compareAtPrice}</span>` : ''}
                     </div>
-                    ${product.colors.length > 1 ? `
+                    ${product.colors && product.colors.length > 1 ? `
                         <div class="product-colors">
                             ${product.colors.map((color, i) => `
                                 <span class="color-dot ${i === 0 ? 'active' : ''}" style="background-color: ${color.value}" title="${color.name}"></span>
@@ -256,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ` : ''}
                 </div>
             </article>
-        `).join('');
+        `}).join('');
         
         // Re-initialize reveal animations
         initRevealAnimations();

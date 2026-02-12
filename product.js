@@ -15,10 +15,16 @@ const ProductDetailAPI = {
     async getProductBySlug(slug) {
         try {
             const response = await fetch(`${API_URL}/products/${encodeURIComponent(slug)}`);
-            if (!response.ok) throw new Error('Product not found');
+            if (!response.ok) {
+                console.error(`[API] Product fetch failed: ${response.status}`);
+                throw new Error('Product not found');
+            }
             const data = await response.json();
+            console.log('[API] Product fetched:', data.product?.name);
             return data.product ? transformProduct(data.product) : null;
         } catch (error) {
+            console.error('[API] Error fetching product:', error.message);
+            console.warn('[API] Falling back to static data');
             // Fallback to static data
             return ProductAPI.getBySlug(slug);
         }
@@ -180,7 +186,11 @@ document.addEventListener('DOMContentLoaded', () => {
         state.usingStaticData = !state.product?._fromAPI;
         
         if (!state.product) {
-            window.location.href = 'shop.html';
+            console.error('[INIT] Product not found, redirecting to shop...');
+            showToast('Product not found. Redirecting to shop...', 'error');
+            setTimeout(() => {
+                window.location.href = 'shop.html';
+            }, 2000);
             return;
         }
         
@@ -247,15 +257,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderGallery() {
-        const images = state.product.images;
+        const images = state.product.images || [];
+        
+        // Fallback if no images
+        if (images.length === 0) {
+            const placeholder = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750"><rect fill="%231f2937" width="600" height="750"/><text fill="%239ca3af" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="24">No Image Available</text></svg>';
+            elements.mainImage.src = placeholder;
+            elements.mainImage.alt = state.product.name;
+            elements.galleryThumbs.innerHTML = '';
+            elements.galleryPrev.style.display = 'none';
+            elements.galleryNext.style.display = 'none';
+            return;
+        }
+        
+        // Ensure current index is valid
+        if (state.currentImageIndex >= images.length) {
+            state.currentImageIndex = 0;
+        }
         
         // Main image
-        elements.mainImage.src = images[state.currentImageIndex].src;
-        elements.mainImage.alt = images[state.currentImageIndex].alt;
+        const currentImage = images[state.currentImageIndex] || images[0];
+        elements.mainImage.src = currentImage.src;
+        elements.mainImage.alt = currentImage.alt || state.product.name;
         
         // Thumbs
         elements.galleryThumbs.innerHTML = images.map((img, i) => `
-            <img src="${img.src}" alt="${img.alt}" 
+            <img src="${img.src}" alt="${img.alt || ''}" 
                  class="gallery-thumb ${i === state.currentImageIndex ? 'active' : ''}"
                  onclick="window.setImage(${i})">
         `).join('');
