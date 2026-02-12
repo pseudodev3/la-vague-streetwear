@@ -896,8 +896,6 @@ app.delete('/api/admin/products/:id', verifyAdminToken, asyncHandler(async (req,
     console.log(`[PRODUCT] Deleted: ${req.params.id}`);
     res.json({ success: true, ...result });
 }));
-    res.json({ success: true, stats });
-}));
 
 // ==========================================
 // INVENTORY MANAGEMENT (Admin Only)
