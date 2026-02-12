@@ -111,9 +111,15 @@ app.use(helmet({
     }
 }));
 
-// CORS - Restrict to known origins in production
+// CORS - Allow Netlify and custom domain
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL || 'https://la-vague.store', 'https://la-vague.store']
+    ? [
+        process.env.FRONTEND_URL,
+        'https://la-vague.store',
+        'https://www.la-vague.store',
+        // Allow all Netlify deploy previews and branch deploys
+        /https:\/\/.+\.netlify\.app$/
+      ].filter(Boolean)
     : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000'];
 
 app.use(cors({
@@ -121,11 +127,21 @@ app.use(cors({
         // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin) return callback(null, true);
         
-        if (allowedOrigins.indexOf(origin) === -1) {
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            return callback(new Error(msg), false);
+        // Check if origin matches any allowed origin (string or regex)
+        const isAllowed = allowedOrigins.some(allowed => {
+            if (allowed instanceof RegExp) {
+                return allowed.test(origin);
+            }
+            return allowed === origin;
+        });
+        
+        if (isAllowed) {
+            return callback(null, true);
         }
-        return callback(null, true);
+        
+        console.warn(`[CORS] Blocked request from origin: ${origin}`);
+        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+        return callback(new Error(msg), false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
