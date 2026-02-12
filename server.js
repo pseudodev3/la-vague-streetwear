@@ -12,6 +12,7 @@ import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -470,7 +471,7 @@ app.post('/api/admin/login', async (req, res) => {
     }
     
     // Generate a simple session token (in production, use JWT)
-    const token = require('crypto').randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(32).toString('hex');
     
     // Store session in database
     try {
