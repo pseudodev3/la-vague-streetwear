@@ -239,9 +239,6 @@ async function loadStats() {
             fetchAPI('/admin/products/stats')
         ]);
         
-        console.log('Order stats:', orderStats);
-        console.log('Product stats:', productStats);
-        
         // Handle both response structures
         const orderData = orderStats.stats || orderStats;
         const productData = productStats.stats || productStats;
@@ -252,8 +249,6 @@ async function loadStats() {
             totalRevenue: orderData.totalRevenue || orderData.total_revenue || 0,
             totalProducts: productData.totalProducts || productData.total_products || 0
         };
-        
-        console.log('Combined stats:', state.stats);
         
         elements.statRevenue.textContent = `$${(state.stats.totalRevenue || 0).toLocaleString()}`;
         elements.statOrders.textContent = (state.stats.totalOrders || 0).toLocaleString();
@@ -579,7 +574,6 @@ window.updateOrderStatus = async function(orderId) {
     const nextStatus = statuses[(currentIndex + 1) % statuses.length];
     
     try {
-        console.log(`Updating order ${orderId} to status: ${nextStatus}`);
         await fetchAPI(`/admin/orders/${orderId}/status`, {
             method: 'POST',
             body: JSON.stringify({ status: nextStatus })
@@ -958,12 +952,8 @@ async function fetchAPI(endpoint, options = {}) {
         config.body = JSON.stringify(config.body);
     }
     
-    console.log(`[API] ${config.method || 'GET'} ${endpoint}`, config.body);
-    
     const response = await fetch(url, config);
     const data = await response.json();
-    
-    console.log(`[API] Response ${response.status}:`, data);
     
     if (!response.ok) {
         if (response.status === 401) {

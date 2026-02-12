@@ -759,23 +759,19 @@ app.get('/api/admin/orders', verifyAdminToken, asyncHandler(async (req, res) => 
 }));
 
 // Update order status with validation
-app.post('/api/admin/orders/:id/status', verifyAdminToken, asyncHandler(async (req, res) => {
+app.post('/api/admin/orders/:id/status', verifyAdminToken, validateUpdateOrderStatus, asyncHandler(async (req, res) => {
     const { status } = req.body;
     const { id } = req.params;
     
-    console.log(`[ADMIN] Updating order ${id} to status: "${status}"`);
-    console.log(`[ADMIN] Request body:`, req.body);
-    
     if (USE_POSTGRES) {
-        const result = await db.query('UPDATE orders SET order_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', 
+        await db.query('UPDATE orders SET order_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', 
             [status, id]);
-        console.log(`[ADMIN] Update result:`, result);
     } else {
-        const result = db.prepare('UPDATE orders SET order_status = ?, updated_at = datetime("now") WHERE id = ?')
+        db.prepare('UPDATE orders SET order_status = ?, updated_at = datetime("now") WHERE id = ?')
             .run(status, id);
-        console.log(`[ADMIN] Update result:`, result);
     }
     
+    console.log(`[ADMIN] Order ${id} status updated to: ${status}`);
     res.json({ success: true });
 }));
 
