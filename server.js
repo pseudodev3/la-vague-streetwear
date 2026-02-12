@@ -1020,13 +1020,19 @@ app.post('/api/admin/products',
     upload.array('images', 5),
     asyncHandler(async (req, res) => {
         try {
+            // Validate and truncate fields to prevent "value too long" errors
+            const truncate = (str, maxLen) => str && str.length > maxLen ? str.substring(0, maxLen) : str;
+            
             const productData = {
                 ...req.body,
+                name: truncate(req.body.name, 200),
+                description: truncate(req.body.description, 5000),
                 features: JSON.parse(req.body.features || '[]'),
                 colors: JSON.parse(req.body.colors || '[]'),
                 sizes: JSON.parse(req.body.sizes || '[]'),
                 inventory: JSON.parse(req.body.inventory || '{}'),
-                tags: JSON.parse(req.body.tags || '[]')
+                tags: JSON.parse(req.body.tags || '[]'),
+                keepImages: JSON.parse(req.body.keepImages || '[]').slice(0, 5) // Max 5 images
             };
             
             const product = await productService.create(productData, req.files);
@@ -1044,28 +1050,38 @@ app.put('/api/admin/products/:id',
     verifyAdminToken,
     upload.array('images', 5),
     asyncHandler(async (req, res) => {
-        const productData = {
-            ...req.body,
-            features: req.body.features ? JSON.parse(req.body.features) : undefined,
-            colors: req.body.colors ? JSON.parse(req.body.colors) : undefined,
-            sizes: req.body.sizes ? JSON.parse(req.body.sizes) : undefined,
-            inventory: req.body.inventory ? JSON.parse(req.body.inventory) : undefined,
-            tags: req.body.tags ? JSON.parse(req.body.tags) : undefined,
-            keepImages: req.body.keepImages ? JSON.parse(req.body.keepImages) : []
-        };
-        
-        const imagesToDelete = req.body.imagesToDelete 
-            ? JSON.parse(req.body.imagesToDelete) 
-            : [];
-        
-        const product = await productService.update(
-            req.params.id, 
-            productData, 
-            req.files, 
-            imagesToDelete
-        );
-        console.log(`[PRODUCT] Updated: ${product.id} - ${product.name}`);
-        res.json({ success: true, product });
+        try {
+            // Validate and truncate fields to prevent "value too long" errors
+            const truncate = (str, maxLen) => str && str.length > maxLen ? str.substring(0, maxLen) : str;
+            
+            const productData = {
+                ...req.body,
+                name: req.body.name ? truncate(req.body.name, 200) : undefined,
+                description: req.body.description ? truncate(req.body.description, 5000) : undefined,
+                features: req.body.features ? JSON.parse(req.body.features) : undefined,
+                colors: req.body.colors ? JSON.parse(req.body.colors) : undefined,
+                sizes: req.body.sizes ? JSON.parse(req.body.sizes) : undefined,
+                inventory: req.body.inventory ? JSON.parse(req.body.inventory) : undefined,
+                tags: req.body.tags ? JSON.parse(req.body.tags) : undefined,
+                keepImages: req.body.keepImages ? JSON.parse(req.body.keepImages).slice(0, 5) : []
+            };
+            
+            const imagesToDelete = req.body.imagesToDelete 
+                ? JSON.parse(req.body.imagesToDelete) 
+                : [];
+            
+            const product = await productService.update(
+                req.params.id, 
+                productData, 
+                req.files, 
+                imagesToDelete
+            );
+            console.log(`[PRODUCT] Updated: ${product.id} - ${product.name}`);
+            res.json({ success: true, product });
+        } catch (error) {
+            console.error('[PRODUCT] Update error:', error.message);
+            throw new APIError(`Failed to update product: ${error.message}`, 500, 'UPDATE_ERROR');
+        }
     })
 );
 

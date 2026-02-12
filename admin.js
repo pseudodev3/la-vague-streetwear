@@ -932,6 +932,12 @@ elements.saveProductBtn.addEventListener('click', async () => {
     }
     
     // Build product data
+    // Filter keepImages to only include actual URLs (not data URLs)
+    // Data URLs are huge and cause "field value too long" errors
+    const keepImages = state.productForm.images
+        .map(img => img.src)
+        .filter(src => !src.startsWith('data:')); // Exclude base64 data URLs
+    
     const productData = {
         name: elements.productName.value.trim(),
         category: elements.productCategory.value,
@@ -944,7 +950,7 @@ elements.saveProductBtn.addEventListener('click', async () => {
         sizes: state.productForm.sizes,
         inventory: state.productForm.inventory,
         tags: elements.productTags.value.split(',').map(t => t.trim()).filter(t => t),
-        keepImages: state.productForm.images.map(img => img.src)
+        keepImages: keepImages
     };
     
     // Get new image files
