@@ -352,12 +352,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // QUICK VIEW
     // ==========================================
     window.quickView = function(productId) {
-        const product = ProductAPI.getById(productId);
-        if (!product) return;
+        // Use state.products (from API) instead of ProductAPI (static)
+        const product = state.products.find(p => p.id === productId);
+        if (!product) {
+            console.error(`[QuickView] Product ${productId} not found in state.products`);
+            return;
+        }
         
         state.quickViewProduct = product;
-        state.selectedColor = product.colors[0].name;
-        state.selectedSize = product.sizes[0];
+        state.selectedColor = product.colors?.[0]?.name || 'Default';
+        state.selectedSize = product.sizes?.[0] || 'OS';
         state.selectedQuantity = 1;
         
         renderQuickView();
@@ -367,21 +371,27 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderQuickView() {
         const product = state.quickViewProduct;
         
+        // Safely get first image
+        const firstImage = product.images?.[0] || {
+            src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
+            alt: product.name
+        };
+        
         elements.quickViewContent.innerHTML = `
             <div class="quick-view-gallery">
-                <img src="${product.images[0].src}" alt="${product.images[0].alt}" id="quickViewImage">
+                <img src="${firstImage.src}" alt="${firstImage.alt || product.name}" id="quickViewImage">
             </div>
             <div class="quick-view-details">
-                <p class="quick-view-category">${CATEGORIES.find(c => c.id === product.category)?.name}</p>
+                <p class="quick-view-category">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
                 <h2 class="quick-view-title">${product.name}</h2>
                 <div class="quick-view-price">
                     <span class="current-price">$${product.price}</span>
                     ${product.compareAtPrice ? `<span class="original-price">$${product.compareAtPrice}</span>` : ''}
                 </div>
-                <p class="quick-view-description">${product.description}</p>
+                <p class="quick-view-description">${product.description || ''}</p>
                 
                 <div class="quick-view-options">
-                    ${product.colors.length > 1 ? `
+                    ${product.colors && product.colors.length > 1 ? `
                         <div class="option-section">
                             <span class="option-label">Color: <strong>${state.selectedColor}</strong></span>
                             <div class="color-options">
@@ -401,8 +411,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${product.sizeGuide ? `<span class="size-guide-link" onclick="window.openSizeGuide('${product.sizeGuide}')">Size Guide</span>` : ''}
                         </span>
                         <div class="size-options">
-                            ${product.sizes.map(size => {
-                                const inStock = product.inventory[`${state.selectedColor}-${size}`] > 0;
+                            ${product.sizes?.map(size => {
+                                const inStock = product.inventory?.[`${state.selectedColor}-${size}`] > 0;
                                 return `
                                     <button class="size-option ${state.selectedSize === size ? 'active' : ''} ${!inStock ? 'disabled' : ''}"
                                             onclick="${inStock ? `window.selectSize('${size}')` : ''}"
@@ -410,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         ${size}
                                     </button>
                                 `;
-                            }).join('')}
+                            }).join('') || ''}
                         </div>
                     </div>
                 </div>
@@ -531,12 +541,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     
     window.addToCartFromCard = async function(productId) {
-        // Find product in state (from API or static)
+        // Find product in state (from API)
         const product = state.products.find(p => p.id === productId);
-        if (!product) return;
+        if (!product) {
+            console.error(`[AddToCart] Product ${productId} not found`);
+            return;
+        }
         
-        const color = product.colors[0]?.name || 'Default';
-        const size = product.sizes[0];
+        const color = product.colors?.[0]?.name || 'Default';
+        const size = product.sizes?.[0] || 'OS';
+        const image = product.images?.[0]?.src || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23333" width="100" height="100"/></svg>';
         
         // Check inventory if using API
         if (!state.usingStaticData) {
@@ -551,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: product.id,
             name: product.name,
             price: product.price,
-            image: product.images[0]?.src || '',
+            image: image,
             color: color,
             size: size,
             quantity: 1
@@ -587,7 +601,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        const results = ProductAPI.search(query);
+        // Search in state.products (from API) instead of ProductAPI (static)
+        const searchTerm = query.toLowerCase();
+        const results = state.products.filter(p => 
+            p.name?.toLowerCase().includes(searchTerm) ||
+            p.description?.toLowerCase().includes(searchTerm) ||
+            p.category?.toLowerCase().includes(searchTerm)
+        );
         
         if (results.length === 0) {
             elements.searchResults.innerHTML = `
@@ -598,16 +618,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        elements.searchResults.innerHTML = results.map(product => `
+        elements.searchResults.innerHTML = results.map(product => {
+            const image = product.images?.[0]?.src || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50"><rect fill="%23333" width="50" height="50"/></svg>';
+            return `
             <div class="search-result-item" onclick="window.openProductPage('${product.slug}')">
-                <img src="${product.images[0].src}" alt="${product.name}">
+                <img src="${image}" alt="${product.name}">
                 <div class="search-result-info">
                     <h4>${product.name}</h4>
                     <p>${CATEGORIES.find(c => c.id === product.category)?.name}</p>
                 </div>
                 <span class="search-result-price">$${product.price}</span>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     // ==========================================
@@ -862,11 +885,14 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             return;
         }
-        const wishlistProducts = wishlist.map(id => ProductAPI.getById(id)).filter(p => p);
-        elements.wishlistItems.innerHTML = wishlistProducts.map(product => `
+        // Use state.products (from API) instead of ProductAPI (static)
+        const wishlistProducts = wishlist.map(id => state.products.find(p => p.id === id)).filter(p => p);
+        elements.wishlistItems.innerHTML = wishlistProducts.map(product => {
+            const image = product.images?.[0]?.src || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="100"><rect fill="%23333" width="80" height="100"/></svg>';
+            return `
             <div class="wishlist-item">
                 <div class="wishlist-item-image">
-                    <img src="${product.images[0].src}" alt="${product.name}">
+                    <img src="${image}" alt="${product.name}">
                 </div>
                 <div class="wishlist-item-details">
                     <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
@@ -877,19 +903,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     };
     
     window.shopAddToCartFromWishlist = function(productId) {
-        const product = ProductAPI.getById(productId);
-        if (!product) return;
+        const product = state.products.find(p => p.id === productId);
+        if (!product) {
+            console.error(`[Wishlist] Product ${productId} not found`);
+            return;
+        }
+        const image = product.images?.[0]?.src || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23333" width="100" height="100"/></svg>';
         const item = {
             id: product.id,
             name: product.name,
             price: product.price,
-            image: product.images[0].src,
-            color: product.colors[0]?.name || 'One Size',
-            size: product.sizes[0],
+            image: image,
+            color: product.colors?.[0]?.name || 'Default',
+            size: product.sizes?.[0] || 'OS',
             quantity: 1
         };
         CartState.addToCart(item);
