@@ -353,6 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     window.quickView = function(productId) {
         try {
+            console.log('[QuickView] Opening product:', productId);
+            console.log('[QuickView] Available products:', state.products.length);
+            
             // Use state.products (from API) instead of ProductAPI (static)
             const product = state.products.find(p => p.id === productId);
             if (!product) {
@@ -361,6 +364,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
+            console.log('[QuickView] Found product:', product.name);
+            console.log('[QuickView] Product colors:', product.colors);
+            console.log('[QuickView] Product sizes:', product.sizes);
+            
             state.quickViewProduct = product;
             state.selectedColor = product.colors?.[0]?.name || 'Default';
             state.selectedSize = product.sizes?.[0] || 'OS';
@@ -368,95 +375,147 @@ document.addEventListener('DOMContentLoaded', () => {
             
             renderQuickView();
             openQuickView();
+            console.log('[QuickView] Modal opened successfully');
         } catch (error) {
             console.error('[QuickView] Error:', error);
-            showToast('Failed to open quick view', 'error');
+            showToast('Failed to open quick view: ' + error.message, 'error');
         }
     };
+    
+    // Helper to escape HTML special characters
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+    
+    // Helper to escape for JavaScript strings in HTML attributes
+    function escapeJs(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r');
+    }
 
     function renderQuickView() {
-        const product = state.quickViewProduct;
-        
-        // Safely get first image
-        const firstImage = product.images?.[0] || {
-            src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
-            alt: product.name
-        };
-        
-        elements.quickViewContent.innerHTML = `
-            <div class="quick-view-gallery">
-                <img src="${firstImage.src}" alt="${firstImage.alt || product.name}" id="quickViewImage">
-            </div>
-            <div class="quick-view-details">
-                <p class="quick-view-category">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
-                <h2 class="quick-view-title">${product.name}</h2>
-                <div class="quick-view-price">
-                    <span class="current-price">$${product.price}</span>
-                    ${product.compareAtPrice ? `<span class="original-price">$${product.compareAtPrice}</span>` : ''}
-                </div>
-                <p class="quick-view-description">${product.description || ''}</p>
+        try {
+            const product = state.quickViewProduct;
+            if (!product) {
+                console.error('[renderQuickView] No product in state');
+                return;
+            }
+            
+            console.log('[renderQuickView] Rendering product:', product.name);
+            
+            // Safely get first image
+            const firstImage = product.images?.[0] || {
+                src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
+                alt: product.name
+            };
+            
+            const categoryName = CATEGORIES.find(c => c.id === product.category)?.name || product.category || 'Uncategorized';
+            
+            // Safely build color options
+            let colorSection = '';
+            if (product.colors && product.colors.length > 0) {
+                const colorButtons = product.colors.map(color => {
+                    const isActive = state.selectedColor === color.name;
+                    return `<button class="color-option ${isActive ? 'active' : ''}" 
+                            style="background-color: ${escapeHtml(color.value)}"
+                            onclick="window.selectColor('${escapeJs(color.name)}')"
+                            title="${escapeHtml(color.name)}"></button>`;
+                }).join('');
                 
-                <div class="quick-view-options">
-                    ${product.colors && product.colors.length > 1 ? `
-                        <div class="option-section">
-                            <span class="option-label">Color: <strong>${state.selectedColor}</strong></span>
-                            <div class="color-options">
-                                ${product.colors.map(color => `
-                                    <button class="color-option ${state.selectedColor === color.name ? 'active' : ''}" 
-                                            style="background-color: ${color.value}"
-                                            onclick="window.selectColor('${color.name}')"
-                                            title="${color.name}"></button>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                    
+                colorSection = `
                     <div class="option-section">
-                        <span class="option-label">
-                            Size: <strong>${state.selectedSize}</strong>
-                            ${product.sizeGuide ? `<span class="size-guide-link" onclick="window.openSizeGuide('${product.sizeGuide}')">Size Guide</span>` : ''}
-                        </span>
-                        <div class="size-options">
-                            ${product.sizes?.map(size => {
-                                const inStock = product.inventory?.[`${state.selectedColor}-${size}`] > 0;
-                                return `
-                                    <button class="size-option ${state.selectedSize === size ? 'active' : ''} ${!inStock ? 'disabled' : ''}"
-                                            onclick="${inStock ? `window.selectSize('${size}')` : ''}"
-                                            ${!inStock ? 'disabled' : ''}>
-                                        ${size}
-                                    </button>
-                                `;
-                            }).join('') || ''}
+                        <span class="option-label">Color: <strong>${escapeHtml(state.selectedColor)}</strong></span>
+                        <div class="color-options">${colorButtons}</div>
+                    </div>
+                `;
+            }
+            
+            // Safely build size options
+            let sizeButtons = '';
+            if (product.sizes && product.sizes.length > 0) {
+                sizeButtons = product.sizes.map(size => {
+                    const inStock = product.inventory?.[`${state.selectedColor}-${size}`] > 0;
+                    const isActive = state.selectedSize === size;
+                    const onClick = inStock ? `onclick="window.selectSize('${escapeJs(size)}')"` : '';
+                    const disabled = !inStock ? 'disabled' : '';
+                    const disabledClass = !inStock ? 'disabled' : '';
+                    return `<button class="size-option ${isActive ? 'active' : ''} ${disabledClass}" ${onClick} ${disabled}>${escapeHtml(size)}</button>`;
+                }).join('');
+            }
+            
+            const sizeGuideLink = product.sizeGuide ? `<span class="size-guide-link" onclick="window.openSizeGuide('${escapeJs(product.sizeGuide)}')">Size Guide</span>` : '';
+            
+            const html = `
+                <div class="quick-view-gallery">
+                    <img src="${escapeHtml(firstImage.src)}" alt="${escapeHtml(firstImage.alt || product.name)}" id="quickViewImage">
+                </div>
+                <div class="quick-view-details">
+                    <p class="quick-view-category">${escapeHtml(categoryName)}</p>
+                    <h2 class="quick-view-title">${escapeHtml(product.name)}</h2>
+                    <div class="quick-view-price">
+                        <span class="current-price">$${product.price}</span>
+                        ${product.compareAtPrice ? `<span class="original-price">$${product.compareAtPrice}</span>` : ''}
+                    </div>
+                    <p class="quick-view-description">${escapeHtml(product.description) || ''}</p>
+                    
+                    <div class="quick-view-options">
+                        ${colorSection}
+                        
+                        <div class="option-section">
+                            <span class="option-label">
+                                Size: <strong>${escapeHtml(state.selectedSize)}</strong>
+                                ${sizeGuideLink}
+                            </span>
+                            <div class="size-options">${sizeButtons}</div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="quick-view-actions">
-                    <div class="quantity-selector">
-                        <button class="qty-btn" onclick="window.updateQuantity(-1)" ${state.selectedQuantity <= 1 ? 'disabled' : ''}>−</button>
-                        <span>${state.selectedQuantity}</span>
-                        <button class="qty-btn" onclick="window.updateQuantity(1)">+</button>
+                    
+                    <div class="quick-view-actions">
+                        <div class="quantity-selector">
+                            <button class="qty-btn" onclick="window.updateQuantity(-1)" ${state.selectedQuantity <= 1 ? 'disabled' : ''}>−</button>
+                            <span>${state.selectedQuantity}</span>
+                            <button class="qty-btn" onclick="window.updateQuantity(1)">+</button>
+                        </div>
+                        <button class="add-to-cart-btn" onclick="window.addToCartFromQuickView()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 6h15l-1.5 9h-12z"></path>
+                                <circle cx="9" cy="20" r="1"></circle>
+                                <circle cx="18" cy="20" r="1"></circle>
+                                <path d="M6 6L5 3H2"></path>
+                            </svg>
+                            Add to Cart
+                        </button>
                     </div>
-                    <button class="add-to-cart-btn" onclick="window.addToCartFromQuickView()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M6 6h15l-1.5 9h-12z"></path>
-                            <circle cx="9" cy="20" r="1"></circle>
-                            <circle cx="18" cy="20" r="1"></circle>
-                            <path d="M6 6L5 3H2"></path>
-                        </svg>
-                        Add to Cart
-                    </button>
                 </div>
-            </div>
-        `;
+            `;
+            
+            elements.quickViewContent.innerHTML = html;
+            console.log('[renderQuickView] HTML rendered successfully');
+        } catch (error) {
+            console.error('[renderQuickView] Error:', error);
+            showToast('Error displaying product details', 'error');
+        }
     }
 
     window.selectColor = function(colorName) {
+        console.log('[selectColor] Selecting color:', colorName);
         state.selectedColor = colorName;
         renderQuickView();
     };
 
     window.selectSize = function(size) {
+        console.log('[selectSize] Selecting size:', size);
         state.selectedSize = size;
         renderQuickView();
     };
@@ -490,21 +549,36 @@ document.addEventListener('DOMContentLoaded', () => {
         closeQuickView();
     };
 
+    let quickViewOpening = false;
+    
     function openQuickView() {
+        if (quickViewOpening) return;
+        quickViewOpening = true;
+        
+        console.log('[openQuickView] Opening modal');
         elements.quickViewModal.classList.add('active');
         elements.quickViewOverlay.classList.add('active');
         document.body.style.overflow = 'hidden';
+        
+        // Reset flag after animation
+        setTimeout(() => {
+            quickViewOpening = false;
+        }, 300);
     }
 
     function closeQuickView() {
+        console.log('[closeQuickView] Closing modal');
         elements.quickViewModal.classList.remove('active');
         elements.quickViewOverlay.classList.remove('active');
         document.body.style.overflow = '';
     }
 
-    // Prevent clicks inside modal content from closing the modal
-    elements.quickViewContent?.addEventListener('click', (e) => {
-        e.stopPropagation();
+    // Prevent clicks inside modal from closing it (except close button)
+    elements.quickViewModal?.addEventListener('click', (e) => {
+        // Only handle clicks directly on the modal background, not its children
+        if (e.target === elements.quickViewModal || e.target === elements.quickViewContent) {
+            console.log('[quickViewModal] Click on modal background detected');
+        }
     });
 
     // ==========================================
@@ -749,9 +823,16 @@ document.addEventListener('DOMContentLoaded', () => {
             filterProducts();
         });
         
-        // Quick view
-        elements.quickViewClose?.addEventListener('click', closeQuickView);
-        elements.quickViewOverlay?.addEventListener('click', closeQuickView);
+        // Quick view - use capture phase and prevent double handling
+        elements.quickViewClose?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeQuickView();
+        });
+        elements.quickViewOverlay?.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeQuickView();
+        });
         
         // Size guide
         elements.sizeGuideClose?.addEventListener('click', closeSizeGuide);
