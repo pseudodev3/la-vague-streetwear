@@ -6,9 +6,16 @@ import { v2 as cloudinary } from 'cloudinary';
 import streamifier from 'streamifier';
 
 // Configure Cloudinary
-const hasCloudinaryConfig = process.env.CLOUDINARY_CLOUD_NAME && 
-                           process.env.CLOUDINARY_API_KEY && 
-                           process.env.CLOUDINARY_API_SECRET;
+const hasCloudinaryConfig = !!(process.env.CLOUDINARY_CLOUD_NAME && 
+                               process.env.CLOUDINARY_API_KEY && 
+                               process.env.CLOUDINARY_API_SECRET);
+
+console.log('[CLOUDINARY] Config check:', { 
+    hasConfig: hasCloudinaryConfig,
+    hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+    hasApiKey: !!process.env.CLOUDINARY_API_KEY,
+    hasApiSecret: !!process.env.CLOUDINARY_API_SECRET
+});
 
 if (hasCloudinaryConfig) {
     cloudinary.config({
@@ -17,6 +24,7 @@ if (hasCloudinaryConfig) {
         api_secret: process.env.CLOUDINARY_API_SECRET,
         secure: true
     });
+    console.log('[CLOUDINARY] Configured successfully');
 } else {
     console.warn('[CLOUDINARY] Configuration missing - image uploads will use placeholder URLs');
 }
@@ -32,6 +40,15 @@ export async function uploadImage(fileBuffer, folder = 'products', publicId = nu
     // If Cloudinary is not configured, return a placeholder
     if (!hasCloudinaryConfig) {
         console.warn('[CLOUDINARY] Not configured, returning placeholder URL');
+        return {
+            secure_url: `https://via.placeholder.com/800x1000/333/fff?text=Product+Image`,
+            public_id: `placeholder-${Date.now()}`
+        };
+    }
+    
+    // Additional safety check - ensure cloudinary is properly initialized
+    if (!cloudinary.config().cloud_name) {
+        console.warn('[CLOUDINARY] Cloud name not set, returning placeholder URL');
         return {
             secure_url: `https://via.placeholder.com/800x1000/333/fff?text=Product+Image`,
             public_id: `placeholder-${Date.now()}`
@@ -76,9 +93,18 @@ export async function uploadImage(fileBuffer, folder = 'products', publicId = nu
  * @returns {Promise<Array>} Array of upload results
  */
 export async function uploadMultipleImages(files, folder = 'products') {
-    const uploadPromises = files.map((file, index) => {
+    const uploadPromises = files.map(async (file, index) => {
         const publicId = `${Date.now()}_${index}`;
-        return uploadImage(file.buffer, folder, publicId);
+        try {
+            return await uploadImage(file.buffer, folder, publicId);
+        } catch (error) {
+            console.error(`[CLOUDINARY] Failed to upload image ${index}:`, error.message);
+            // Return placeholder on individual failure
+            return {
+                secure_url: `https://via.placeholder.com/800x1000/333/fff?text=Image+${index + 1}`,
+                public_id: `placeholder-${Date.now()}-${index}`
+            };
+        }
     });
 
     return Promise.all(uploadPromises);
