@@ -15,7 +15,8 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 
-// Import custom middleware
+// Import custom middleware and services
+import { InventoryService } from './src/services/inventory.js';
 import { 
     validateCreateOrder, 
     validateAdminLogin, 
@@ -32,6 +33,9 @@ import {
 dotenv.config();
 
 const app = express();
+
+// Initialize inventory service (will be set after DB connection)
+let inventoryService;
 const PORT = process.env.PORT || 3000;
 
 // ES module __dirname equivalent
@@ -249,6 +253,21 @@ async function initDatabase() {
         // Session cleanup index
         await db.query(`CREATE INDEX IF NOT EXISTS idx_sessions_expires ON admin_sessions(expires_at)`);
         
+        // Inventory reservations table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS inventory_reservations (
+                id SERIAL PRIMARY KEY,
+                product_id TEXT NOT NULL,
+                variant_key TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                order_id TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL
+            )
+        `);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_reservations_order ON inventory_reservations(order_id)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_reservations_expires ON inventory_reservations(expires_at)`);
+        
     } else {
         // SQLite tables
         db.exec(`
@@ -310,10 +329,21 @@ async function initDatabase() {
         `);
         
         db.exec(`CREATE INDEX IF NOT EXISTS idx_sessions_expires ON admin_sessions(expires_at)`);
+        
+        // Note: For SQLite, reservations are stored in-memory via InventoryService
     }
     
     // Seed products if empty
     await seedProducts();
+    
+    // Initialize inventory service
+    inventoryService = new InventoryService(db, USE_POSTGRES);
+    
+    // Start periodic cleanup of expired reservations (every 5 minutes)
+    setInterval(() => {
+        inventoryService.cleanupExpiredReservations();
+    }, 5 * 60 * 1000);
+    
     console.log('✅ Database initialized with indexes');
 }
 
@@ -515,7 +545,7 @@ app.get('/api/products/:slug', asyncHandler(async (req, res) => {
     });
 }));
 
-// Create order with validation
+// Create order with validation and inventory check
 app.post('/api/orders', orderLimiter, validateCreateOrder, asyncHandler(async (req, res) => {
     const orderId = 'LV-' + Math.random().toString(36).substring(2, 10).toUpperCase();
     const { 
@@ -534,27 +564,47 @@ app.post('/api/orders', orderLimiter, validateCreateOrder, asyncHandler(async (r
 
     console.log('[ORDER] Creating order:', { customerName, customerEmail, total, items: items?.length });
 
-    const shippingAddressStr = JSON.stringify(shippingAddress);
-    const itemsStr = JSON.stringify(items);
-
-    if (USE_POSTGRES) {
-        await db.query(`
-            INSERT INTO orders (id, customer_name, customer_email, customer_phone, shipping_address, 
-                items, subtotal, shipping_cost, discount, total, payment_method, notes)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        `, [orderId, customerName, customerEmail, customerPhone, shippingAddressStr,
-            itemsStr, subtotal, shippingCost, discount || 0, total, paymentMethod, notes || '']);
-    } else {
-        db.prepare(`
-            INSERT INTO orders (id, customer_name, customer_email, customer_phone, shipping_address, 
-                items, subtotal, shipping_cost, discount, total, payment_method, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(orderId, customerName, customerEmail, customerPhone, shippingAddressStr,
-            itemsStr, subtotal, shippingCost, discount || 0, total, paymentMethod, notes || '');
+    // Check and reserve inventory
+    try {
+        await inventoryService.reserveItems(items, orderId);
+        console.log(`[INVENTORY] Reserved stock for order ${orderId}`);
+    } catch (error) {
+        console.error(`[INVENTORY] Reservation failed: ${error.message}`);
+        throw new APIError(error.message, 409, 'INSUFFICIENT_STOCK');
     }
 
-    console.log(`✅ Order created: ${orderId} for ${customerEmail}`);
-    res.json({ success: true, orderId });
+    try {
+        const shippingAddressStr = JSON.stringify(shippingAddress);
+        const itemsStr = JSON.stringify(items);
+
+        if (USE_POSTGRES) {
+            await db.query(`
+                INSERT INTO orders (id, customer_name, customer_email, customer_phone, shipping_address, 
+                    items, subtotal, shipping_cost, discount, total, payment_method, notes)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            `, [orderId, customerName, customerEmail, customerPhone, shippingAddressStr,
+                itemsStr, subtotal, shippingCost, discount || 0, total, paymentMethod, notes || '']);
+        } else {
+            db.prepare(`
+                INSERT INTO orders (id, customer_name, customer_email, customer_phone, shipping_address, 
+                    items, subtotal, shipping_cost, discount, total, payment_method, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(orderId, customerName, customerEmail, customerPhone, shippingAddressStr,
+                itemsStr, subtotal, shippingCost, discount || 0, total, paymentMethod, notes || '');
+        }
+
+        // Confirm the reservation (deduct from actual inventory)
+        await inventoryService.confirmReservation(orderId, items);
+        console.log(`[INVENTORY] Confirmed stock deduction for order ${orderId}`);
+
+        console.log(`✅ Order created: ${orderId} for ${customerEmail}`);
+        res.json({ success: true, orderId });
+    } catch (error) {
+        // Release reservation on error
+        await inventoryService.cancelReservation(orderId);
+        console.error(`[ORDER] Failed to create order, released reservation: ${error.message}`);
+        throw error;
+    }
 }));
 
 // Test database connection endpoint
@@ -740,6 +790,69 @@ app.get('/api/admin/stats', verifyAdminToken, asyncHandler(async (req, res) => {
 }));
 
 // ==========================================
+// INVENTORY MANAGEMENT (Admin Only)
+// ==========================================
+
+// Get stock for a product variant
+app.get('/api/admin/inventory/:productId', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { productId } = req.params;
+    const { color, size } = req.query;
+    
+    if (!color || !size) {
+        throw new APIError('Color and size are required', 400, 'VALIDATION_ERROR');
+    }
+    
+    const stock = await inventoryService.getStock(productId, color, size);
+    res.json({ success: true, stock });
+}));
+
+// Update stock for a product variant
+app.post('/api/admin/inventory/:productId', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { productId } = req.params;
+    const { color, size, quantity } = req.body;
+    
+    if (!color || !size || quantity === undefined) {
+        throw new APIError('Color, size, and quantity are required', 400, 'VALIDATION_ERROR');
+    }
+    
+    const result = await inventoryService.updateStock(productId, color, size, quantity);
+    console.log(`[INVENTORY] Updated stock for ${productId} (${color}/${size}): ${quantity}`);
+    res.json({ success: true, ...result });
+}));
+
+// Get low stock items
+app.get('/api/admin/inventory/low-stock', verifyAdminToken, asyncHandler(async (req, res) => {
+    const threshold = parseInt(req.query.threshold) || 5;
+    const lowStock = await inventoryService.getLowStock(threshold);
+    res.json({ success: true, lowStock, threshold });
+}));
+
+// Release reservation (for cancelled orders)
+app.post('/api/admin/inventory/release/:orderId', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { orderId } = req.params;
+    await inventoryService.cancelReservation(orderId);
+    console.log(`[INVENTORY] Released reservation for order ${orderId}`);
+    res.json({ success: true, message: 'Reservation released' });
+}));
+
+// Check stock availability (public endpoint)
+app.get('/api/inventory/check/:productId', asyncHandler(async (req, res) => {
+    const { productId } = req.params;
+    const { color, size } = req.query;
+    
+    if (!color || !size) {
+        throw new APIError('Color and size are required', 400, 'VALIDATION_ERROR');
+    }
+    
+    const stock = await inventoryService.getStock(productId, color, size);
+    res.json({ 
+        success: true, 
+        available: stock.available,
+        inStock: stock.available > 0
+    });
+}));
+
+// ==========================================
 // CONTACT FORM
 // ==========================================
 app.post('/api/contact', validateContactForm, asyncHandler(async (req, res) => {
@@ -805,6 +918,7 @@ async function startServer() {
     console.log('========================================');
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📊 Database: ${USE_POSTGRES ? 'PostgreSQL' : 'SQLite'}`);
+    console.log(`📦 Inventory: Stock tracking + Reservation system`);
     console.log(`🔑 ADMIN_PASSWORD: ${process.env.ADMIN_PASSWORD ? 'SET' : 'NOT SET - ADMIN LOGIN WILL FAIL!'}`);
     console.log(`🔗 FRONTEND_URL: ${process.env.FRONTEND_URL || 'not set'}`);
     console.log(`🛡️  Security: Helmet + Rate Limiting + Input Validation`);
