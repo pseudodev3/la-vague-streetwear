@@ -356,6 +356,9 @@ async function initDatabase() {
     // Seed products if empty
     await seedProducts();
     
+    // Initialize audit tables
+    await initAuditTables();
+    
     // Initialize services
     inventoryService = new InventoryService(db, USE_POSTGRES);
     productService = new ProductService(db, USE_POSTGRES);
@@ -366,6 +369,171 @@ async function initDatabase() {
     }, 5 * 60 * 1000);
     
     console.log('✅ Database initialized with indexes');
+}
+
+// ==========================================
+// AUDIT LOGGING SYSTEM
+// ==========================================
+
+async function initAuditTables() {
+    if (USE_POSTGRES) {
+        // Audit logs table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id SERIAL PRIMARY KEY,
+                action TEXT NOT NULL,
+                entity_type TEXT NOT NULL,
+                entity_id TEXT,
+                old_data JSONB,
+                new_data JSONB,
+                performed_by TEXT,
+                ip_address TEXT,
+                user_agent TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC)`);
+        
+        // Inventory movements table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS inventory_movements (
+                id SERIAL PRIMARY KEY,
+                product_id TEXT NOT NULL,
+                variant_key TEXT NOT NULL,
+                movement_type TEXT NOT NULL,
+                quantity_change INTEGER NOT NULL,
+                quantity_before INTEGER NOT NULL,
+                quantity_after INTEGER NOT NULL,
+                reference_id TEXT,
+                reference_type TEXT,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_inventory_movements_product ON inventory_movements(product_id)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_inventory_movements_created ON inventory_movements(created_at DESC)`);
+        
+        // Order notes table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS order_notes (
+                id SERIAL PRIMARY KEY,
+                order_id TEXT NOT NULL,
+                note TEXT NOT NULL,
+                is_internal BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_order_notes_order ON order_notes(order_id)`);
+        
+        // Settings table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+    } else {
+        // SQLite versions
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                action TEXT NOT NULL,
+                entity_type TEXT NOT NULL,
+                entity_id TEXT,
+                old_data TEXT,
+                new_data TEXT,
+                performed_by TEXT,
+                ip_address TEXT,
+                user_agent TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id)`);
+        
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS inventory_movements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                product_id TEXT NOT NULL,
+                variant_key TEXT NOT NULL,
+                movement_type TEXT NOT NULL,
+                quantity_change INTEGER NOT NULL,
+                quantity_before INTEGER NOT NULL,
+                quantity_after INTEGER NOT NULL,
+                reference_id TEXT,
+                reference_type TEXT,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_inventory_movements_product ON inventory_movements(product_id)`);
+        
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS order_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id TEXT NOT NULL,
+                note TEXT NOT NULL,
+                is_internal BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_order_notes_order ON order_notes(order_id)`);
+        
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+    }
+    
+    console.log('✅ Audit tables initialized');
+}
+
+// Audit logging function
+async function logAudit(action, entityType, entityId, oldData, newData, req) {
+    try {
+        const performedBy = req?.adminToken ? 'admin' : 'system';
+        const ipAddress = req?.ip || 'unknown';
+        const userAgent = req?.headers?.['user-agent'] || 'unknown';
+        
+        if (USE_POSTGRES) {
+            await db.query(`
+                INSERT INTO audit_logs (action, entity_type, entity_id, old_data, new_data, performed_by, ip_address, user_agent)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [action, entityType, entityId, JSON.stringify(oldData), JSON.stringify(newData), performedBy, ipAddress, userAgent]);
+        } else {
+            db.prepare(`
+                INSERT INTO audit_logs (action, entity_type, entity_id, old_data, new_data, performed_by, ip_address, user_agent)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(action, entityType, entityId, JSON.stringify(oldData), JSON.stringify(newData), performedBy, ipAddress, userAgent);
+        }
+    } catch (error) {
+        console.error('[AUDIT] Failed to log:', error.message);
+    }
+}
+
+// Log inventory movement
+async function logInventoryMovement(productId, variantKey, movementType, quantityChange, quantityBefore, referenceId, referenceType, notes) {
+    try {
+        const quantityAfter = quantityBefore + quantityChange;
+        
+        if (USE_POSTGRES) {
+            await db.query(`
+                INSERT INTO inventory_movements (product_id, variant_key, movement_type, quantity_change, quantity_before, quantity_after, reference_id, reference_type, notes)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            `, [productId, variantKey, movementType, quantityChange, quantityBefore, quantityAfter, referenceId, referenceType, notes]);
+        } else {
+            db.prepare(`
+                INSERT INTO inventory_movements (product_id, variant_key, movement_type, quantity_change, quantity_before, quantity_after, reference_id, reference_type, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(productId, variantKey, movementType, quantityChange, quantityBefore, quantityAfter, referenceId, referenceType, notes);
+        }
+    } catch (error) {
+        console.error('[INVENTORY] Failed to log movement:', error.message);
+    }
 }
 
 // Seed sample products
@@ -568,7 +736,7 @@ app.get('/api/products/:slug', asyncHandler(async (req, res) => {
 
 // Create order with validation and inventory check
 app.post('/api/orders', orderLimiter, validateCreateOrder, asyncHandler(async (req, res) => {
-    const orderId = 'LV-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+    const orderId = 'LV-' + crypto.randomBytes(4).toString('hex').toUpperCase();
     const { 
         customerName, 
         customerEmail, 
@@ -1010,6 +1178,459 @@ ${message}
     
     console.log(`[CONTACT] Email sent from ${email}`);
     res.json({ success: true, message: 'Message sent successfully' });
+}));
+
+// ==========================================
+// AUDIT LOGS (Admin Only)
+// ==========================================
+
+// Get audit logs with filtering
+app.get('/api/admin/audit-logs', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { entityType, entityId, action, limit = 50, offset = 0 } = req.query;
+    
+    let sql = 'SELECT * FROM audit_logs WHERE 1=1';
+    const params = [];
+    
+    if (entityType) {
+        sql += ` AND entity_type = $${params.length + 1}`;
+        params.push(entityType);
+    }
+    if (entityId) {
+        sql += ` AND entity_id = $${params.length + 1}`;
+        params.push(entityId);
+    }
+    if (action) {
+        sql += ` AND action = $${params.length + 1}`;
+        params.push(action);
+    }
+    
+    sql += ' ORDER BY created_at DESC';
+    
+    if (USE_POSTGRES) {
+        sql += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(limit, offset);
+        const result = await db.query(sql, params);
+        res.json({ success: true, logs: result.rows });
+    } else {
+        sql += ' LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+        const stmt = db.prepare(sql);
+        res.json({ success: true, logs: stmt.all(...params) });
+    }
+}));
+
+// ==========================================
+// ANALYTICS (Admin Only)
+// ==========================================
+
+// Get sales analytics
+app.get('/api/admin/analytics/sales', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { period = '30d' } = req.query;
+    const days = parseInt(period) || 30;
+    
+    let result;
+    if (USE_POSTGRES) {
+        result = await db.query(`
+            SELECT 
+                DATE(created_at) as date,
+                COUNT(*) as orders,
+                COALESCE(SUM(total), 0) as revenue,
+                COALESCE(SUM(subtotal), 0) as subtotal,
+                COALESCE(SUM(shipping_cost), 0) as shipping
+            FROM orders
+            WHERE created_at > NOW() - INTERVAL '${days} days'
+            GROUP BY DATE(created_at)
+            ORDER BY date DESC
+        `);
+    } else {
+        result = db.prepare(`
+            SELECT 
+                date(created_at) as date,
+                COUNT(*) as orders,
+                COALESCE(SUM(total), 0) as revenue,
+                COALESCE(SUM(subtotal), 0) as subtotal,
+                COALESCE(SUM(shipping_cost), 0) as shipping
+            FROM orders
+            WHERE created_at > datetime('now', '-${days} days')
+            GROUP BY date(created_at)
+            ORDER BY date DESC
+        `).all();
+        result = { rows: result };
+    }
+    
+    res.json({ success: true, data: result.rows });
+}));
+
+// Get top products
+app.get('/api/admin/analytics/top-products', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { limit = 10 } = req.query;
+    
+    // Get all orders and calculate product sales
+    let orders;
+    if (USE_POSTGRES) {
+        const result = await db.query('SELECT items FROM orders WHERE created_at > NOW() - INTERVAL \'30 days\'');
+        orders = result.rows;
+    } else {
+        orders = db.prepare("SELECT items FROM orders WHERE created_at > datetime('now', '-30 days')").all();
+    }
+    
+    const productSales = {};
+    orders.forEach(order => {
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        items.forEach(item => {
+            if (!productSales[item.id]) {
+                productSales[item.id] = { ...item, totalQty: 0, totalRevenue: 0 };
+            }
+            productSales[item.id].totalQty += item.quantity;
+            productSales[item.id].totalRevenue += item.price * item.quantity;
+        });
+    });
+    
+    const topProducts = Object.values(productSales)
+        .sort((a, b) => b.totalQty - a.totalQty)
+        .slice(0, limit);
+    
+    res.json({ success: true, products: topProducts });
+}));
+
+// Get customer analytics
+app.get('/api/admin/analytics/customers', verifyAdminToken, asyncHandler(async (req, res) => {
+    let result;
+    if (USE_POSTGRES) {
+        result = await db.query(`
+            SELECT 
+                COUNT(DISTINCT customer_email) as total_customers,
+                COUNT(DISTINCT CASE WHEN created_at > NOW() - INTERVAL '30 days' THEN customer_email END) as new_customers,
+                COUNT(DISTINCT CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN customer_email END) as recent_customers
+            FROM orders
+        `);
+    } else {
+        const row = db.prepare(`
+            SELECT 
+                COUNT(DISTINCT customer_email) as total_customers,
+                COUNT(DISTINCT CASE WHEN created_at > datetime('now', '-30 days') THEN customer_email END) as new_customers,
+                COUNT(DISTINCT CASE WHEN created_at > datetime('now', '-7 days') THEN customer_email END) as recent_customers
+            FROM orders
+        `).get();
+        result = { rows: [row] };
+    }
+    
+    res.json({ success: true, stats: result.rows[0] });
+}));
+
+// ==========================================
+// CUSTOMER MANAGEMENT (Admin Only)
+// ==========================================
+
+// Get all customers (from orders)
+app.get('/api/admin/customers', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { search, limit = 50, offset = 0 } = req.query;
+    
+    let sql = `
+        SELECT 
+            customer_email,
+            customer_name,
+            customer_phone,
+            COUNT(*) as order_count,
+            COALESCE(SUM(total), 0) as lifetime_value,
+            MAX(created_at) as last_order_date,
+            MIN(created_at) as first_order_date
+        FROM orders
+    `;
+    const params = [];
+    
+    if (search) {
+        sql += ` WHERE customer_email ILIKE $${params.length + 1} OR customer_name ILIKE $${params.length + 1}`;
+        params.push(`%${search}%`);
+    }
+    
+    sql += ' GROUP BY customer_email, customer_name, customer_phone ORDER BY last_order_date DESC';
+    
+    if (USE_POSTGRES) {
+        sql += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(limit, offset);
+        const result = await db.query(sql, params);
+        res.json({ success: true, customers: result.rows });
+    } else {
+        sql += ' LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+        const stmt = db.prepare(sql.replace(/ILIKE/g, 'LIKE'));
+        res.json({ success: true, customers: stmt.all(...params) });
+    }
+}));
+
+// Get single customer with order history
+app.get('/api/admin/customers/:email', verifyAdminToken, asyncHandler(async (req, res) => {
+    const email = decodeURIComponent(req.params.email);
+    
+    let customer, orders;
+    if (USE_POSTGRES) {
+        const customerResult = await db.query(`
+            SELECT 
+                customer_email,
+                customer_name,
+                customer_phone,
+                COUNT(*) as order_count,
+                COALESCE(SUM(total), 0) as lifetime_value,
+                MAX(created_at) as last_order_date,
+                MIN(created_at) as first_order_date
+            FROM orders
+            WHERE customer_email = $1
+            GROUP BY customer_email, customer_name, customer_phone
+        `, [email]);
+        customer = customerResult.rows[0];
+        
+        const ordersResult = await db.query(`
+            SELECT * FROM orders WHERE customer_email = $1 ORDER BY created_at DESC
+        `, [email]);
+        orders = ordersResult.rows;
+    } else {
+        customer = db.prepare(`
+            SELECT 
+                customer_email,
+                customer_name,
+                customer_phone,
+                COUNT(*) as order_count,
+                COALESCE(SUM(total), 0) as lifetime_value,
+                MAX(created_at) as last_order_date,
+                MIN(created_at) as first_order_date
+            FROM orders
+            WHERE customer_email = ?
+            GROUP BY customer_email, customer_name, customer_phone
+        `).get(email);
+        
+        orders = db.prepare('SELECT * FROM orders WHERE customer_email = ? ORDER BY created_at DESC').all(email);
+    }
+    
+    if (!customer) {
+        throw new APIError('Customer not found', 404, 'NOT_FOUND');
+    }
+    
+    res.json({ success: true, customer, orders });
+}));
+
+// ==========================================
+// ORDER NOTES (Admin Only)
+// ==========================================
+
+// Get notes for an order
+app.get('/api/admin/orders/:id/notes', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    
+    let result;
+    if (USE_POSTGRES) {
+        result = await db.query(
+            'SELECT * FROM order_notes WHERE order_id = $1 ORDER BY created_at DESC',
+            [id]
+        );
+    } else {
+        result = db.prepare('SELECT * FROM order_notes WHERE order_id = ? ORDER BY created_at DESC').all(id);
+        result = { rows: result };
+    }
+    
+    res.json({ success: true, notes: USE_POSTGRES ? result.rows : result });
+}));
+
+// Add note to order
+app.post('/api/admin/orders/:id/notes', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { note, isInternal = true } = req.body;
+    
+    if (!note || note.trim().length === 0) {
+        throw new APIError('Note is required', 400, 'VALIDATION_ERROR');
+    }
+    
+    if (USE_POSTGRES) {
+        await db.query(
+            'INSERT INTO order_notes (order_id, note, is_internal) VALUES ($1, $2, $3)',
+            [id, note, isInternal]
+        );
+    } else {
+        db.prepare('INSERT INTO order_notes (order_id, note, is_internal) VALUES (?, ?, ?)')
+            .run(id, note, isInternal ? 1 : 0);
+    }
+    
+    await logAudit('ADD_NOTE', 'order', id, null, { note }, req);
+    
+    res.json({ success: true, message: 'Note added' });
+}));
+
+// ==========================================
+// INVENTORY MOVEMENTS (Admin Only)
+// ==========================================
+
+// Get inventory movement history
+app.get('/api/admin/inventory/movements', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { productId, limit = 50, offset = 0 } = req.query;
+    
+    let sql = 'SELECT * FROM inventory_movements';
+    const params = [];
+    
+    if (productId) {
+        sql += ` WHERE product_id = $${params.length + 1}`;
+        params.push(productId);
+    }
+    
+    sql += ' ORDER BY created_at DESC';
+    
+    if (USE_POSTGRES) {
+        sql += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(limit, offset);
+        const result = await db.query(sql, params);
+        res.json({ success: true, movements: result.rows });
+    } else {
+        sql += ' LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+        const stmt = db.prepare(sql);
+        res.json({ success: true, movements: stmt.all(...params) });
+    }
+}));
+
+// ==========================================
+// SETTINGS (Admin Only)
+// ==========================================
+
+// Get all settings
+app.get('/api/admin/settings', verifyAdminToken, asyncHandler(async (req, res) => {
+    let result;
+    if (USE_POSTGRES) {
+        result = await db.query('SELECT * FROM settings');
+    } else {
+        result = db.prepare('SELECT * FROM settings').all();
+        result = { rows: result };
+    }
+    
+    const settings = {};
+    (USE_POSTGRES ? result.rows : result).forEach(row => {
+        settings[row.key] = row.value;
+    });
+    
+    res.json({ success: true, settings });
+}));
+
+// Update settings
+app.post('/api/admin/settings', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { settings } = req.body;
+    
+    if (USE_POSTGRES) {
+        const client = await db.connect();
+        try {
+            await client.query('BEGIN');
+            for (const [key, value] of Object.entries(settings)) {
+                await client.query(
+                    'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP',
+                    [key, value]
+                );
+            }
+            await client.query('COMMIT');
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
+    } else {
+        const insert = db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime("now"))');
+        for (const [key, value] of Object.entries(settings)) {
+            insert.run(key, value);
+        }
+    }
+    
+    await logAudit('UPDATE_SETTINGS', 'settings', null, null, settings, req);
+    
+    res.json({ success: true, message: 'Settings updated' });
+}));
+
+// ==========================================
+// DATA EXPORT (Admin Only)
+// ==========================================
+
+// Export orders as CSV
+app.get('/api/admin/export/orders', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { startDate, endDate, status } = req.query;
+    
+    let sql = 'SELECT * FROM orders WHERE 1=1';
+    const params = [];
+    
+    if (startDate) {
+        sql += ` AND created_at >= $${params.length + 1}`;
+        params.push(startDate);
+    }
+    if (endDate) {
+        sql += ` AND created_at <= $${params.length + 1}`;
+        params.push(endDate);
+    }
+    if (status) {
+        sql += ` AND order_status = $${params.length + 1}`;
+        params.push(status);
+    }
+    
+    sql += ' ORDER BY created_at DESC';
+    
+    let orders;
+    if (USE_POSTGRES) {
+        const result = await db.query(sql, params);
+        orders = result.rows;
+    } else {
+        const stmt = db.prepare(sql.replace(/\$\d+/g, '?'));
+        orders = stmt.all(...params);
+    }
+    
+    // Generate CSV
+    const headers = ['Order ID', 'Customer', 'Email', 'Phone', 'Address', 'Items', 'Subtotal', 'Shipping', 'Total', 'Status', 'Date'];
+    const rows = orders.map(o => {
+        const items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
+        const address = typeof o.shipping_address === 'string' ? JSON.parse(o.shipping_address) : o.shipping_address;
+        return [
+            o.id,
+            `"${o.customer_name || ''}"`,
+            o.customer_email,
+            o.customer_phone || '',
+            `"${address?.address || ''}"`,
+            items.length,
+            o.subtotal,
+            o.shipping_cost,
+            o.total,
+            o.order_status,
+            o.created_at
+        ].join(',');
+    });
+    
+    const csv = [headers.join(','), ...rows].join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=orders.csv');
+    res.send(csv);
+}));
+
+// Export products as CSV
+app.get('/api/admin/export/products', verifyAdminToken, asyncHandler(async (req, res) => {
+    let products;
+    if (USE_POSTGRES) {
+        const result = await db.query('SELECT * FROM products ORDER BY name');
+        products = result.rows;
+    } else {
+        products = db.prepare('SELECT * FROM products ORDER BY name').all();
+    }
+    
+    const headers = ['ID', 'Name', 'Slug', 'Category', 'Price', 'Compare At', 'Description', 'Inventory', 'Created'];
+    const rows = products.map(p => [
+        p.id,
+        `"${p.name}"`,
+        p.slug,
+        p.category,
+        p.price,
+        p.compare_at_price || '',
+        `"${(p.description || '').replace(/"/g, '""')}"`,
+        `"${p.inventory}"`,
+        p.created_at
+    ].join(','));
+    
+    const csv = [headers.join(','), ...rows].join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=products.csv');
+    res.send(csv);
 }));
 
 // ==========================================

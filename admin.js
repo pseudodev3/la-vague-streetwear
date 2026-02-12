@@ -1,5 +1,6 @@
 /**
  * LA VAGUE - Professional Admin Dashboard
+ * Security-hardened with XSS protection and audit logging
  */
 
 // ==========================================
@@ -8,6 +9,65 @@
 const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:3000/api' 
     : 'https://la-vague-api.onrender.com/api';
+
+// ==========================================
+// SECURITY UTILITIES
+// ==========================================
+
+/**
+ * Sanitize HTML to prevent XSS attacks
+ * @param {string} str - String to sanitize
+ * @returns {string} Sanitized string safe for HTML insertion
+ */
+function sanitizeHTML(str) {
+    if (typeof str !== 'string') return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+/**
+ * Escape HTML attributes
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string safe for attributes
+ */
+function escapeAttr(str) {
+    if (typeof str !== 'string') return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+/**
+ * Create DOM element safely
+ * @param {string} tag - HTML tag name
+ * @param {Object} attrs - Attributes object
+ * @param {string|Node} content - Text content or child node
+ * @returns {HTMLElement} Created element
+ */
+function createElement(tag, attrs = {}, content = '') {
+    const el = document.createElement(tag);
+    for (const [key, value] of Object.entries(attrs)) {
+        if (key === 'className') {
+            el.className = value;
+        } else if (key.startsWith('on') && typeof value === 'function') {
+            el.addEventListener(key.slice(2).toLowerCase(), value);
+        } else {
+            el.setAttribute(key, escapeAttr(String(value)));
+        }
+    }
+    if (content) {
+        if (typeof content === 'string') {
+            el.textContent = content;
+        } else {
+            el.appendChild(content);
+        }
+    }
+    return el;
+}
 
 // ==========================================
 // STATE
@@ -99,7 +159,10 @@ const elements = {
     inventoryVariant: document.getElementById('inventoryVariant'),
     inventoryCurrentStock: document.getElementById('inventoryCurrentStock'),
     inventoryNewStock: document.getElementById('inventoryNewStock'),
-    updateInventoryBtn: document.getElementById('updateInventoryBtn')
+    updateInventoryBtn: document.getElementById('updateInventoryBtn'),
+    
+    // Customers
+    customersTable: document.getElementById('customersTable')
 };
 
 // ==========================================
@@ -138,7 +201,6 @@ async function handleLogin(e) {
             showToast(data.error || 'Invalid password', 'error');
         }
     } catch (error) {
-        console.error('Login error:', error);
         showToast('Login failed. Please try again.', 'error');
     } finally {
         setLoading(btn, false);
@@ -158,7 +220,6 @@ async function handleLogout() {
                 }
             });
         } catch (error) {
-            console.error('Logout error:', error);
         }
     }
     
@@ -202,14 +263,20 @@ function navigateTo(section) {
         overview: 'Overview',
         orders: 'Orders',
         products: 'Products',
-        inventory: 'Inventory'
+        inventory: 'Inventory',
+        customers: 'Customers',
+        analytics: 'Analytics',
+        settings: 'Settings'
     };
-    elements.pageTitle.textContent = titles[section];
+    elements.pageTitle.textContent = titles[section] || 'Dashboard';
     
     // Load section data
     if (section === 'orders') loadOrders();
     if (section === 'products') loadProducts();
     if (section === 'inventory') loadInventory();
+    if (section === 'customers') loadCustomers();
+    if (section === 'analytics') loadAnalytics();
+    if (section === 'settings') loadSettings();
 }
 
 // ==========================================
@@ -225,7 +292,6 @@ async function loadAllData() {
             loadLowStock()
         ]);
     } catch (error) {
-        console.error('Error loading data:', error);
         showToast('Error loading dashboard data', 'error');
     } finally {
         showLoading(false);
@@ -256,7 +322,6 @@ async function loadStats() {
         elements.statPending.textContent = (state.stats.pendingOrders || 0).toLocaleString();
         elements.ordersCount.textContent = (state.stats.pendingOrders || 0).toString();
     } catch (error) {
-        console.error('Error loading stats:', error);
     }
 }
 
@@ -267,22 +332,50 @@ async function loadRecentOrders() {
         
         const recent = state.orders.slice(0, 5);
         
+        // Clear table
+        elements.recentOrdersTable.innerHTML = '';
+        
         if (recent.length === 0) {
-            elements.recentOrdersTable.innerHTML = '<tr><td colspan="4" class="text-center">No orders yet</td></tr>';
+            const tr = createElement('tr', {}, 
+                createElement('td', { colspan: 4, className: 'text-center' }, 'No orders yet')
+            );
+            elements.recentOrdersTable.appendChild(tr);
             return;
         }
         
-        elements.recentOrdersTable.innerHTML = recent.map(order => `
-            <tr onclick="viewOrder('${order.id}')" style="cursor: pointer;">
-                <td><strong>${order.id}</strong></td>
-                <td>${order.customer_name || order.customerName || ''}</td>
-                <td>$${order.total || 0}</td>
-                <td><span class="status-badge ${order.order_status || order.status}">${order.order_status || order.status}</span></td>
-            </tr>
-        `).join('');
+        recent.forEach(order => {
+            const tr = createElement('tr', { 
+                style: 'cursor: pointer;',
+                onclick: () => viewOrder(order.id)
+            });
+            
+            const tdId = createElement('td', {}, 
+                createElement('strong', {}, order.id)
+            );
+            
+            const tdCustomer = createElement('td', {}, 
+                order.customer_name || order.customerName || ''
+            );
+            
+            const tdTotal = createElement('td', {}, `$${order.total || 0}`);
+            
+            const status = order.order_status || order.status || 'pending';
+            const tdStatus = createElement('td', {}, 
+                createElement('span', { className: `status-badge ${status}` }, status)
+            );
+            
+            tr.appendChild(tdId);
+            tr.appendChild(tdCustomer);
+            tr.appendChild(tdTotal);
+            tr.appendChild(tdStatus);
+            elements.recentOrdersTable.appendChild(tr);
+        });
     } catch (error) {
-        console.error('Error loading recent orders:', error);
-        elements.recentOrdersTable.innerHTML = '<tr><td colspan="4" class="text-center">Error loading orders</td></tr>';
+        elements.recentOrdersTable.innerHTML = '';
+        const tr = createElement('tr', {}, 
+            createElement('td', { colspan: 4, className: 'text-center' }, 'Error loading orders')
+        );
+        elements.recentOrdersTable.appendChild(tr);
     }
 }
 
@@ -294,20 +387,32 @@ async function loadLowStock() {
         elements.lowStockCount.textContent = lowStock.length;
         elements.lowStockCount.style.display = lowStock.length > 0 ? 'inline-flex' : 'none';
         
+        elements.lowStockTable.innerHTML = '';
+        
         if (lowStock.length === 0) {
-            elements.lowStockTable.innerHTML = '<tr><td colspan="3" class="text-center">No low stock items</td></tr>';
+            const tr = createElement('tr', {}, 
+                createElement('td', { colspan: 3, className: 'text-center' }, 'No low stock items')
+            );
+            elements.lowStockTable.appendChild(tr);
             return;
         }
         
-        elements.lowStockTable.innerHTML = lowStock.slice(0, 5).map(item => `
-            <tr>
-                <td>${item.productName}</td>
-                <td>${item.color} / ${item.size}</td>
-                <td><span class="stock-badge ${item.quantity <= 5 ? 'critical' : 'warning'}">${item.quantity}</span></td>
-            </tr>
-        `).join('');
+        lowStock.slice(0, 5).forEach(item => {
+            const tr = createElement('tr');
+            const tdProduct = createElement('td', {}, item.productName);
+            const tdVariant = createElement('td', {}, `${item.color} / ${item.size}`);
+            const badgeClass = item.quantity <= 5 ? 'critical' : 'warning';
+            const tdStock = createElement('td', {}, 
+                createElement('span', { className: `stock-badge ${badgeClass}` }, String(item.quantity))
+            );
+            
+            tr.appendChild(tdProduct);
+            tr.appendChild(tdVariant);
+            tr.appendChild(tdStock);
+            elements.lowStockTable.appendChild(tr);
+        });
     } catch (error) {
-        console.error('Error loading low stock:', error);
+        // Silent error - don't expose to UI
     }
 }
 
@@ -319,7 +424,6 @@ async function loadOrders() {
         state.orders = data.orders || [];
         renderOrdersTable(state.orders);
     } catch (error) {
-        console.error('Error loading orders:', error);
         elements.ordersTable.innerHTML = '<tr><td colspan="8" class="text-center">Error loading orders</td></tr>';
     } finally {
         showLoading(false);
@@ -344,41 +448,74 @@ function renderOrdersTable(orders) {
         );
     }
     
+    elements.ordersTable.innerHTML = '';
+    
     if (filtered.length === 0) {
-        elements.ordersTable.innerHTML = '<tr><td colspan="8" class="text-center">No orders found</td></tr>';
+        const tr = createElement('tr', {}, 
+            createElement('td', { colspan: 8, className: 'text-center' }, 'No orders found')
+        );
+        elements.ordersTable.appendChild(tr);
         return;
     }
     
-    elements.ordersTable.innerHTML = filtered.map(order => {
+    filtered.forEach(order => {
         const items = order.items || [];
         const status = order.order_status || order.status || 'pending';
         
-        return `
-            <tr>
-                <td><strong>${order.id}</strong></td>
-                <td>${order.customer_name || order.firstName + ' ' + order.lastName || ''}</td>
-                <td>${order.customer_email || order.email || ''}</td>
-                <td>${formatDate(order.created_at || order.date)}</td>
-                <td>${items.length}</td>
-                <td>$${order.total || 0}</td>
-                <td>
-                    <select class="input input-sm status-select" 
-                            id="status-${order.id}" 
-                            style="min-width: 120px;">
-                        <option value="pending" ${status === 'pending' ? 'selected' : ''}>Pending</option>
-                        <option value="processing" ${status === 'processing' ? 'selected' : ''}>Processing</option>
-                        <option value="shipped" ${status === 'shipped' ? 'selected' : ''}>Shipped</option>
-                        <option value="delivered" ${status === 'delivered' ? 'selected' : ''}>Delivered</option>
-                        <option value="cancelled" ${status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
-                    </select>
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-secondary" onclick="viewOrder('${order.id}')">View</button>
-                    <button class="btn btn-sm btn-primary" onclick="saveOrderStatus('${order.id}')">Save</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+        const tr = createElement('tr');
+        
+        // Order ID
+        tr.appendChild(createElement('td', {}, createElement('strong', {}, order.id)));
+        
+        // Customer name
+        const customerName = order.customer_name || (order.firstName && order.lastName ? `${order.firstName} ${order.lastName}` : '');
+        tr.appendChild(createElement('td', {}, customerName));
+        
+        // Email
+        tr.appendChild(createElement('td', {}, order.customer_email || order.email || ''));
+        
+        // Date
+        tr.appendChild(createElement('td', {}, formatDate(order.created_at || order.date)));
+        
+        // Items count
+        tr.appendChild(createElement('td', {}, String(items.length)));
+        
+        // Total
+        tr.appendChild(createElement('td', {}, `$${order.total || 0}`));
+        
+        // Status select
+        const tdStatus = createElement('td');
+        const select = createElement('select', { 
+            className: 'input input-sm status-select',
+            id: `status-${order.id}`,
+            style: 'min-width: 120px;'
+        });
+        const statuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        statuses.forEach(s => {
+            const option = createElement('option', { value: s }, s.charAt(0).toUpperCase() + s.slice(1));
+            if (s === status) option.selected = true;
+            select.appendChild(option);
+        });
+        tdStatus.appendChild(select);
+        tr.appendChild(tdStatus);
+        
+        // Actions
+        const tdActions = createElement('td');
+        const viewBtn = createElement('button', { 
+            className: 'btn btn-sm btn-secondary',
+            onclick: () => viewOrder(order.id)
+        }, 'View');
+        const saveBtn = createElement('button', { 
+            className: 'btn btn-sm btn-primary',
+            style: 'margin-left: 0.5rem;',
+            onclick: () => saveOrderStatus(order.id)
+        }, 'Save');
+        tdActions.appendChild(viewBtn);
+        tdActions.appendChild(saveBtn);
+        tr.appendChild(tdActions);
+        
+        elements.ordersTable.appendChild(tr);
+    });
 }
 
 async function loadProducts() {
@@ -389,7 +526,6 @@ async function loadProducts() {
         state.products = data.products || [];
         renderProductsTable(state.products);
     } catch (error) {
-        console.error('Error loading products:', error);
         elements.productsTable.innerHTML = '<tr><td colspan="7" class="text-center">Error loading products</td></tr>';
     } finally {
         showLoading(false);
@@ -408,30 +544,68 @@ function renderProductsTable(products) {
         );
     }
     
+    elements.productsTable.innerHTML = '';
+    
     if (filtered.length === 0) {
-        elements.productsTable.innerHTML = '<tr><td colspan="7" class="text-center">No products found</td></tr>';
+        const tr = createElement('tr', {}, 
+            createElement('td', { colspan: 7, className: 'text-center' }, 'No products found')
+        );
+        elements.productsTable.appendChild(tr);
         return;
     }
     
-    elements.productsTable.innerHTML = filtered.map(product => {
+    filtered.forEach(product => {
         const variantCount = (product.colors?.length || 1) * (product.sizes?.length || 1);
         const imageUrl = product.images?.[0]?.src || 'https://via.placeholder.com/50';
         
-        return `
-            <tr>
-                <td><img src="${imageUrl}" alt="${product.name}" class="product-thumb"></td>
-                <td><strong>${product.name}</strong></td>
-                <td>${product.category}</td>
-                <td>$${product.price}</td>
-                <td>${variantCount} variants</td>
-                <td><span class="status-badge ${product.badge ? 'active' : 'draft'}">${product.badge || 'Active'}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-secondary" onclick="editProduct('${product.id}')">Edit</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteProduct('${product.id}')">Delete</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+        const tr = createElement('tr');
+        
+        // Image
+        const tdImage = createElement('td');
+        const img = createElement('img', { 
+            src: imageUrl, 
+            alt: '',
+            className: 'product-thumb' 
+        });
+        tdImage.appendChild(img);
+        tr.appendChild(tdImage);
+        
+        // Name
+        tr.appendChild(createElement('td', {}, createElement('strong', {}, product.name)));
+        
+        // Category
+        tr.appendChild(createElement('td', {}, product.category));
+        
+        // Price
+        tr.appendChild(createElement('td', {}, `$${product.price}`));
+        
+        // Variants
+        tr.appendChild(createElement('td', {}, `${variantCount} variants`));
+        
+        // Status
+        const badgeClass = product.badge ? 'active' : 'draft';
+        const badgeText = product.badge || 'Active';
+        tr.appendChild(createElement('td', {}, 
+            createElement('span', { className: `status-badge ${badgeClass}` }, badgeText)
+        ));
+        
+        // Actions
+        const tdActions = createElement('td');
+        const editBtn = createElement('button', { 
+            className: 'btn btn-sm btn-secondary',
+            onclick: () => editProduct(product.id)
+        }, 'Edit');
+        const deleteBtn = createElement('button', { 
+            className: 'btn btn-sm btn-danger',
+            style: 'margin-left: 0.5rem;',
+            onclick: () => deleteProduct(product.id)
+        }, 'Delete');
+        tdActions.appendChild(editBtn);
+        tdActions.appendChild(deleteBtn);
+        tr.appendChild(tdActions);
+        
+        elements.productsTable.appendChild(tr);
+    });
 }
 
 async function loadInventory() {
@@ -474,7 +648,6 @@ async function loadInventory() {
         state.inventory = inventoryList;
         renderInventoryTable(inventoryList);
     } catch (error) {
-        console.error('Error loading inventory:', error);
         elements.inventoryTable.innerHTML = '<tr><td colspan="6" class="text-center">Error loading inventory</td></tr>';
     } finally {
         showLoading(false);
@@ -490,23 +663,38 @@ function renderInventoryTable(inventory) {
         filtered = filtered.filter(i => i.available <= 10);
     }
     
+    elements.inventoryTable.innerHTML = '';
+    
     if (filtered.length === 0) {
-        elements.inventoryTable.innerHTML = '<tr><td colspan="6" class="text-center">No inventory items</td></tr>';
+        const tr = createElement('tr', {}, 
+            createElement('td', { colspan: 6, className: 'text-center' }, 'No inventory items')
+        );
+        elements.inventoryTable.appendChild(tr);
         return;
     }
     
-    elements.inventoryTable.innerHTML = filtered.map(item => `
-        <tr>
-            <td>${item.productName}</td>
-            <td>${item.color} / ${item.size}</td>
-            <td>${item.total}</td>
-            <td>${item.reserved}</td>
-            <td><span class="stock-badge ${item.available <= 5 ? 'critical' : item.available <= 10 ? 'warning' : 'good'}">${item.available}</span></td>
-            <td>
-                <button class="btn btn-sm btn-secondary" onclick="editInventory('${item.productId}', '${item.color}', '${item.size}', ${item.total})">Edit</button>
-            </td>
-        </tr>
-    `).join('');
+    filtered.forEach(item => {
+        const tr = createElement('tr');
+        tr.appendChild(createElement('td', {}, item.productName));
+        tr.appendChild(createElement('td', {}, `${item.color} / ${item.size}`));
+        tr.appendChild(createElement('td', {}, String(item.total)));
+        tr.appendChild(createElement('td', {}, String(item.reserved)));
+        
+        const badgeClass = item.available <= 5 ? 'critical' : item.available <= 10 ? 'warning' : 'good';
+        tr.appendChild(createElement('td', {}, 
+            createElement('span', { className: `stock-badge ${badgeClass}` }, String(item.available))
+        ));
+        
+        const tdActions = createElement('td');
+        const editBtn = createElement('button', { 
+            className: 'btn btn-sm btn-secondary',
+            onclick: () => editInventory(item.productId, item.color, item.size, item.total)
+        }, 'Edit');
+        tdActions.appendChild(editBtn);
+        tr.appendChild(tdActions);
+        
+        elements.inventoryTable.appendChild(tr);
+    });
 }
 
 // ==========================================
@@ -516,57 +704,136 @@ window.viewOrder = async function(orderId) {
     const order = state.orders.find(o => o.id === orderId);
     if (!order) return;
     
+    // Load order notes
+    let notes = [];
+    try {
+        const notesData = await fetchAPI(`/admin/orders/${orderId}/notes`);
+        notes = notesData.notes || [];
+    } catch (e) {
+        // Silent fail
+    }
+    
     const items = order.items || [];
     const shippingAddress = typeof order.shipping_address === 'string' 
         ? JSON.parse(order.shipping_address || '{}') 
         : (order.shipping_address || {});
     
     elements.orderModalTitle.textContent = `Order ${orderId}`;
-    elements.orderModalBody.innerHTML = `
-        <div class="order-details">
-            <div class="order-section">
-                <h4>Customer Information</h4>
-                <p><strong>Name:</strong> ${order.customer_name || order.firstName + ' ' + order.lastName}</p>
-                <p><strong>Email:</strong> ${order.customer_email || order.email}</p>
-                <p><strong>Phone:</strong> ${order.customer_phone || order.phone || 'N/A'}</p>
-            </div>
-            
-            <div class="order-section">
-                <h4>Shipping Address</h4>
-                <p>${shippingAddress.address || order.address || ''}</p>
-                ${shippingAddress.apartment || order.apartment ? `<p>${shippingAddress.apartment || order.apartment}</p>` : ''}
-                <p>${shippingAddress.city || order.city || ''}, ${shippingAddress.state || order.state || ''} ${shippingAddress.zip || order.zip || ''}</p>
-            </div>
-            
-            <div class="order-section">
-                <h4>Items</h4>
-                <table class="table table-sm">
-                    <thead>
-                        <tr><th>Item</th><th>Variant</th><th>Qty</th><th>Price</th></tr>
-                    </thead>
-                    <tbody>
-                        ${items.map(item => `
-                            <tr>
-                                <td>${item.name}</td>
-                                <td>${item.color} / ${item.size}</td>
-                                <td>${item.quantity}</td>
-                                <td>$${item.price}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="order-section">
-                <h4>Payment Summary</h4>
-                <p><strong>Subtotal:</strong> $${order.subtotal || 0}</p>
-                <p><strong>Shipping:</strong> $${order.shipping_cost || order.shippingCost || 0}</p>
-                ${order.discount ? `<p><strong>Discount:</strong> -$${order.discount}</p>` : ''}
-                <p class="text-bold"><strong>Total:</strong> $${order.total || 0}</p>
-            </div>
-        </div>
-    `;
+    elements.orderModalBody.innerHTML = '';
     
+    const container = createElement('div', { className: 'order-details' });
+    
+    // Customer Information
+    const customerSection = createElement('div', { className: 'order-section' });
+    customerSection.appendChild(createElement('h4', {}, 'Customer Information'));
+    
+    const customerName = order.customer_name || (order.firstName && order.lastName ? `${order.firstName} ${order.lastName}` : 'N/A');
+    customerSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Name: '), customerName));
+    customerSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Email: '), order.customer_email || order.email || 'N/A'));
+    customerSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Phone: '), order.customer_phone || order.phone || 'N/A'));
+    container.appendChild(customerSection);
+    
+    // Shipping Address
+    const addressSection = createElement('div', { className: 'order-section' });
+    addressSection.appendChild(createElement('h4', {}, 'Shipping Address'));
+    addressSection.appendChild(createElement('p', {}, shippingAddress.address || order.address || ''));
+    if (shippingAddress.apartment || order.apartment) {
+        addressSection.appendChild(createElement('p', {}, shippingAddress.apartment || order.apartment));
+    }
+    const cityStateZip = `${shippingAddress.city || order.city || ''}, ${shippingAddress.state || order.state || ''} ${shippingAddress.zip || order.zip || ''}`.trim();
+    if (cityStateZip && cityStateZip !== ',') {
+        addressSection.appendChild(createElement('p', {}, cityStateZip));
+    }
+    container.appendChild(addressSection);
+    
+    // Items
+    const itemsSection = createElement('div', { className: 'order-section' });
+    itemsSection.appendChild(createElement('h4', {}, 'Items'));
+    
+    const itemsTable = createElement('table', { className: 'table table-sm' });
+    const thead = createElement('thead');
+    const headerRow = createElement('tr');
+    ['Item', 'Variant', 'Qty', 'Price'].forEach(text => {
+        headerRow.appendChild(createElement('th', {}, text));
+    });
+    thead.appendChild(headerRow);
+    itemsTable.appendChild(thead);
+    
+    const tbody = createElement('tbody');
+    items.forEach(item => {
+        const tr = createElement('tr');
+        tr.appendChild(createElement('td', {}, item.name));
+        tr.appendChild(createElement('td', {}, `${item.color} / ${item.size}`));
+        tr.appendChild(createElement('td', {}, String(item.quantity)));
+        tr.appendChild(createElement('td', {}, `$${item.price}`));
+        tbody.appendChild(tr);
+    });
+    itemsTable.appendChild(tbody);
+    itemsSection.appendChild(itemsTable);
+    container.appendChild(itemsSection);
+    
+    // Payment Summary
+    const paymentSection = createElement('div', { className: 'order-section' });
+    paymentSection.appendChild(createElement('h4', {}, 'Payment Summary'));
+    paymentSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Subtotal: '), `$${order.subtotal || 0}`));
+    paymentSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Shipping: '), `$${order.shipping_cost || order.shippingCost || 0}`));
+    if (order.discount) {
+        paymentSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Discount: '), `-$${order.discount}`));
+    }
+    const totalP = createElement('p', { className: 'text-bold' }, createElement('strong', {}, 'Total: '), `$${order.total || 0}`);
+    paymentSection.appendChild(totalP);
+    container.appendChild(paymentSection);
+    
+    // Order Notes
+    const notesSection = createElement('div', { className: 'order-section' });
+    notesSection.appendChild(createElement('h4', {}, 'Order Notes'));
+    
+    if (notes.length === 0) {
+        notesSection.appendChild(createElement('p', { className: 'text-muted' }, 'No notes yet'));
+    } else {
+        notes.forEach(note => {
+            const noteDiv = createElement('div', { className: 'order-note', style: 'margin-bottom: 0.5rem; padding: 0.5rem; background: #f3f4f6; border-radius: 4px;' });
+            noteDiv.appendChild(createElement('p', { style: 'margin: 0;' }, note.note));
+            const dateSmall = createElement('small', { className: 'text-muted' }, formatDate(note.created_at));
+            noteDiv.appendChild(dateSmall);
+            notesSection.appendChild(noteDiv);
+        });
+    }
+    
+    // Add note form
+    const noteForm = createElement('div', { className: 'note-form', style: 'margin-top: 1rem;' });
+    const noteTextarea = createElement('textarea', { 
+        id: 'newOrderNote',
+        className: 'input',
+        rows: 2,
+        placeholder: 'Add a note...'
+    });
+    noteForm.appendChild(noteTextarea);
+    
+    const addNoteBtn = createElement('button', { 
+        className: 'btn btn-secondary btn-sm',
+        style: 'margin-top: 0.5rem;',
+        onclick: async () => {
+            const noteText = document.getElementById('newOrderNote').value.trim();
+            if (!noteText) return;
+            
+            try {
+                await fetchAPI(`/admin/orders/${orderId}/notes`, {
+                    method: 'POST',
+                    body: { note: noteText, isInternal: true }
+                });
+                showToast('Note added', 'success');
+                viewOrder(orderId); // Refresh modal
+            } catch (e) {
+                showToast('Failed to add note', 'error');
+            }
+        }
+    }, 'Add Note');
+    noteForm.appendChild(addNoteBtn);
+    notesSection.appendChild(noteForm);
+    container.appendChild(notesSection);
+    
+    elements.orderModalBody.appendChild(container);
     elements.orderModal.style.display = 'flex';
 };
 
@@ -589,7 +856,6 @@ window.saveOrderStatus = async function(orderId) {
         showToast(`Order ${orderId} updated to ${newStatus}`, 'success');
         loadOrders();
     } catch (error) {
-        console.error('Update order error:', error);
         showToast(`Failed to update order: ${error.message}`, 'error');
     }
 };
@@ -709,7 +975,6 @@ elements.saveProductBtn.addEventListener('click', async () => {
             throw new Error(data.error || 'Failed to save product');
         }
     } catch (error) {
-        console.error('Error saving product:', error);
         showToast(error.message || 'Failed to save product', 'error');
     } finally {
         setLoading(elements.saveProductBtn, false);
@@ -778,17 +1043,25 @@ function handleImageFiles(files) {
 }
 
 function renderImagePreviews() {
+    elements.imagePreviewGrid.innerHTML = '';
+    
     if (state.productForm.images.length === 0) {
-        elements.imagePreviewGrid.innerHTML = '';
         return;
     }
     
-    elements.imagePreviewGrid.innerHTML = state.productForm.images.map((img, index) => `
-        <div class="image-preview">
-            <img src="${img.src}" alt="Preview ${index + 1}">
-            <button type="button" class="image-remove" onclick="removeImage(${index})">&times;</button>
-        </div>
-    `).join('');
+    state.productForm.images.forEach((img, index) => {
+        const previewDiv = createElement('div', { className: 'image-preview' });
+        const image = createElement('img', { src: img.src, alt: '' });
+        const removeBtn = createElement('button', { 
+            type: 'button',
+            className: 'image-remove',
+            onclick: () => removeImage(index)
+        }, '×');
+        
+        previewDiv.appendChild(image);
+        previewDiv.appendChild(removeBtn);
+        elements.imagePreviewGrid.appendChild(previewDiv);
+    });
 }
 
 window.removeImage = function(index) {
@@ -833,60 +1106,100 @@ window.removeSize = function(index) {
 
 function renderVariantInputs() {
     // Render colors
-    elements.colorsContainer.innerHTML = state.productForm.colors.map((color, index) => `
-        <div class="variant-chip">
-            <span class="color-dot" style="background-color: ${color.value}"></span>
-            <span>${color.name}</span>
-            <button type="button" onclick="removeColor(${index})">&times;</button>
-        </div>
-    `).join('');
+    elements.colorsContainer.innerHTML = '';
+    state.productForm.colors.forEach((color, index) => {
+        const chip = createElement('div', { className: 'variant-chip' });
+        const dot = createElement('span', { 
+            className: 'color-dot',
+            style: `background-color: ${escapeAttr(color.value)}`
+        });
+        const name = createElement('span', {}, color.name);
+        const removeBtn = createElement('button', { 
+            type: 'button',
+            onclick: () => removeColor(index)
+        }, '×');
+        
+        chip.appendChild(dot);
+        chip.appendChild(name);
+        chip.appendChild(removeBtn);
+        elements.colorsContainer.appendChild(chip);
+    });
     
     // Render sizes
-    elements.sizesContainer.innerHTML = state.productForm.sizes.map((size, index) => `
-        <div class="variant-chip">
-            <span>${size}</span>
-            <button type="button" onclick="removeSize(${index})">&times;</button>
-        </div>
-    `).join('');
+    elements.sizesContainer.innerHTML = '';
+    state.productForm.sizes.forEach((size, index) => {
+        const chip = createElement('div', { className: 'variant-chip' });
+        const sizeText = createElement('span', {}, size);
+        const removeBtn = createElement('button', { 
+            type: 'button',
+            onclick: () => removeSize(index)
+        }, '×');
+        
+        chip.appendChild(sizeText);
+        chip.appendChild(removeBtn);
+        elements.sizesContainer.appendChild(chip);
+    });
     
     // Render inventory grid
     renderInventoryGrid();
 }
 
 function renderInventoryGrid() {
-    const colors = state.productForm.colors.length > 0 ? state.productForm.colors : [{ name: 'Default' }];
+    const colors = state.productForm.colors.length > 0 ? state.productForm.colors : [{ name: 'Default', value: '#ccc' }];
     const sizes = state.productForm.sizes.length > 0 ? state.productForm.sizes : ['OS'];
     
+    elements.inventoryContainer.innerHTML = '';
+    
     if (colors.length === 0 || sizes.length === 0) {
-        elements.inventoryContainer.innerHTML = '<p class="text-muted">Add colors and sizes to manage inventory</p>';
+        elements.inventoryContainer.appendChild(
+            createElement('p', { className: 'text-muted' }, 'Add colors and sizes to manage inventory')
+        );
         return;
     }
     
-    let html = '<table class="table table-sm"><thead><tr><th>Variant</th><th>Stock</th></tr></thead><tbody>';
+    const table = createElement('table', { className: 'table table-sm' });
+    const thead = createElement('thead');
+    const headerRow = createElement('tr');
+    headerRow.appendChild(createElement('th', {}, 'Variant'));
+    headerRow.appendChild(createElement('th', {}, 'Stock'));
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
     
+    const tbody = createElement('tbody');
     colors.forEach(color => {
         sizes.forEach(size => {
             const variantKey = `${color.name}-${size}`;
             const stock = state.productForm.inventory[variantKey] || 0;
             
-            html += `
-                <tr>
-                    <td>
-                        <span class="color-dot" style="background-color: ${color.value}"></span>
-                        ${color.name} / ${size}
-                    </td>
-                    <td>
-                        <input type="number" min="0" value="${stock}" 
-                            onchange="updateInventoryValue('${variantKey}', this.value)"
-                            class="input input-sm" style="width: 80px;">
-                    </td>
-                </tr>
-            `;
+            const tr = createElement('tr');
+            
+            const tdVariant = createElement('td');
+            const colorDot = createElement('span', { 
+                className: 'color-dot',
+                style: `background-color: ${escapeAttr(color.value || '#ccc')}`
+            });
+            tdVariant.appendChild(colorDot);
+            tdVariant.appendChild(document.createTextNode(` ${color.name} / ${size}`));
+            tr.appendChild(tdVariant);
+            
+            const tdStock = createElement('td');
+            const input = createElement('input', {
+                type: 'number',
+                min: 0,
+                value: stock,
+                className: 'input input-sm',
+                style: 'width: 80px;'
+            });
+            input.addEventListener('change', (e) => updateInventoryValue(variantKey, e.target.value));
+            tdStock.appendChild(input);
+            tr.appendChild(tdStock);
+            
+            tbody.appendChild(tr);
         });
     });
     
-    html += '</tbody></table>';
-    elements.inventoryContainer.innerHTML = html;
+    table.appendChild(tbody);
+    elements.inventoryContainer.appendChild(table);
 }
 
 window.updateInventoryValue = function(variantKey, value) {
@@ -1014,6 +1327,343 @@ function setLoading(btn, loading) {
 }
 
 // ==========================================
+// CUSTOMER MANAGEMENT
+// ==========================================
+
+let customersState = [];
+
+async function loadCustomers() {
+    showLoading(true);
+    try {
+        const data = await fetchAPI('/admin/customers');
+        customersState = data.customers || [];
+        renderCustomersTable(customersState);
+    } catch (error) {
+        elements.customersTable.innerHTML = '';
+        const tr = createElement('tr', {}, 
+            createElement('td', { colspan: 6, className: 'text-center' }, 'Error loading customers')
+        );
+        elements.customersTable.appendChild(tr);
+    } finally {
+        showLoading(false);
+    }
+}
+
+function renderCustomersTable(customers) {
+    const search = document.getElementById('customerSearch')?.value?.toLowerCase() || '';
+    
+    let filtered = customers;
+    if (search) {
+        filtered = customers.filter(c => 
+            (c.customer_name || '').toLowerCase().includes(search) ||
+            (c.customer_email || '').toLowerCase().includes(search)
+        );
+    }
+    
+    elements.customersTable.innerHTML = '';
+    
+    if (filtered.length === 0) {
+        const tr = createElement('tr', {}, 
+            createElement('td', { colspan: 6, className: 'text-center' }, 'No customers found')
+        );
+        elements.customersTable.appendChild(tr);
+        return;
+    }
+    
+    filtered.forEach(customer => {
+        const tr = createElement('tr');
+        
+        tr.appendChild(createElement('td', {}, customer.customer_name || 'N/A'));
+        tr.appendChild(createElement('td', {}, customer.customer_email));
+        tr.appendChild(createElement('td', {}, String(customer.order_count || 0)));
+        tr.appendChild(createElement('td', {}, `$${(customer.lifetime_value || 0).toLocaleString()}`));
+        tr.appendChild(createElement('td', {}, formatDate(customer.last_order_date)));
+        
+        const tdActions = createElement('td');
+        const viewBtn = createElement('button', {
+            className: 'btn btn-sm btn-secondary',
+            onclick: () => viewCustomer(customer.customer_email)
+        }, 'View');
+        tdActions.appendChild(viewBtn);
+        tr.appendChild(tdActions);
+        
+        elements.customersTable.appendChild(tr);
+    });
+}
+
+window.viewCustomer = async function(email) {
+    try {
+        const data = await fetchAPI(`/admin/customers/${encodeURIComponent(email)}`);
+        const customer = data.customer;
+        
+        // Create customer modal content
+        elements.orderModalTitle.textContent = 'Customer Details';
+        elements.orderModalBody.innerHTML = '';
+        
+        const container = createElement('div', { className: 'order-details' });
+        
+        // Customer info
+        const infoSection = createElement('div', { className: 'order-section' });
+        infoSection.appendChild(createElement('h4', {}, customer.customer_name || 'Customer'));
+        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Email: '), customer.customer_email));
+        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Phone: '), customer.customer_phone || 'N/A'));
+        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Total Orders: '), String(customer.order_count || 0)));
+        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Lifetime Value: '), `$${(customer.lifetime_value || 0).toLocaleString()}`));
+        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'First Order: '), formatDate(customer.first_order_date)));
+        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Last Order: '), formatDate(customer.last_order_date)));
+        container.appendChild(infoSection);
+        
+        // Recent orders
+        const ordersSection = createElement('div', { className: 'order-section' });
+        ordersSection.appendChild(createElement('h4', {}, 'Recent Orders'));
+        
+        if (data.orders && data.orders.length > 0) {
+            const table = createElement('table', { className: 'table table-sm' });
+            const thead = createElement('thead');
+            const headerRow = createElement('tr');
+            ['Order ID', 'Date', 'Total', 'Status'].forEach(text => {
+                headerRow.appendChild(createElement('th', {}, text));
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            const tbody = createElement('tbody');
+            data.orders.slice(0, 5).forEach(order => {
+                const tr = createElement('tr');
+                tr.appendChild(createElement('td', {}, order.id));
+                tr.appendChild(createElement('td', {}, formatDate(order.created_at)));
+                tr.appendChild(createElement('td', {}, `$${order.total || 0}`));
+                tr.appendChild(createElement('td', {}, order.order_status || 'pending'));
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            ordersSection.appendChild(table);
+        } else {
+            ordersSection.appendChild(createElement('p', { className: 'text-muted' }, 'No orders'));
+        }
+        container.appendChild(ordersSection);
+        
+        elements.orderModalBody.appendChild(container);
+        elements.orderModal.style.display = 'flex';
+    } catch (error) {
+        showToast('Failed to load customer details', 'error');
+    }
+};
+
+// ==========================================
+// ANALYTICS
+// ==========================================
+
+async function loadAnalytics() {
+    showLoading(true);
+    try {
+        // Load sales data
+        const salesData = await fetchAPI('/admin/analytics/sales?period=30');
+        const customerStats = await fetchAPI('/admin/analytics/customers');
+        const topProducts = await fetchAPI('/admin/analytics/top-products?limit=10');
+        
+        // Calculate totals
+        const totalRevenue = salesData.data.reduce((sum, day) => sum + (day.revenue || 0), 0);
+        const totalOrders = salesData.data.reduce((sum, day) => sum + (day.orders || 0), 0);
+        const aov = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+        
+        // Update stats cards
+        document.getElementById('analyticsRevenue').textContent = `$${totalRevenue.toLocaleString()}`;
+        document.getElementById('analyticsOrders').textContent = totalOrders.toLocaleString();
+        document.getElementById('analyticsCustomers').textContent = (customerStats.stats?.total_customers || 0).toString();
+        document.getElementById('analyticsAOV').textContent = `$${aov}`;
+        
+        // Render sales chart (simple bar chart using DOM)
+        renderSalesChart(salesData.data);
+        
+        // Render top products
+        renderTopProducts(topProducts.products);
+    } catch (error) {
+        showToast('Failed to load analytics', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function renderSalesChart(data) {
+    const container = document.getElementById('salesChart');
+    container.innerHTML = '';
+    
+    if (!data || data.length === 0) {
+        container.appendChild(createElement('p', { className: 'text-center text-muted' }, 'No data available'));
+        return;
+    }
+    
+    const maxRevenue = Math.max(...data.map(d => d.revenue || 0));
+    const chartDiv = createElement('div', { 
+        className: 'simple-chart',
+        style: 'display: flex; align-items: flex-end; height: 250px; gap: 4px; padding: 1rem;'
+    });
+    
+    data.slice(0, 30).reverse().forEach(day => {
+        const height = maxRevenue > 0 ? ((day.revenue || 0) / maxRevenue) * 100 : 0;
+        const bar = createElement('div', {
+            style: `flex: 1; background: var(--color-primary); height: ${height}%; min-height: 4px; border-radius: 2px; position: relative;`,
+            title: `${day.date}: $${day.revenue || 0}`
+        });
+        chartDiv.appendChild(bar);
+    });
+    
+    container.appendChild(chartDiv);
+}
+
+function renderTopProducts(products) {
+    const tbody = document.getElementById('topProductsTable');
+    tbody.innerHTML = '';
+    
+    if (!products || products.length === 0) {
+        const tr = createElement('tr', {}, 
+            createElement('td', { colspan: 3, className: 'text-center' }, 'No data available')
+        );
+        tbody.appendChild(tr);
+        return;
+    }
+    
+    products.forEach(product => {
+        const tr = createElement('tr');
+        tr.appendChild(createElement('td', {}, product.name));
+        tr.appendChild(createElement('td', {}, String(product.totalQty || 0)));
+        tr.appendChild(createElement('td', {}, `$${(product.totalRevenue || 0).toLocaleString()}`));
+        tbody.appendChild(tr);
+    });
+}
+
+// ==========================================
+// SETTINGS
+// ==========================================
+
+async function loadSettings() {
+    try {
+        const data = await fetchAPI('/admin/settings');
+        const settings = data.settings || {};
+        
+        // Populate form fields
+        if (settings.storeName) document.getElementById('settingStoreName').value = settings.storeName;
+        if (settings.supportEmail) document.getElementById('settingSupportEmail').value = settings.supportEmail;
+        if (settings.freeShippingThreshold) document.getElementById('settingFreeShipping').value = settings.freeShippingThreshold;
+        if (settings.shippingRate) document.getElementById('settingShippingRate').value = settings.shippingRate;
+        if (settings.newOrderEmail !== undefined) document.getElementById('settingNewOrderEmail').checked = settings.newOrderEmail === 'true';
+        if (settings.lowStockEmail !== undefined) document.getElementById('settingLowStockEmail').checked = settings.lowStockEmail === 'true';
+    } catch (error) {
+        // Silent fail - use defaults
+    }
+}
+
+async function saveSettings(e) {
+    e.preventDefault();
+    
+    const settings = {
+        storeName: document.getElementById('settingStoreName').value,
+        supportEmail: document.getElementById('settingSupportEmail').value,
+        freeShippingThreshold: document.getElementById('settingFreeShipping').value,
+        shippingRate: document.getElementById('settingShippingRate').value,
+        newOrderEmail: document.getElementById('settingNewOrderEmail').checked.toString(),
+        lowStockEmail: document.getElementById('settingLowStockEmail').checked.toString()
+    };
+    
+    try {
+        await fetchAPI('/admin/settings', {
+            method: 'POST',
+            body: { settings }
+        });
+        showToast('Settings saved successfully', 'success');
+    } catch (error) {
+        showToast('Failed to save settings', 'error');
+    }
+}
+
+// ==========================================
+// DATA EXPORT
+// ==========================================
+
+async function exportOrders() {
+    try {
+        const token = sessionStorage.getItem('adminToken');
+        const response = await fetch(`${API_URL}/admin/export/orders`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Export failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `orders-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        
+        showToast('Orders exported successfully', 'success');
+    } catch (error) {
+        showToast('Failed to export orders', 'error');
+    }
+}
+
+async function exportProducts() {
+    try {
+        const token = sessionStorage.getItem('adminToken');
+        const response = await fetch(`${API_URL}/admin/export/products`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Export failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `products-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        
+        showToast('Products exported successfully', 'success');
+    } catch (error) {
+        showToast('Failed to export products', 'error');
+    }
+}
+
+async function exportCustomers() {
+    // Export customers as CSV from loaded data
+    if (customersState.length === 0) {
+        showToast('No customers to export', 'error');
+        return;
+    }
+    
+    const headers = ['Name', 'Email', 'Phone', 'Orders', 'Lifetime Value', 'First Order', 'Last Order'];
+    const rows = customersState.map(c => [
+        `"${(c.customer_name || '').replace(/"/g, '""')}"`,
+        c.customer_email,
+        `"${(c.customer_phone || '').replace(/"/g, '""')}"`,
+        c.order_count || 0,
+        c.lifetime_value || 0,
+        c.first_order_date || '',
+        c.last_order_date || ''
+    ].join(','));
+    
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `customers-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+    
+    showToast('Customers exported successfully', 'success');
+}
+
+// ==========================================
 // EVENT LISTENERS
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -1034,6 +1684,28 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.orderFilter.addEventListener('change', () => renderOrdersTable(state.orders));
     elements.productSearch.addEventListener('input', () => renderProductsTable(state.products));
     elements.inventoryFilter.addEventListener('change', () => renderInventoryTable(state.inventory));
+    
+    // Customer search
+    const customerSearch = document.getElementById('customerSearch');
+    if (customerSearch) {
+        customerSearch.addEventListener('input', () => renderCustomersTable(customersState));
+    }
+    
+    // Settings form
+    const settingsForm = document.getElementById('settingsForm');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', saveSettings);
+    }
+    
+    // Export buttons
+    const exportOrdersBtn = document.getElementById('exportOrdersBtn');
+    if (exportOrdersBtn) exportOrdersBtn.addEventListener('click', exportOrders);
+    
+    const exportProductsBtn = document.getElementById('exportProductsBtn');
+    if (exportProductsBtn) exportProductsBtn.addEventListener('click', exportProducts);
+    
+    const exportCustomersBtn = document.getElementById('exportCustomersBtn');
+    if (exportCustomersBtn) exportCustomersBtn.addEventListener('click', exportCustomers);
     
     // Check auth
     checkAuth();
