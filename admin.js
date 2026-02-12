@@ -576,7 +576,7 @@ window.updateOrderStatus = async function(orderId) {
     try {
         await fetchAPI(`/admin/orders/${orderId}/status`, {
             method: 'POST',
-            body: JSON.stringify({ status: nextStatus })
+            body: { status: nextStatus }
         });
         
         showToast(`Order ${orderId} updated to ${nextStatus}`, 'success');
