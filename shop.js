@@ -472,15 +472,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        addToCart({
+        CartState.addToCart({
             id: product.id,
             name: product.name,
             price: product.price,
-            image: product.images[0].src,
+            image: product.images?.[0]?.src || '',
             color: state.selectedColor,
             size: state.selectedSize,
             quantity: state.selectedQuantity
         });
+        showToast(`${product.name} added to cart`, 'success');
         closeQuickView();
     };
 
@@ -663,7 +664,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // NAVIGATION
     // ==========================================
     window.openProductPage = function(slug) {
-        window.location.href = `product.html?slug=${slug}`;
+        // Show skeleton loading
+        const skeleton = document.getElementById('pageSkeleton');
+        if (skeleton) {
+            skeleton.style.display = 'flex';
+        }
+        
+        // Navigate after brief delay to show skeleton
+        setTimeout(() => {
+            window.location.href = `product.html?slug=${slug}`;
+        }, 100);
     };
 
     function bindEvents() {

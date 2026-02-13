@@ -1564,3 +1564,103 @@ body .wishlist-sidebar,
     border-color: var(--color-accent);
     color: var(--color-accent);
 }
+
+
+/* ============================================
+   PAGE SKELETON LOADING
+   ============================================ */
+
+.page-skeleton {
+    position: fixed;
+    inset: 0;
+    background: var(--color-bg);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.page-skeleton-content {
+    width: 100%;
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+}
+
+.page-skeleton-image {
+    aspect-ratio: 3/4;
+    background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 50%, var(--color-bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+.page-skeleton-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-top: 2rem;
+}
+
+.page-skeleton-title {
+    height: 40px;
+    width: 80%;
+    background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 50%, var(--color-bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+.page-skeleton-price {
+    height: 28px;
+    width: 120px;
+    background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 50%, var(--color-bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+.page-skeleton-text {
+    height: 16px;
+    width: 100%;
+    background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 50%, var(--color-bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+.page-skeleton-text.short {
+    width: 60%;
+}
+
+.page-skeleton-button {
+    height: 56px;
+    width: 200px;
+    background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 50%, var(--color-bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@media (max-width: 768px) {
+    .page-skeleton-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    .page-skeleton-image {
+        aspect-ratio: 4/3;
+    }
+    
+    .page-skeleton-details {
+        padding-top: 0;
+    }
+}
