@@ -955,6 +955,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Close modal when clicking outside (on the backdrop)
+    if (reviewModal) {
+        reviewModal.addEventListener('click', (e) => {
+            if (e.target === reviewModal) {
+                reviewModal.classList.remove('active');
+            }
+        });
+    }
+    
     // Star rating input
     if (starRatingInput) {
         const stars = starRatingInput.querySelectorAll('span');

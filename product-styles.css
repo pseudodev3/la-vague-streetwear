@@ -1165,14 +1165,32 @@
     max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
-    z-index: 1001;
+    z-index: 1010;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.review-modal.active {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Modal Backdrop */
+.review-modal::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: -1;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
 }
 
-.review-modal.active {
-    transform: translate(-50%, -50%) scale(1);
+.review-modal.active::before {
     opacity: 1;
     visibility: visible;
 }
@@ -1498,44 +1516,7 @@
     margin-bottom: 0.5rem;
 }
 
-/* Review Modal */
-.review-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 1005;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.review-modal-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-}
-
-.review-modal-content {
-    position: relative;
-    background: var(--color-bg);
-    padding: 2rem;
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    z-index: 1;
-}
-
-.review-modal-close {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: none;
-    border: none;
-    color: var(--color-text);
-    font-size: 1.5rem;
-    cursor: pointer;
-}
-
+/* Star Rating Input */
 .star-rating-input {
     display: flex;
     gap: 0.5rem;
