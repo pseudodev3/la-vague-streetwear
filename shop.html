@@ -25,9 +25,9 @@
     <!-- Announcement Bar -->
     <div class="announcement-bar">
         <div class="announcement-content">
-            <span data-i18n="announcement.freeShipping">FREE SHIPPING ON ORDERS OVER $150</span>
+            <span>FREE SHIPPING ON ORDERS OVER $150</span>
             <span class="announcement-divider">|</span>
-            <span data-i18n="announcement.newDrop">NEW DROP AVAILABLE NOW</span>
+            <span>NEW DROP AVAILABLE NOW</span>
         </div>
     </div>
 
@@ -38,33 +38,25 @@
                 <span class="logo-text">LA VAGUE</span>
             </a>
             <ul class="nav-links" id="navLinks">
-                <li><a href="shop.html" class="nav-link active" data-i18n="nav.shop">Shop</a></li>
-                <li><a href="index.html#collections" class="nav-link" data-i18n="nav.collections">Collections</a></li>
-                <li><a href="index.html#lookbook" class="nav-link" data-i18n="nav.lookbook">Lookbook</a></li>
-                <li><a href="index.html#about" class="nav-link" data-i18n="nav.about">About</a></li>
+                <li><a href="shop.html" class="nav-link active">Shop</a></li>
+                <li><a href="index.html#collections" class="nav-link">Collections</a></li>
+                <li><a href="index.html#lookbook" class="nav-link">Lookbook</a></li>
+                <li><a href="index.html#about" class="nav-link">About</a></li>
             </ul>
             <div class="nav-actions">
-                <div class="currency-selector">
-                    <select id="currencySelect" aria-label="Select currency">
-                        <option value="USD">USD</option>
-                        <option value="NGN">NGN</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                    </select>
-                </div>
-                <button class="nav-btn" id="searchBtn" aria-label="Search" data-i18n-placeholder="nav.search">
+                <button class="nav-btn" id="searchBtn" aria-label="Search">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"></circle>
                         <path d="m21 21-4.35-4.35"></path>
                     </svg>
                 </button>
-                <button class="nav-btn" id="wishlistBtn" aria-label="Wishlist" data-i18n-placeholder="nav.wishlist">
+                <button class="nav-btn" id="wishlistBtn" aria-label="Wishlist">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                     </svg>
                     <span class="wishlist-count" id="wishlistCount">0</span>
                 </button>
-                <button class="nav-btn cart-btn" id="cartBtn" aria-label="Cart" data-i18n-placeholder="nav.cart">
+                <button class="nav-btn cart-btn" id="cartBtn" aria-label="Cart">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M6 6h15l-1.5 9h-12z"></path>
                         <circle cx="9" cy="20" r="1"></circle>
@@ -73,7 +65,7 @@
                     </svg>
                     <span class="cart-count" id="cartCount">0</span>
                 </button>
-                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu" data-i18n-placeholder="nav.menu">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
                     <span></span>
                     <span></span>
                 </button>
@@ -84,8 +76,8 @@
     <!-- Shop Header -->
     <header class="shop-header">
         <div class="container">
-            <h1 class="shop-title reveal-up" data-i18n="shop.title">Shop All</h1>
-            <p class="shop-description reveal-up" data-i18n="shop.description">Premium streetwear crafted in Nigeria</p>
+            <h1 class="shop-title reveal-up">Shop All</h1>
+            <p class="shop-description reveal-up">Premium streetwear crafted in Nigeria</p>
         </div>
     </header>
 
@@ -95,11 +87,11 @@
             <div class="controls-wrapper">
                 <!-- Category Filters -->
                 <div class="category-filters" id="categoryFilters">
-                    <button class="filter-btn active" data-category="all" data-i18n="shop.all">All</button>
-                    <button class="filter-btn" data-category="hoodies" data-i18n="collections.hoodies">Hoodies</button>
-                    <button class="filter-btn" data-category="tees" data-i18n="collections.tees">T-Shirts</button>
-                    <button class="filter-btn" data-category="bottoms" data-i18n="collections.bottoms">Bottoms</button>
-                    <button class="filter-btn" data-category="accessories" data-i18n="collections.accessories">Accessories</button>
+                    <button class="filter-btn active" data-category="all">All</button>
+                    <button class="filter-btn" data-category="hoodies">Hoodies</button>
+                    <button class="filter-btn" data-category="tees">T-Shirts</button>
+                    <button class="filter-btn" data-category="bottoms">Bottoms</button>
+                    <button class="filter-btn" data-category="accessories">Accessories</button>
                 </div>
                 
                 <!-- Sort & Filter Toggle -->
@@ -108,18 +100,18 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                         </svg>
-                        <span data-i18n="shop.filter">Filter</span>
+                        Filter
                     </button>
                     <div class="sort-dropdown">
                         <select id="sortSelect" class="sort-select">
-                            <option value="featured" data-i18n="shop.featured">Featured</option>
-                            <option value="newest" data-i18n="shop.newest">Newest</option>
-                            <option value="price-low" data-i18n="shop.priceLow">Price: Low to High</option>
-                            <option value="price-high" data-i18n="shop.priceHigh">Price: High to Low</option>
-                            <option value="name" data-i18n="shop.name">Name</option>
+                            <option value="featured">Featured</option>
+                            <option value="newest">Newest</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="name">Name</option>
                         </select>
                     </div>
-                    <span class="results-count" id="resultsCount">0 <span data-i18n="shop.products">products</span></span>
+                    <span class="results-count" id="resultsCount">0 products</span>
                 </div>
             </div>
         </div>
@@ -129,37 +121,37 @@
     <div class="filter-overlay" id="filterOverlay"></div>
     <aside class="filter-sidebar" id="filterSidebar">
         <div class="filter-header">
-            <h3 data-i18n="shop.filters">Filters</h3>
+            <h3>Filters</h3>
             <button class="filter-close" id="filterClose">×</button>
         </div>
         <div class="filter-content">
             <div class="filter-section">
-                <h4 data-i18n="shop.categories">Categories</h4>
+                <h4>Categories</h4>
                 <div class="filter-options" id="mobileCategoryFilters">
                     <label class="filter-option">
                         <input type="radio" name="mobile-category" value="all" checked>
-                        <span data-i18n="shop.allProducts">All Products</span>
+                        <span>All Products</span>
                     </label>
                     <label class="filter-option">
                         <input type="radio" name="mobile-category" value="hoodies">
-                        <span data-i18n="collections.hoodies">Hoodies</span>
+                        <span>Hoodies</span>
                     </label>
                     <label class="filter-option">
                         <input type="radio" name="mobile-category" value="tees">
-                        <span data-i18n="collections.tees">T-Shirts</span>
+                        <span>T-Shirts</span>
                     </label>
                     <label class="filter-option">
                         <input type="radio" name="mobile-category" value="bottoms">
-                        <span data-i18n="collections.bottoms">Bottoms</span>
+                        <span>Bottoms</span>
                     </label>
                     <label class="filter-option">
                         <input type="radio" name="mobile-category" value="accessories">
-                        <span data-i18n="collections.accessories">Accessories</span>
+                        <span>Accessories</span>
                     </label>
                 </div>
             </div>
             <div class="filter-section">
-                <h4 data-i18n="shop.priceRange">Price Range</h4>
+                <h4>Price Range</h4>
                 <div class="price-range">
                     <input type="range" id="priceRange" min="0" max="200" value="200">
                     <div class="price-labels">
@@ -169,26 +161,26 @@
                 </div>
             </div>
             <div class="filter-section">
-                <h4 data-i18n="shop.tags">Tags</h4>
+                <h4>Tags</h4>
                 <div class="filter-options">
                     <label class="filter-option">
                         <input type="checkbox" value="sale" id="filterSale">
-                        <span data-i18n="shop.onSale">On Sale</span>
+                        <span>On Sale</span>
                     </label>
                     <label class="filter-option">
                         <input type="checkbox" value="new" id="filterNew">
-                        <span data-i18n="shop.newArrivals">New Arrivals</span>
+                        <span>New Arrivals</span>
                     </label>
                     <label class="filter-option">
                         <input type="checkbox" value="bestseller" id="filterBestseller">
-                        <span data-i18n="shop.bestsellers">Bestsellers</span>
+                        <span>Bestsellers</span>
                     </label>
                 </div>
             </div>
         </div>
         <div class="filter-footer">
-            <button class="btn btn-secondary btn-full" id="clearFilters" data-i18n="shop.clearAll">Clear All</button>
-            <button class="btn btn-primary btn-full" id="applyFilters" data-i18n="shop.apply">Apply Filters</button>
+            <button class="btn btn-secondary btn-full" id="clearFilters">Clear All</button>
+            <button class="btn btn-primary btn-full" id="applyFilters">Apply Filters</button>
         </div>
     </aside>
 
@@ -205,9 +197,9 @@
                     <circle cx="11" cy="11" r="8"></circle>
                     <path d="m21 21-4.35-4.35"></path>
                 </svg>
-                <h3 data-i18n="shop.noProducts">No products found</h3>
-                <p data-i18n="shop.tryAdjusting">Try adjusting your filters or search criteria</p>
-                <button class="btn btn-secondary" id="clearAllFilters" data-i18n="shop.clearFilters">Clear All Filters</button>
+                <h3>No products found</h3>
+                <p>Try adjusting your filters or search criteria</p>
+                <button class="btn btn-secondary" id="clearAllFilters">Clear All Filters</button>
             </div>
             
             <!-- Loading State -->
@@ -231,23 +223,6 @@
         </div>
     </div>
 
-    <!-- Page Transition Skeleton Overlay -->
-    <div class="page-transition-overlay" id="pageTransitionOverlay">
-        <div class="page-transition-content">
-            <div class="page-transition-skeleton">
-                <div class="page-skeleton-image"></div>
-                <div class="page-skeleton-details">
-                    <div class="page-skeleton-line page-skeleton-title"></div>
-                    <div class="page-skeleton-line page-skeleton-price"></div>
-                    <div class="page-skeleton-line page-skeleton-desc"></div>
-                    <div class="page-skeleton-line page-skeleton-desc-short"></div>
-                    <div class="page-skeleton-options"></div>
-                    <div class="page-skeleton-button"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Search Overlay -->
     <div class="search-overlay" id="searchOverlay">
         <div class="search-container">
@@ -257,7 +232,7 @@
                     <circle cx="11" cy="11" r="8"></circle>
                     <path d="m21 21-4.35-4.35"></path>
                 </svg>
-                <input type="text" id="searchInput" placeholder="Search products..." autocomplete="off" data-i18n-placeholder="search.placeholder">
+                <input type="text" id="searchInput" placeholder="Search products..." autocomplete="off">
             </div>
             <div class="search-results" id="searchResults"></div>
         </div>
@@ -267,7 +242,7 @@
     <div class="modal-overlay" id="sizeGuideOverlay"></div>
     <div class="size-guide-modal" id="sizeGuideModal">
         <div class="size-guide-header">
-            <h3 data-i18n="sizeGuide.title">Size Guide</h3>
+            <h3>Size Guide</h3>
             <button class="modal-close" id="sizeGuideClose">×</button>
         </div>
         <div class="size-guide-content" id="sizeGuideContent">
@@ -297,22 +272,22 @@
     <div class="cart-overlay" id="cartOverlay"></div>
     <div class="cart-sidebar" id="cartSidebar">
         <div class="cart-header">
-            <h3 data-i18n="cart.title">Your Cart</h3>
+            <h3>Your Cart</h3>
             <button class="cart-close" id="cartClose">×</button>
         </div>
         <div class="cart-items" id="cartItems">
             <div class="cart-empty">
-                <p data-i18n="cart.empty">Your cart is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()" data-i18n="cart.continueShopping">Continue Shopping</a>
+                <p>Your cart is empty</p>
+                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()">Continue Shopping</a>
             </div>
         </div>
         <div class="cart-footer" id="cartFooter">
             <div class="cart-subtotal">
-                <span data-i18n="cart.subtotal">Subtotal</span>
+                <span>Subtotal</span>
                 <span id="cartSubtotal">$0</span>
             </div>
-            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()" data-i18n="cart.checkout">Checkout</a>
-            <p class="cart-note" data-i18n="cart.note">Shipping & taxes calculated at checkout</p>
+            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()">Checkout</a>
+            <p class="cart-note">Shipping & taxes calculated at checkout</p>
         </div>
     </div>
 
@@ -320,7 +295,7 @@
     <div class="wishlist-overlay" id="wishlistOverlay"></div>
     <div class="wishlist-sidebar" id="wishlistSidebar">
         <div class="wishlist-header">
-            <h3 data-i18n="cart.wishlist">Your Wishlist</h3>
+            <h3>Your Wishlist</h3>
             <button class="wishlist-close" id="wishlistClose">×</button>
         </div>
         <div class="wishlist-items" id="wishlistItems">
@@ -328,8 +303,8 @@
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                 </svg>
-                <p data-i18n="cart.wishlistEmpty">Your wishlist is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()" data-i18n="cart.startShopping">Start Shopping</a>
+                <p>Your wishlist is empty</p>
+                <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Start Shopping</a>
             </div>
         </div>
     </div>
@@ -339,10 +314,7 @@
 
     <!-- Scripts -->
     <script src="products.js?v=2"></script>
-    <script src="translations.js?v=2"></script>
-    <script src="i18n.js?v=2"></script>
     <script src="cart.js?v=2"></script>
-    <script src="utils.js"></script>
-    <script src="shop.js?v=3"></script>
+    <script src="shop.js?v=2"></script>
 </body>
 </html>
