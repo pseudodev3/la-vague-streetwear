@@ -421,9 +421,37 @@ async function loadOrders() {
     
     try {
         const data = await fetchAPI('/admin/orders');
-        state.orders = data.orders || [];
+        // Normalize order data to ensure consistent field access
+        state.orders = (data.orders || []).map(order => {
+            // Parse items if it's a string
+            let items = order.items;
+            if (typeof items === 'string') {
+                try {
+                    items = JSON.parse(items);
+                } catch (e) {
+                    items = [];
+                }
+            }
+            
+            // Parse shipping address if it's a string
+            let shippingAddress = order.shipping_address;
+            if (typeof shippingAddress === 'string') {
+                try {
+                    shippingAddress = JSON.parse(shippingAddress);
+                } catch (e) {
+                    shippingAddress = {};
+                }
+            }
+            
+            return {
+                ...order,
+                items: items || [],
+                shipping_address: shippingAddress || {}
+            };
+        });
         renderOrdersTable(state.orders);
     } catch (error) {
+        console.error('Error loading orders:', error);
         elements.ordersTable.innerHTML = '<tr><td colspan="8" class="text-center">Error loading orders</td></tr>';
     } finally {
         showLoading(false);
@@ -702,7 +730,13 @@ function renderInventoryTable(inventory) {
 // ==========================================
 window.viewOrder = async function(orderId) {
     const order = state.orders.find(o => o.id === orderId);
-    if (!order) return;
+    if (!order) {
+        console.error('Order not found:', orderId);
+        showToast('Order not found', 'error');
+        return;
+    }
+    
+    console.log('Viewing order:', order);
     
     // Load order notes
     let notes = [];
@@ -710,13 +744,28 @@ window.viewOrder = async function(orderId) {
         const notesData = await fetchAPI(`/admin/orders/${orderId}/notes`);
         notes = notesData.notes || [];
     } catch (e) {
-        // Silent fail
+        console.log('No notes found or error loading notes');
     }
     
-    const items = order.items || [];
-    const shippingAddress = typeof order.shipping_address === 'string' 
-        ? JSON.parse(order.shipping_address || '{}') 
-        : (order.shipping_address || {});
+    // Ensure items is an array
+    let items = order.items || [];
+    if (typeof items === 'string') {
+        try {
+            items = JSON.parse(items);
+        } catch (e) {
+            items = [];
+        }
+    }
+    
+    // Ensure shipping address is an object
+    let shippingAddress = order.shipping_address || {};
+    if (typeof shippingAddress === 'string') {
+        try {
+            shippingAddress = JSON.parse(shippingAddress);
+        } catch (e) {
+            shippingAddress = {};
+        }
+    }
     
     elements.orderModalTitle.textContent = `Order ${orderId}`;
     elements.orderModalBody.innerHTML = '';
@@ -728,60 +777,90 @@ window.viewOrder = async function(orderId) {
     customerSection.appendChild(createElement('h4', {}, 'Customer Information'));
     
     const customerName = order.customer_name || (order.firstName && order.lastName ? `${order.firstName} ${order.lastName}` : 'N/A');
+    const customerEmail = order.customer_email || order.email || 'N/A';
+    const customerPhone = order.customer_phone || order.phone || 'N/A';
+    
     customerSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Name: '), customerName));
-    customerSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Email: '), order.customer_email || order.email || 'N/A'));
-    customerSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Phone: '), order.customer_phone || order.phone || 'N/A'));
+    customerSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Email: '), customerEmail));
+    customerSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Phone: '), customerPhone));
     container.appendChild(customerSection);
     
     // Shipping Address
     const addressSection = createElement('div', { className: 'order-section' });
     addressSection.appendChild(createElement('h4', {}, 'Shipping Address'));
-    addressSection.appendChild(createElement('p', {}, shippingAddress.address || order.address || ''));
-    if (shippingAddress.apartment || order.apartment) {
-        addressSection.appendChild(createElement('p', {}, shippingAddress.apartment || order.apartment));
+    
+    const address = shippingAddress.address || order.address || 'N/A';
+    const apartment = shippingAddress.apartment || order.apartment || '';
+    const city = shippingAddress.city || order.city || '';
+    const state = shippingAddress.state || order.state || '';
+    const zip = shippingAddress.zip || order.zip || '';
+    
+    addressSection.appendChild(createElement('p', {}, address));
+    if (apartment) {
+        addressSection.appendChild(createElement('p', {}, apartment));
     }
-    const cityStateZip = `${shippingAddress.city || order.city || ''}, ${shippingAddress.state || order.state || ''} ${shippingAddress.zip || order.zip || ''}`.trim();
-    if (cityStateZip && cityStateZip !== ',') {
+    const cityStateZip = `${city}${city && state ? ', ' : ''}${state} ${zip}`.trim();
+    if (cityStateZip) {
         addressSection.appendChild(createElement('p', {}, cityStateZip));
     }
     container.appendChild(addressSection);
     
     // Items
     const itemsSection = createElement('div', { className: 'order-section' });
-    itemsSection.appendChild(createElement('h4', {}, 'Items'));
+    itemsSection.appendChild(createElement('h4', {}, `Items (${items.length})`));
     
-    const itemsTable = createElement('table', { className: 'table table-sm' });
-    const thead = createElement('thead');
-    const headerRow = createElement('tr');
-    ['Item', 'Variant', 'Qty', 'Price'].forEach(text => {
-        headerRow.appendChild(createElement('th', {}, text));
-    });
-    thead.appendChild(headerRow);
-    itemsTable.appendChild(thead);
-    
-    const tbody = createElement('tbody');
-    items.forEach(item => {
-        const tr = createElement('tr');
-        tr.appendChild(createElement('td', {}, item.name));
-        tr.appendChild(createElement('td', {}, `${item.color} / ${item.size}`));
-        tr.appendChild(createElement('td', {}, String(item.quantity)));
-        tr.appendChild(createElement('td', {}, `$${item.price}`));
-        tbody.appendChild(tr);
-    });
-    itemsTable.appendChild(tbody);
-    itemsSection.appendChild(itemsTable);
+    if (items.length === 0) {
+        itemsSection.appendChild(createElement('p', { className: 'text-muted' }, 'No items in this order'));
+    } else {
+        const itemsTable = createElement('table', { className: 'table table-sm' });
+        const thead = createElement('thead');
+        const headerRow = createElement('tr');
+        ['Item', 'Variant', 'Qty', 'Price'].forEach(text => {
+            headerRow.appendChild(createElement('th', {}, text));
+        });
+        thead.appendChild(headerRow);
+        itemsTable.appendChild(thead);
+        
+        const tbody = createElement('tbody');
+        items.forEach(item => {
+            const tr = createElement('tr');
+            tr.appendChild(createElement('td', {}, item.name || 'Unknown'));
+            tr.appendChild(createElement('td', {}, `${item.color || 'N/A'} / ${item.size || 'N/A'}`));
+            tr.appendChild(createElement('td', {}, String(item.quantity || 0)));
+            tr.appendChild(createElement('td', {}, `$${item.price || 0}`));
+            tbody.appendChild(tr);
+        });
+        itemsTable.appendChild(tbody);
+        itemsSection.appendChild(itemsTable);
+    }
     container.appendChild(itemsSection);
     
     // Payment Summary
     const paymentSection = createElement('div', { className: 'order-section' });
     paymentSection.appendChild(createElement('h4', {}, 'Payment Summary'));
-    paymentSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Subtotal: '), `$${order.subtotal || 0}`));
-    paymentSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Shipping: '), `$${order.shipping_cost || order.shippingCost || 0}`));
-    if (order.discount) {
-        paymentSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Discount: '), `-$${order.discount}`));
+    
+    const subtotal = order.subtotal || 0;
+    const shipping = order.shipping_cost || order.shippingCost || 0;
+    const discount = order.discount || 0;
+    const total = order.total || 0;
+    
+    paymentSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Subtotal: '), `$${subtotal}`));
+    paymentSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Shipping: '), `$${shipping}`));
+    if (discount > 0) {
+        paymentSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Discount: '), `-$${discount}`));
     }
-    const totalP = createElement('p', { className: 'text-bold' }, createElement('strong', {}, 'Total: '), `$${order.total || 0}`);
+    const totalP = createElement('p', { className: 'text-bold', style: 'font-size: 1.1rem; margin-top: 0.5rem;' }, 
+        createElement('strong', {}, 'Total: '), `$${total}`);
     paymentSection.appendChild(totalP);
+    
+    // Payment Status
+    const paymentStatus = order.payment_status || order.paymentStatus || 'pending';
+    const paymentMethod = order.payment_method || order.paymentMethod || 'N/A';
+    paymentSection.appendChild(createElement('p', { style: 'margin-top: 1rem;' }, 
+        createElement('strong', {}, 'Payment Status: '), paymentStatus));
+    paymentSection.appendChild(createElement('p', {}, 
+        createElement('strong', {}, 'Payment Method: '), paymentMethod));
+    
     container.appendChild(paymentSection);
     
     // Order Notes
@@ -1288,18 +1367,19 @@ elements.updateInventoryBtn.addEventListener('click', async () => {
     try {
         await fetchAPI(`/admin/inventory/${currentInventoryEdit.productId}`, {
             method: 'POST',
-            body: JSON.stringify({
+            body: {
                 color: currentInventoryEdit.color,
                 size: currentInventoryEdit.size,
                 quantity: newStock
-            })
+            }
         });
         
         showToast('Inventory updated!', 'success');
         closeInventoryModal();
         loadInventory();
     } catch (error) {
-        showToast('Failed to update inventory', 'error');
+        showToast('Failed to update inventory: ' + error.message, 'error');
+        console.error('Inventory update error:', error);
     }
 });
 
@@ -1545,22 +1625,75 @@ function renderSalesChart(data) {
         return;
     }
     
-    const maxRevenue = Math.max(...data.map(d => d.revenue || 0));
+    // Filter out days with 0 revenue for cleaner chart
+    const filteredData = data.filter(d => (d.revenue || 0) > 0 || (d.orders || 0) > 0);
+    
+    // If no sales yet, show message
+    if (filteredData.length === 0) {
+        container.appendChild(createElement('p', { className: 'text-center text-muted' }, 'No sales data yet'));
+        return;
+    }
+    
+    const maxRevenue = Math.max(...filteredData.map(d => d.revenue || 0));
+    const maxOrders = Math.max(...filteredData.map(d => d.orders || 0));
+    
+    // Chart container with better styling
+    const chartWrapper = createElement('div', {
+        style: 'padding: 1rem;'
+    });
+    
+    // Stats summary
+    const statsDiv = createElement('div', {
+        style: 'display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);'
+    });
+    statsDiv.appendChild(createElement('span', {}, `Max: $${maxRevenue.toLocaleString()}`));
+    statsDiv.appendChild(createElement('span', {}, `${filteredData.length} days with sales`));
+    chartWrapper.appendChild(statsDiv);
+    
+    // Chart bars
     const chartDiv = createElement('div', { 
         className: 'simple-chart',
-        style: 'display: flex; align-items: flex-end; height: 250px; gap: 4px; padding: 1rem;'
+        style: 'display: flex; align-items: flex-end; height: 200px; gap: 8px; overflow-x: auto;'
     });
     
-    data.slice(0, 30).reverse().forEach(day => {
-        const height = maxRevenue > 0 ? ((day.revenue || 0) / maxRevenue) * 100 : 0;
-        const bar = createElement('div', {
-            style: `flex: 1; background: var(--color-primary); height: ${height}%; min-height: 4px; border-radius: 2px; position: relative;`,
-            title: `${day.date}: $${day.revenue || 0}`
+    // Show last 14 days max for better visibility
+    const displayData = filteredData.slice(-14);
+    
+    displayData.forEach(day => {
+        const revenue = day.revenue || 0;
+        const orders = day.orders || 0;
+        const height = maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
+        
+        // Bar wrapper
+        const barWrapper = createElement('div', {
+            style: 'display: flex; flex-direction: column; align-items: center; min-width: 40px;'
         });
-        chartDiv.appendChild(bar);
+        
+        // Revenue amount label (on top of bar)
+        if (revenue > 0) {
+            barWrapper.appendChild(createElement('span', {
+                style: 'font-size: 0.7rem; color: var(--color-text-secondary); margin-bottom: 4px;'
+            }, `$${Math.round(revenue / 1000)}k`));
+        }
+        
+        // The bar
+        const bar = createElement('div', {
+            style: `width: 32px; background: linear-gradient(to top, var(--color-primary), var(--color-primary-dark)); height: ${Math.max(height, 5)}%; min-height: 20px; border-radius: 4px 4px 0 0; position: relative; transition: all 0.3s ease;`,
+            title: `${formatDate(day.date)}\nRevenue: $${revenue.toLocaleString()}\nOrders: ${orders}`
+        });
+        barWrapper.appendChild(bar);
+        
+        // Date label
+        const dateLabel = createElement('span', {
+            style: 'font-size: 0.65rem; color: var(--color-text-muted); margin-top: 4px; transform: rotate(-45deg); white-space: nowrap;'
+        }, new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        barWrapper.appendChild(dateLabel);
+        
+        chartDiv.appendChild(barWrapper);
     });
     
-    container.appendChild(chartDiv);
+    chartWrapper.appendChild(chartDiv);
+    container.appendChild(chartWrapper);
 }
 
 function renderTopProducts(products) {
