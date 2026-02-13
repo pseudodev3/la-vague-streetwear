@@ -37,8 +37,24 @@
 
 .product-layout {
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
-    gap: 4rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
+}
+
+/* Large screens */
+@media (min-width: 1400px) {
+    .product-layout {
+        gap: 4rem;
+    }
+}
+
+/* Medium screens */
+@media (max-width: 1200px) {
+    .product-layout {
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
 }
 
 /* Product Gallery */
@@ -46,6 +62,7 @@
     position: sticky;
     top: 100px;
     height: fit-content;
+    max-height: calc(100vh - 120px);
 }
 
 .gallery-main {
@@ -121,6 +138,34 @@
 /* Product Info Panel */
 .product-info-panel {
     padding-top: 1rem;
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
+}
+
+/* Custom scrollbar for product info */
+.product-info-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.product-info-panel::-webkit-scrollbar-track {
+    background: var(--color-bg-secondary);
+}
+
+.product-info-panel::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+}
+
+.product-info-panel::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-light);
+}
+
+/* Hide scrollbar on mobile */
+@media (max-width: 1024px) {
+    .product-info-panel {
+        max-height: none;
+        overflow-y: visible;
+    }
 }
 
 .product-header {
@@ -272,10 +317,17 @@
 /* Actions */
 .product-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 1rem;
     margin-bottom: 2rem;
     padding-bottom: 2rem;
     border-bottom: 1px solid var(--color-border);
+}
+
+/* Ensure buttons are always visible */
+.btn-add-cart,
+.btn-wishlist {
+    flex-shrink: 0;
 }
 
 .quantity-selector {
@@ -512,16 +564,44 @@
     
     .product-actions {
         flex-wrap: wrap;
+        gap: 0.75rem;
     }
     
     .btn-add-cart {
         order: -1;
         width: 100%;
+        flex: none;
     }
     
     .quantity-selector,
     .btn-wishlist {
         flex: 1;
+    }
+}
+
+/* Small mobile screens */
+@media (max-width: 480px) {
+    .product-title {
+        font-size: 1.5rem;
+    }
+    
+    .size-btn {
+        min-width: 48px;
+        height: 48px;
+    }
+    
+    .product-actions {
+        gap: 0.5rem;
+    }
+    
+    .btn-add-cart,
+    .btn-wishlist,
+    .quantity-selector {
+        height: 48px;
+    }
+    
+    .btn-wishlist {
+        width: 48px;
     }
     
     .related-grid {
