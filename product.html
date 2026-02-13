@@ -99,18 +99,19 @@
         <div class="container">
             <div class="product-layout">
                 <!-- Product Gallery -->
-                <div class="product-gallery-wrapper">
-                    <div class="product-gallery" id="productGallery">
-                        <div class="gallery-main">
-                            <img src="" alt="" id="mainImage">
-                            <button class="gallery-nav prev" id="galleryPrev">‹</button>
-                            <button class="gallery-nav next" id="galleryNext">›</button>
-                        </div>
-                        <div class="gallery-thumbs" id="galleryThumbs"></div>
+                <div class="product-gallery" id="productGallery">
+                    <div class="gallery-main">
+                        <img src="" alt="" id="mainImage">
+                        <button class="gallery-nav prev" id="galleryPrev">‹</button>
+                        <button class="gallery-nav next" id="galleryNext">›</button>
                     </div>
-                    
-                    <!-- Accordion - Moved to left column -->
-                    <div class="product-accordion">
+                    <div class="gallery-thumbs" id="galleryThumbs"></div>
+                </div>
+                
+                <!-- Product Info -->
+                <div class="product-info-panel" id="productInfo">
+                    <!-- Accordion - Moved to top of right column -->
+                    <div class="product-accordion accordion-top">
                         <div class="accordion-item active">
                             <button class="accordion-header" data-i18n="product.description">
                                 Description
@@ -136,10 +137,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Product Info -->
-                <div class="product-info-panel" id="productInfo">
+                    
                     <div class="product-header">
                         <p class="product-category" id="productCategory">Category</p>
                         <h1 class="product-title" id="productTitle">Product Name</h1>
