@@ -87,7 +87,35 @@
                 </li>
             </ul>
             <div class="nav-actions">
-                <div class="currency-selector">
+                <div class="locale-selector">
+                    <button class="locale-btn" id="localeBtn" aria-label="Select currency and language">
+                        <span class="locale-current" id="localeCurrent">$ · EN</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="locale-dropdown" id="localeDropdown">
+                        <div class="locale-section">
+                            <span class="locale-label">Currency</span>
+                            <div class="locale-options" id="currencyOptions">
+                                <button class="locale-option" data-currency="USD">$ USD</button>
+                                <button class="locale-option" data-currency="NGN">₦ NGN</button>
+                                <button class="locale-option" data-currency="EUR">€ EUR</button>
+                                <button class="locale-option" data-currency="GBP">£ GBP</button>
+                            </div>
+                        </div>
+                        <div class="locale-section">
+                            <span class="locale-label">Language</span>
+                            <div class="locale-options" id="languageOptions">
+                                <button class="locale-option" data-lang="en">English</button>
+                                <button class="locale-option" data-lang="fr">Français</button>
+                                <button class="locale-option" data-lang="ar">العربية</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Hidden selectors for mobile menu -->
+                <div class="currency-selector desktop-hidden">
                     <select id="currencySelect" aria-label="Currency">
                         <option value="USD">$ USD</option>
                         <option value="NGN">₦ NGN</option>
@@ -95,7 +123,7 @@
                         <option value="GBP">£ GBP</option>
                     </select>
                 </div>
-                <div class="language-selector">
+                <div class="language-selector desktop-hidden">
                     <select id="languageSelect" aria-label="Language">
                         <option value="en">EN</option>
                         <option value="fr">FR</option>

@@ -81,6 +81,111 @@
     display: none;
 }
 
+/* Combined Locale Selector (Professional) */
+.locale-selector {
+    position: relative;
+}
+
+.locale-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.locale-btn:hover {
+    border-color: var(--color-text);
+}
+
+.locale-current {
+    font-weight: 500;
+}
+
+.locale-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    min-width: 180px;
+    padding: 1rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: var(--transition-fast);
+    z-index: 1000;
+}
+
+.locale-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.locale-section {
+    margin-bottom: 1rem;
+}
+
+.locale-section:last-child {
+    margin-bottom: 0;
+}
+
+.locale-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.locale-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.locale-option {
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.locale-option:hover,
+.locale-option.active {
+    background: var(--color-bg-secondary);
+}
+
+/* Hide old selectors on desktop - show in mobile menu only */
+.desktop-hidden {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .locale-selector {
+        display: none;
+    }
+    
+    .desktop-hidden {
+        display: block;
+    }
+}
+
 /* Mobile adjustments */
 @media (max-width: 768px) {
     .currency-selector select,
