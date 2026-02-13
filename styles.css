@@ -1040,6 +1040,12 @@ button {
     flex-direction: column;
 }
 
+@media (max-width: 480px) {
+    .cart-sidebar {
+        max-width: 100%;
+    }
+}
+
 .cart-sidebar.active {
     transform: translateX(0);
 }
@@ -1239,6 +1245,16 @@ button {
     .mobile-menu-btn {
         display: flex;
         z-index: 1001;
+    }
+    
+    /* Mobile nav actions - hide selectors, show only icons */
+    .nav-actions {
+        gap: 0.5rem;
+    }
+    
+    .currency-selector,
+    .language-selector {
+        display: none;
     }
     
     .hero-title {
@@ -1526,6 +1542,12 @@ button {
     transition: var(--transition-medium);
     display: flex;
     flex-direction: column;
+}
+
+@media (max-width: 480px) {
+    .wishlist-sidebar {
+        max-width: 100%;
+    }
 }
 
 .wishlist-sidebar.active {

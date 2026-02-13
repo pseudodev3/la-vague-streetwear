@@ -1729,3 +1729,11 @@
         width: 100%;
     }
 }
+
+/* Mobile Cart/Wishlist Sidebar Fix */
+@media (max-width: 480px) {
+    .cart-sidebar,
+    .wishlist-sidebar {
+        max-width: 100%;
+    }
+}
