@@ -137,12 +137,12 @@ function createTransporter() {
  */
 async function sendEmail({ to, subject, html, text, from, replyTo }) {
     const mailOptions = {
-        from: from || `"LA VAGUE" <${process.env.SMTP_USER}>`,
+        from: from || `"${process.env.SMTP_FROM_NAME || 'LA VAGUE'}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject,
         html,
         text: text || '',
-        replyTo: replyTo || process.env.SMTP_USER
+        replyTo: replyTo || process.env.SMTP_FROM || process.env.SMTP_USER
     };
 
     // Add to queue for reliability
