@@ -63,9 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // INITIALIZATION
     // ==========================================
     function init() {
-        // Initialize currency selector
-        initCurrencySelector();
-        
         renderFeaturedProducts();
         
         // Sync with shared CartState if available
@@ -78,30 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateWishlistCount();
         bindEvents();
         initRevealAnimations();
-        
-        // Listen for currency changes
-        window.addEventListener('currencyChanged', () => {
-            renderFeaturedProducts();
-            renderCart();
-            renderWishlist();
-        });
-    }
-    
-    // ==========================================
-    // CURRENCY SELECTOR
-    // ==========================================
-    function initCurrencySelector() {
-        const currencySelect = document.getElementById('currencySelect');
-        if (currencySelect) {
-            // Set initial value from localStorage
-            const currentCurrency = CurrencyConfig.getCurrentCurrency();
-            currencySelect.value = currentCurrency;
-            
-            // Handle currency change
-            currencySelect.addEventListener('change', (e) => {
-                CurrencyConfig.setCurrency(e.target.value);
-            });
-        }
     }
 
     // ==========================================
@@ -110,56 +83,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderFeaturedProducts() {
         const featured = ProductAPI.getFeatured().slice(0, 4);
         
-        elements.featuredProducts.innerHTML = featured.map((product, index) => {
-            const mainImage = product.images[0];
-            const hoverImage = product.images[1];
-            const hasUnsplash = mainImage.src.includes('images.unsplash.com');
-            
-            // Generate srcset for responsive images
-            const srcset = hasUnsplash ? ImageOptimizer.createSrcset(mainImage.src, [400, 800, 1200]) : '';
-            
-            return `
+        elements.featuredProducts.innerHTML = featured.map(product => `
             <article class="product-card reveal-up" onclick="window.location.href='product.html?slug=${product.slug}'">
                 <div class="product-image-wrapper">
                     ${product.badge ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : ''}
-                    <img 
-                        data-src="${mainImage.src}" 
-                        data-optimize="true"
-                        alt="${mainImage.alt}" 
-                        class="product-image img-loading" 
-                        loading="lazy"
-                        ${srcset ? `srcset="${srcset}" sizes="(max-width: 768px) 50vw, 25vw"` : `src="${mainImage.src}"`}
-                        onload="this.classList.remove('img-loading'); this.classList.add('img-loaded');"
-                    >
-                    ${hoverImage ? `
-                        <img 
-                            src="${hoverImage.src}" 
-                            alt="${hoverImage.alt}" 
-                            class="product-image-hover" 
-                            loading="lazy"
-                        >` : ''}
+                    <img src="${product.images[0].src}" alt="${product.images[0].alt}" class="product-image" loading="lazy">
+                    ${product.images[1] ? `<img src="${product.images[1].src}" alt="${product.images[1].alt}" class="product-image-hover" loading="lazy">` : ''}
                 </div>
                 <div class="product-info">
                     <p class="product-category">${CATEGORIES.find(c => c.id === product.category)?.name}</p>
                     <h3 class="product-name">${product.name}</h3>
                     <div class="product-price">
-                        <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
-                        ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
+                        <span class="current-price">$${product.price}</span>
+                        ${product.compareAtPrice ? `<span class="original-price">$${product.compareAtPrice}</span>` : ''}
                     </div>
                 </div>
             </article>
-        `}).join('');
-        
-        // Apply blur-up loading for images with data-optimize attribute
-        if (typeof ImageOptimizer !== 'undefined') {
-            setTimeout(() => {
-                document.querySelectorAll('img[data-optimize="true"]').forEach(img => {
-                    if (img.dataset.src) {
-                        ImageOptimizer.blurUpLoad(img, img.dataset.src);
-                    }
-                });
-            }, 100);
-        }
+        `).join('');
     }
 
     // ==========================================
@@ -188,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span>${item.quantity}</span>
                                 <button onclick="window.updateCartQty(${index}, 1)">+</button>
                             </div>
-                            <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
+                            <span class="cart-item-price">$${item.price * item.quantity}</span>
                         </div>
                     </div>
                     <button class="cart-item-remove" onclick="window.removeFromCart(${index})">×</button>
@@ -196,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `).join('');
         }
         const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        elements.cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
+        elements.cartSubtotal.textContent = `$${subtotal}`;
     }
     
     function openCart() {
@@ -267,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="wishlist-item-details">
                     <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
-                    <p class="wishlist-item-price">${CurrencyConfig.formatPrice(product.price)}</p>
+                    <p class="wishlist-item-price">$${product.price}</p>
                     <div class="wishlist-item-actions">
                         <button class="btn-add-cart-sm" onclick="window.addToCartFromWishlist('${product.id}')">Add to Cart</button>
                         <button class="btn-remove-sm" onclick="window.removeFromWishlist('${product.id}')">Remove</button>
@@ -370,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4>${product.name}</h4>
                     <p>${CATEGORIES.find(c => c.id === product.category)?.name}</p>
                 </div>
-                <span class="search-result-price">${CurrencyConfig.formatPrice(product.price)}</span>
+                <span class="search-result-price">$${product.price}</span>
             </div>
         `).join('');
     }
@@ -432,29 +372,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // NEWSLETTER
     // ==========================================
-    async function handleNewsletterSubmit(e) {
+    function handleNewsletterSubmit(e) {
         e.preventDefault();
         const email = elements.newsletterEmail.value;
         const submitBtn = elements.newsletterForm.querySelector('button[type="submit"]');
         
-        // Validate email
-        if (!FormValidation.isValidEmail(email)) {
-            showToast('Please enter a valid email address', 'error');
-            elements.newsletterEmail.classList.add('error');
-            setTimeout(() => elements.newsletterEmail.classList.remove('error'), 2000);
-            return;
-        }
+        submitBtn.textContent = 'Subscribing...';
+        submitBtn.disabled = true;
         
-        // Set loading state
-        ButtonState.setLoading(submitBtn, 'Subscribing...', true);
-        
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Show success
-        ButtonState.setSuccess(submitBtn, 'Subscribed!', 2000);
-        elements.newsletterForm.reset();
-        showToast('Welcome to the wave! Check your email.', 'success');
+        setTimeout(() => {
+            submitBtn.textContent = 'Subscribed!';
+            submitBtn.style.background = '#22c55e';
+            elements.newsletterForm.reset();
+            showToast('Welcome to the wave! Check your email.', 'success');
+            
+            setTimeout(() => {
+                submitBtn.textContent = 'Subscribe';
+                submitBtn.style.background = '';
+                submitBtn.disabled = false;
+            }, 2000);
+        }, 1000);
     }
 
     // ==========================================
@@ -506,14 +443,14 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.wishlistClose?.addEventListener('click', window.closeWishlist);
         elements.wishlistOverlay?.addEventListener('click', window.closeWishlist);
         
-        // Search with debouncing
+        // Search
         elements.searchBtn?.addEventListener('click', openSearch);
         elements.searchClose?.addEventListener('click', closeSearch);
         
-        // Use SearchHelper for consistent debouncing
-        SearchHelper.init(elements.searchInput, handleSearch, {
-            delay: 300,
-            minLength: 1
+        let searchTimeout;
+        elements.searchInput?.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => handleSearch(e.target.value), 300);
         });
         
         // Lightbox
