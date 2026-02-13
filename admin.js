@@ -1825,7 +1825,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const section = item.dataset.section;
             if (section) {
-                showSection(section);
+                navigateTo(section);
             }
         });
     });
