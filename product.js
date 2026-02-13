@@ -923,7 +923,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const reviewModal = document.getElementById('reviewModal');
     const writeReviewBtn = document.getElementById('writeReviewBtn');
     const reviewModalClose = document.getElementById('reviewModalClose');
-    const reviewModalOverlay = document.getElementById('reviewModalOverlay');
     const reviewForm = document.getElementById('reviewForm');
     const starRatingInput = document.getElementById('starRatingInput');
     
@@ -931,7 +930,6 @@ document.addEventListener('DOMContentLoaded', () => {
         reviewModal: !!reviewModal, 
         writeReviewBtn: !!writeReviewBtn,
         reviewModalClose: !!reviewModalClose,
-        reviewModalOverlay: !!reviewModalOverlay,
         reviewForm: !!reviewForm,
         starRatingInput: !!starRatingInput
     });
@@ -943,8 +941,8 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             console.log('[Reviews] Write review button clicked');
             if (reviewModal) {
-                reviewModal.style.display = 'flex';
-                console.log('[Reviews] Modal opened');
+                reviewModal.classList.add('active');
+                console.log('[Reviews] Modal opened with active class');
             }
         });
     } else {
@@ -953,13 +951,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (reviewModalClose) {
         reviewModalClose.addEventListener('click', () => {
-            reviewModal.style.display = 'none';
-        });
-    }
-    
-    if (reviewModalOverlay) {
-        reviewModalOverlay.addEventListener('click', () => {
-            reviewModal.style.display = 'none';
+            reviewModal.classList.remove('active');
         });
     }
     
