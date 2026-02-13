@@ -2319,68 +2319,67 @@ app.get('/api/admin/reports/export', verifyAdminToken, asyncHandler(async (req, 
 
 // Get reviews for a product (public)
 app.get('/api/products/:id/reviews', asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { status = 'approved', sort = 'newest' } = req.query;
-    
-    let sql = 'SELECT * FROM reviews WHERE product_id = ?';
-    const params = [id];
-    
-    if (status) {
-        sql += ' AND status = ?';
-        params.push(status);
+    try {
+        const { id } = req.params;
+        const { status = 'approved', sort = 'newest' } = req.query;
+        
+        let sql = 'SELECT * FROM reviews WHERE product_id = $1';
+        const params = [id];
+        
+        if (status) {
+            sql += ' AND status = $2';
+            params.push(status);
+        }
+        
+        const sortOrder = sort === 'newest' ? 'created_at DESC' : 
+                         sort === 'highest' ? 'rating DESC' : 
+                         sort === 'lowest' ? 'rating ASC' : 'created_at DESC';
+        sql += ` ORDER BY ${sortOrder}`;
+        
+        let result;
+        if (USE_POSTGRES) {
+            const queryResult = await db.query(sql, params);
+            result = queryResult.rows;
+        } else {
+            result = db.prepare(sql.replace(/\$\d+/g, '?')).all(...params);
+        }
+        
+        const reviews = result.map(r => ({
+            ...r,
+            photos: r.photos ? (typeof r.photos === 'string' ? JSON.parse(r.photos) : r.photos) : []
+        }));
+        
+        // Get summary
+        let summary;
+        if (USE_POSTGRES) {
+            const summaryResult = await db.query(`
+                SELECT 
+                    COUNT(*) as total,
+                    COALESCE(AVG(rating), 0) as average
+                FROM reviews 
+                WHERE product_id = $1 AND status = 'approved'
+            `, [id]);
+            summary = summaryResult.rows[0];
+        } else {
+            summary = db.prepare(`
+                SELECT 
+                    COUNT(*) as total,
+                    AVG(rating) as average,
+                    SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five_star,
+                    SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as four_star,
+                    SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as three_star,
+                    SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as two_star,
+                    SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as one_star
+                FROM reviews 
+                WHERE product_id = ? AND status = 'approved'
+            `).get(id);
+        }
+        
+        res.json({ success: true, reviews, summary });
+    } catch (error) {
+        console.error('[REVIEWS ERROR]', error);
+        res.status(500).json({ success: false, error: error.message });
     }
-    
-    const sortOrder = sort === 'newest' ? 'created_at DESC' : 
-                     sort === 'highest' ? 'rating DESC' : 
-                     sort === 'lowest' ? 'rating ASC' : 'created_at DESC';
-    sql += ` ORDER BY ${sortOrder}`;
-    
-    let result;
-    if (USE_POSTGRES) {
-        const query = sql.replace(/\?/g, (m, i) => `$${i + 1}`);
-        result = await db.query(query, params);
-        result = result.rows;
-    } else {
-        result = db.prepare(sql).all(...params);
-    }
-    
-    const reviews = result.map(r => ({
-        ...r,
-        photos: r.photos ? JSON.parse(r.photos) : []
-    }));
-    
-    // Get summary
-    let summary;
-    if (USE_POSTGRES) {
-        summary = await db.query(`
-            SELECT 
-                COUNT(*) as total,
-                AVG(rating) as average,
-                COUNT(*) FILTER (WHERE rating = 5) as five_star,
-                COUNT(*) FILTER (WHERE rating = 4) as four_star,
-                COUNT(*) FILTER (WHERE rating = 3) as three_star,
-                COUNT(*) FILTER (WHERE rating = 2) as two_star,
-                COUNT(*) FILTER (WHERE rating = 1) as one_star
-            FROM reviews 
-            WHERE product_id = $1 AND status = 'approved'
-        `, [id]);
-        summary = summary.rows[0];
-    } else {
-        summary = db.prepare(`
-            SELECT 
-                COUNT(*) as total,
-                AVG(rating) as average,
-                SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five_star,
-                SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as four_star,
-                SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as three_star,
-                SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as two_star,
-                SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as one_star
-            FROM reviews 
-            WHERE product_id = ? AND status = 'approved'
-        `).get(id);
-    }
-    
-    res.json({ success: true, reviews, summary });
 }));
 
 // Get all reviews (admin)
