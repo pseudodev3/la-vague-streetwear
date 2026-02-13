@@ -62,14 +62,15 @@
 
 .hero-logo {
     position: absolute;
-    top: -20px;
-    left: -100px;
+    top: 0;
+    left: 0;
+    transform: translateX(-110px);
     margin-bottom: 0;
     z-index: 2;
 }
 
 .hero-logo img {
-    max-width: 100px;
+    max-width: 80px;
     height: auto;
 }
 
@@ -79,18 +80,7 @@
 
 @media (max-width: 1024px) {
     .hero-logo {
-        left: -90px;
-    }
-    
-    .hero-logo img {
-        max-width: 85px;
-    }
-}
-
-@media (max-width: 768px) {
-    .hero-logo {
-        left: -80px;
-        top: -10px;
+        transform: translateX(-95px);
     }
     
     .hero-logo img {
@@ -98,9 +88,21 @@
     }
 }
 
+@media (max-width: 768px) {
+    .hero-logo {
+        transform: translateX(-80px);
+        top: 5px;
+    }
+    
+    .hero-logo img {
+        max-width: 60px;
+    }
+}
+
 @media (max-width: 480px) {
     .hero-logo {
         position: relative;
+        transform: none;
         left: auto;
         top: auto;
         display: block;
