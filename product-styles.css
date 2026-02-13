@@ -1211,6 +1211,51 @@
     padding: 1.5rem;
 }
 
+.review-modal-content .form-group {
+    margin-bottom: 1.25rem;
+}
+
+.review-modal-content .form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.review-modal-content .form-group input,
+.review-modal-content .form-group textarea {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    transition: var(--transition-fast);
+    font-family: inherit;
+}
+
+.review-modal-content .form-group input:focus,
+.review-modal-content .form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-text);
+}
+
+.review-modal-content .form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.review-modal-content .form-group small {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.review-modal-content .btn-full {
+    width: 100%;
+}
+
 .review-product-info {
     display: flex;
     gap: 1rem;
