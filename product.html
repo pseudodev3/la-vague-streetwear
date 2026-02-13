@@ -216,6 +216,71 @@
         </div>
     </main>
 
+    <!-- Reviews Section -->
+    <section class="reviews-section" id="reviewsSection">
+        <div class="container">
+            <div class="reviews-header">
+                <h2 class="section-title">Customer Reviews</h2>
+                <div class="reviews-summary" id="reviewsSummary">
+                    <div class="average-rating">
+                        <span class="rating-number" id="averageRating">0.0</span>
+                        <div class="stars" id="averageStars"></div>
+                        <span class="rating-count" id="ratingCount">0 reviews</span>
+                    </div>
+                    <button class="btn btn-primary" id="writeReviewBtn">Write a Review</button>
+                </div>
+            </div>
+            
+            <div class="reviews-list" id="reviewsList">
+                <!-- Reviews loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Review Modal -->
+    <div class="review-modal" id="reviewModal" style="display: none;">
+        <div class="review-modal-overlay" id="reviewModalOverlay"></div>
+        <div class="review-modal-content">
+            <button class="review-modal-close" id="reviewModalClose">×</button>
+            <h3>Write a Review</h3>
+            <form id="reviewForm">
+                <div class="form-group">
+                    <label>Rating</label>
+                    <div class="star-rating-input" id="starRatingInput">
+                        <span data-rating="1">★</span>
+                        <span data-rating="2">★</span>
+                        <span data-rating="3">★</span>
+                        <span data-rating="4">★</span>
+                        <span data-rating="5">★</span>
+                    </div>
+                    <input type="hidden" id="reviewRating" required>
+                </div>
+                <div class="form-group">
+                    <label for="reviewTitle">Review Title</label>
+                    <input type="text" id="reviewTitle" class="input" placeholder="Summarize your experience" required>
+                </div>
+                <div class="form-group">
+                    <label for="reviewText">Review</label>
+                    <textarea id="reviewText" class="input" rows="4" placeholder="Tell us what you liked or didn't like" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="reviewerName">Your Name</label>
+                    <input type="text" id="reviewerName" class="input" placeholder="John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label for="reviewerEmail">Email</label>
+                    <input type="email" id="reviewerEmail" class="input" placeholder="john@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="orderId">Order ID (optional)</label>
+                    <input type="text" id="orderId" class="input" placeholder="LV-XXXXXXXX">
+                    <small>Enter your order ID to verify purchase</small>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Submit Review</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Related Products -->
     <section class="related-products" id="relatedProducts">
         <div class="container">

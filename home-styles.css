@@ -881,3 +881,31 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+
+/* ============================================
+   PRODUCT RATING STARS
+   ============================================ */
+
+.product-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.star-rating-small {
+    display: flex;
+    gap: 0.125rem;
+    color: #fbbf24;
+    font-size: 0.875rem;
+}
+
+.star-rating-small .empty {
+    color: var(--color-border);
+}
+
+.product-rating .rating-text {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}

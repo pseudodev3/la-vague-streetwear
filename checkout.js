@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="summary-item-name">${item.name}</p>
                     <p class="summary-item-variant">${item.color} / ${item.size}</p>
                 </div>
-                <span class="summary-item-price">$${item.price * item.quantity}</span>
+                <span class="summary-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
             </div>
         `).join('');
     }
@@ -86,12 +86,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const total = subtotal + state.shipping - state.discount;
         
-        elements.summarySubtotal.textContent = `$${subtotal.toFixed(2)}`;
-        elements.summaryShipping.textContent = `$${state.shipping.toFixed(2)}`;
-        elements.summaryTotal.textContent = `$${total.toFixed(2)}`;
+        elements.summarySubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
+        elements.summaryShipping.textContent = CurrencyConfig.formatPrice(state.shipping);
+        elements.summaryTotal.textContent = CurrencyConfig.formatPrice(total);
         
         if (state.discount > 0) {
-            elements.summaryDiscount.textContent = `-$${state.discount.toFixed(2)}`;
+            elements.summaryDiscount.textContent = `-${CurrencyConfig.formatPrice(state.discount)}`;
             elements.discountLine.style.display = 'flex';
         } else {
             elements.discountLine.style.display = 'none';

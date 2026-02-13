@@ -1373,3 +1373,229 @@
         max-height: 95vh;
     }
 }
+
+
+/* ============================================
+   REVIEWS SECTION
+   ============================================ */
+
+.reviews-section {
+    padding: 4rem 0;
+    background: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border);
+}
+
+.reviews-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.reviews-summary {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.average-rating {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.rating-number {
+    font-family: var(--font-heading);
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stars {
+    display: flex;
+    gap: 0.25rem;
+    color: #fbbf24;
+    font-size: 1.25rem;
+}
+
+.stars .empty {
+    color: var(--color-border);
+}
+
+.rating-count {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+}
+
+.reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.review-card {
+    background: var(--color-bg);
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.review-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.review-author {
+    font-weight: 600;
+}
+
+.verified-badge {
+    background: var(--color-accent);
+    color: white;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.review-date {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+}
+
+.review-title {
+    font-family: var(--font-heading);
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+}
+
+.review-text {
+    color: var(--color-text-muted);
+    line-height: 1.6;
+}
+
+.admin-response {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--color-bg-secondary);
+    border-left: 3px solid var(--color-accent);
+}
+
+.admin-response-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+    margin-bottom: 0.5rem;
+}
+
+/* Review Modal */
+.review-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1005;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.review-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.review-modal-content {
+    position: relative;
+    background: var(--color-bg);
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    z-index: 1;
+}
+
+.review-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: var(--color-text);
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.star-rating-input {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 2rem;
+    color: var(--color-border);
+    cursor: pointer;
+}
+
+.star-rating-input span {
+    transition: color 0.2s;
+}
+
+.star-rating-input span:hover,
+.star-rating-input span.active {
+    color: #fbbf24;
+}
+
+/* Star Rating Display (small) */
+.star-rating-small {
+    display: flex;
+    gap: 0.125rem;
+    color: #fbbf24;
+    font-size: 0.875rem;
+}
+
+.star-rating-small .empty {
+    color: var(--color-border);
+}
+
+/* Review Button on Product Card */
+.product-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.product-rating .stars {
+    font-size: 0.875rem;
+}
+
+.product-rating .rating-text {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+@media (max-width: 768px) {
+    .reviews-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .reviews-summary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        width: 100%;
+    }
+    
+    .average-rating {
+        width: 100%;
+    }
+}

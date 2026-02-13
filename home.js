@@ -80,6 +80,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // FEATURED PRODUCTS
     // ==========================================
+    
+    function renderStarRating(rating) {
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= Math.round(rating)) {
+                html += '★';
+            } else {
+                html += '<span class="empty">★</span>';
+            }
+        }
+        return html;
+    }
+    
     function renderFeaturedProducts() {
         const featured = ProductAPI.getFeatured().slice(0, 4);
         
@@ -94,9 +107,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="product-category">${CATEGORIES.find(c => c.id === product.category)?.name}</p>
                     <h3 class="product-name">${product.name}</h3>
                     <div class="product-price">
-                        <span class="current-price">$${product.price}</span>
-                        ${product.compareAtPrice ? `<span class="original-price">$${product.compareAtPrice}</span>` : ''}
+                        <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
+                        ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
                     </div>
+                    ${product.average_rating ? `
+                        <div class="product-rating">
+                            <span class="star-rating-small">${renderStarRating(product.average_rating)}</span>
+                            <span class="rating-text">(${product.review_count || 0})</span>
+                        </div>
+                    ` : ''}
                 </div>
             </article>
         `).join('');
@@ -128,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span>${item.quantity}</span>
                                 <button onclick="window.updateCartQty(${index}, 1)">+</button>
                             </div>
-                            <span class="cart-item-price">$${item.price * item.quantity}</span>
+                            <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
                         </div>
                     </div>
                     <button class="cart-item-remove" onclick="window.removeFromCart(${index})">×</button>
@@ -136,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `).join('');
         }
         const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        elements.cartSubtotal.textContent = `$${subtotal}`;
+        elements.cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
     }
     
     function openCart() {
@@ -207,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="wishlist-item-details">
                     <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
-                    <p class="wishlist-item-price">$${product.price}</p>
+                    <p class="wishlist-item-price">${CurrencyConfig.formatPrice(product.price)}</p>
                     <div class="wishlist-item-actions">
                         <button class="btn-add-cart-sm" onclick="window.addToCartFromWishlist('${product.id}')">Add to Cart</button>
                         <button class="btn-remove-sm" onclick="window.removeFromWishlist('${product.id}')">Remove</button>

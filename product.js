@@ -342,8 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="product-category">${CATEGORIES.find(c => c.id === product.category)?.name}</p>
                     <h3 class="product-name">${product.name}</h3>
                     <div class="product-price">
-                        <span class="current-price">$${product.price}</span>
-                        ${product.compareAtPrice ? `<span class="original-price">$${product.compareAtPrice}</span>` : ''}
+                        <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
+                        ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
                     </div>
                 </div>
             </article>
@@ -515,7 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4>${product.name}</h4>
                     <p>${CATEGORIES.find(c => c.id === product.category)?.name}</p>
                 </div>
-                <span class="search-result-price">$${product.price}</span>
+                <span class="search-result-price">${CurrencyConfig.formatPrice(product.price)}</span>
             </div>
         `).join('');
     }
@@ -688,7 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span>${item.quantity}</span>
                                 <button onclick="window.productUpdateCartQty(${index}, 1)">+</button>
                             </div>
-                            <span class="cart-item-price">$${item.price * item.quantity}</span>
+                            <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
                         </div>
                     </div>
                     <button class="cart-item-remove" onclick="window.productRemoveFromCart(${index})">×</button>
@@ -696,7 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `).join('');
         }
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        elements.cartSubtotal.textContent = `$${subtotal}`;
+        elements.cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
     };
     
     window.productUpdateCartQty = function(index, delta) {
@@ -733,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="wishlist-item-details">
                     <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
-                    <p class="wishlist-item-price">$${product.price}</p>
+                    <p class="wishlist-item-price">${CurrencyConfig.formatPrice(product.price)}</p>
                     <div class="wishlist-item-actions">
                         <button class="btn-add-cart-sm" onclick="window.productAddToCartFromWishlist('${product.id}')">Add to Cart</button>
                         <button class="btn-remove-sm" onclick="window.productRemoveFromWishlist('${product.id}')">Remove</button>
@@ -789,6 +789,189 @@ document.addEventListener('DOMContentLoaded', () => {
             document.documentElement.lang = e.target.value;
             document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
             window.location.reload();
+        });
+    }
+
+    // ==========================================
+    // REVIEWS SYSTEM
+    // ==========================================
+    
+    let currentProductId = null;
+    let selectedRating = 0;
+    
+    // Load reviews for product
+    async function loadReviews(productId) {
+        currentProductId = productId;
+        try {
+            const response = await fetch(`${API_URL}/products/${productId}/reviews?status=approved`);
+            const data = await response.json();
+            
+            if (data.success) {
+                displayReviews(data.reviews, data.summary);
+            }
+        } catch (error) {
+            console.error('Failed to load reviews:', error);
+        }
+    }
+    
+    // Display reviews
+    function displayReviews(reviews, summary) {
+        const reviewsList = document.getElementById('reviewsList');
+        const averageRating = document.getElementById('averageRating');
+        const averageStars = document.getElementById('averageStars');
+        const ratingCount = document.getElementById('ratingCount');
+        
+        if (!reviewsList) return;
+        
+        // Update summary
+        if (averageRating) averageRating.textContent = summary?.average ? parseFloat(summary.average).toFixed(1) : '0.0';
+        if (ratingCount) ratingCount.textContent = `${summary?.total || 0} reviews`;
+        if (averageStars) {
+            const avg = parseFloat(summary?.average) || 0;
+            averageStars.innerHTML = renderStars(avg);
+        }
+        
+        // Display reviews
+        if (reviews.length === 0) {
+            reviewsList.innerHTML = '<p class="text-center" style="color: var(--color-text-muted); padding: 2rem;">No reviews yet. Be the first to review!</p>';
+            return;
+        }
+        
+        reviewsList.innerHTML = reviews.map(review => `
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="review-meta">
+                        <span class="review-author">${escapeHtml(review.customer_name || 'Anonymous')}</span>
+                        ${review.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
+                    </div>
+                    <span class="review-date">${formatDate(review.created_at)}</span>
+                </div>
+                <div class="stars" style="margin-bottom: 0.5rem;">${renderStars(review.rating)}</div>
+                <h4 class="review-title">${escapeHtml(review.title)}</h4>
+                <p class="review-text">${escapeHtml(review.review_text)}</p>
+                ${review.admin_response ? `
+                    <div class="admin-response">
+                        <div class="admin-response-label">Response from LA VAGUE</div>
+                        <p>${escapeHtml(review.admin_response)}</p>
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+    }
+    
+    // Render star rating
+    function renderStars(rating) {
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= rating) {
+                html += '★';
+            } else {
+                html += '<span class="empty">★</span>';
+            }
+        }
+        return html;
+    }
+    
+    // Escape HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+    
+    // Format date
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    
+    // Review Modal
+    const reviewModal = document.getElementById('reviewModal');
+    const writeReviewBtn = document.getElementById('writeReviewBtn');
+    const reviewModalClose = document.getElementById('reviewModalClose');
+    const reviewModalOverlay = document.getElementById('reviewModalOverlay');
+    const reviewForm = document.getElementById('reviewForm');
+    const starRatingInput = document.getElementById('starRatingInput');
+    
+    if (writeReviewBtn) {
+        writeReviewBtn.addEventListener('click', () => {
+            reviewModal.style.display = 'flex';
+        });
+    }
+    
+    if (reviewModalClose) {
+        reviewModalClose.addEventListener('click', () => {
+            reviewModal.style.display = 'none';
+        });
+    }
+    
+    if (reviewModalOverlay) {
+        reviewModalOverlay.addEventListener('click', () => {
+            reviewModal.style.display = 'none';
+        });
+    }
+    
+    // Star rating input
+    if (starRatingInput) {
+        const stars = starRatingInput.querySelectorAll('span');
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                const rating = parseInt(star.dataset.rating);
+                selectedRating = rating;
+                document.getElementById('reviewRating').value = rating;
+                stars.forEach((s, i) => {
+                    if (i < rating) s.classList.add('active');
+                    else s.classList.remove('active');
+                });
+            });
+        });
+    }
+    
+    // Submit review
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!selectedRating) {
+                showToast('Please select a rating', 'error');
+                return;
+            }
+            
+            const reviewData = {
+                orderId: document.getElementById('orderId').value,
+                customerEmail: document.getElementById('reviewerEmail').value,
+                customerName: document.getElementById('reviewerName').value,
+                rating: selectedRating,
+                title: document.getElementById('reviewTitle').value,
+                reviewText: document.getElementById('reviewText').value
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/products/${currentProductId}/reviews`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reviewData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Review submitted for approval', 'success');
+                    reviewModal.style.display = 'none';
+                    reviewForm.reset();
+                    selectedRating = 0;
+                    document.querySelectorAll('#starRatingInput span').forEach(s => s.classList.remove('active'));
+                } else {
+                    showToast(data.error || 'Failed to submit review', 'error');
+                }
+            } catch (error) {
+                console.error('Submit review error:', error);
+                showToast('Failed to submit review', 'error');
+            }
         });
     }
 

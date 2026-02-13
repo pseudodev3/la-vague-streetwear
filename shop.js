@@ -203,6 +203,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // PRODUCT RENDERING
     // ==========================================
+    // Render star rating for product cards
+    function renderStarRating(rating) {
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= Math.round(rating)) {
+                html += '★';
+            } else {
+                html += '<span class="empty">★</span>';
+            }
+        }
+        return html;
+    }
+
     function renderProducts() {
         if (state.filteredProducts.length === 0) {
             elements.productsGrid.style.display = 'none';
@@ -252,9 +265,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="product-category">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
                     <h3 class="product-name" onclick="window.openProductPage('${product.slug}')">${product.name}</h3>
                     <div class="product-price">
-                        <span class="current-price">$${product.price}</span>
-                        ${product.compareAtPrice ? `<span class="original-price">$${product.compareAtPrice}</span>` : ''}
+                        <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
+                        ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
                     </div>
+                    ${product.average_rating ? `
+                        <div class="product-rating">
+                            <span class="star-rating-small">${renderStarRating(product.average_rating)}</span>
+                            <span class="rating-text">(${product.review_count || 0})</span>
+                        </div>
+                    ` : ''}
                     ${product.colors && product.colors.length > 1 ? `
                         <div class="product-colors">
                             ${product.colors.map((color, i) => `
@@ -385,8 +404,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p class="quick-view-category">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
                 <h2 class="quick-view-title">${product.name}</h2>
                 <div class="quick-view-price">
-                    <span class="current-price">$${product.price}</span>
-                    ${product.compareAtPrice ? `<span class="original-price">$${product.compareAtPrice}</span>` : ''}
+                    <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
+                    ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
                 </div>
                 <p class="quick-view-description">${product.description || ''}</p>
                 
@@ -628,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4>${product.name}</h4>
                     <p>${CATEGORIES.find(c => c.id === product.category)?.name}</p>
                 </div>
-                <span class="search-result-price">$${product.price}</span>
+                <span class="search-result-price">${CurrencyConfig.formatPrice(product.price)}</span>
             </div>
         `;
         }).join('');
@@ -858,7 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span>${item.quantity}</span>
                                 <button onclick="window.shopUpdateCartQty(${index}, 1)">+</button>
                             </div>
-                            <span class="cart-item-price">$${item.price * item.quantity}</span>
+                            <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
                         </div>
                     </div>
                     <button class="cart-item-remove" onclick="window.shopRemoveFromCart(${index})">×</button>
@@ -866,7 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `).join('');
         }
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        elements.cartSubtotal.textContent = `$${subtotal}`;
+        elements.cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
     };
     
     window.shopUpdateCartQty = function(index, delta) {
@@ -906,7 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="wishlist-item-details">
                     <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
-                    <p class="wishlist-item-price">$${product.price}</p>
+                    <p class="wishlist-item-price">${CurrencyConfig.formatPrice(product.price)}</p>
                     <div class="wishlist-item-actions">
                         <button class="btn-add-cart-sm" onclick="window.shopAddToCartFromWishlist('${product.id}')">Add to Cart</button>
                         <button class="btn-remove-sm" onclick="window.shopRemoveFromWishlist('${product.id}')">Remove</button>
