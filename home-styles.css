@@ -58,21 +58,18 @@
 /* Hero Updates */
 .hero-content {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
 }
 
 .hero-logo {
-    margin-bottom: 1.5rem;
-    position: relative;
-    transform: none;
-    top: auto;
-    left: auto;
+    position: absolute;
+    top: -20px;
+    left: -140px;
+    margin-bottom: 0;
+    z-index: 2;
 }
 
 .hero-logo img {
-    max-width: 120px;
+    max-width: 100px;
     height: auto;
 }
 
@@ -81,24 +78,38 @@
 }
 
 @media (max-width: 1024px) {
+    .hero-logo {
+        left: -120px;
+    }
+    
     .hero-logo img {
-        max-width: 100px;
+        max-width: 85px;
     }
 }
 
 @media (max-width: 768px) {
     .hero-logo {
-        margin-bottom: 1rem;
+        left: -100px;
+        top: -10px;
     }
     
     .hero-logo img {
-        max-width: 80px;
+        max-width: 70px;
     }
 }
 
 @media (max-width: 480px) {
+    .hero-logo {
+        position: relative;
+        left: auto;
+        top: auto;
+        display: block;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+    
     .hero-logo img {
-        max-width: 70px;
+        max-width: 60px;
     }
 }
 
