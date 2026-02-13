@@ -792,14 +792,14 @@ window.viewOrder = async function(orderId) {
     const address = shippingAddress.address || order.address || 'N/A';
     const apartment = shippingAddress.apartment || order.apartment || '';
     const city = shippingAddress.city || order.city || '';
-    const state = shippingAddress.state || order.state || '';
+    const stateName = shippingAddress.state || order.state || '';
     const zip = shippingAddress.zip || order.zip || '';
     
     addressSection.appendChild(createElement('p', {}, address));
     if (apartment) {
         addressSection.appendChild(createElement('p', {}, apartment));
     }
-    const cityStateZip = `${city}${city && state ? ', ' : ''}${state} ${zip}`.trim();
+    const cityStateZip = `${city}${city && stateName ? ', ' : ''}${stateName} ${zip}`.trim();
     if (cityStateZip) {
         addressSection.appendChild(createElement('p', {}, cityStateZip));
     }
