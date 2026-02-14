@@ -1628,6 +1628,26 @@ app.get('/api/products/:slug', asyncHandler(async (req, res) => {
     });
 }));
 
+// Debug: Check product images (admin only)
+app.get('/api/admin/products/:id/images', verifyAdminToken, asyncHandler(async (req, res) => {
+    const result = await query('SELECT id, name, images FROM products WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+        throw new APIError('Product not found', 404, 'NOT_FOUND');
+    }
+    const p = result.rows[0];
+    const parseJson = (val) => typeof val === 'string' ? JSON.parse(val || 'null') : val;
+    
+    res.json({
+        success: true,
+        product: {
+            id: p.id,
+            name: p.name,
+            rawImages: p.images,
+            parsedImages: parseJson(p.images) || []
+        }
+    });
+}));
+
 // Create order with validation and inventory check
 app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, asyncHandler(async (req, res) => {
     const orderId = 'LV-' + crypto.randomBytes(4).toString('hex').toUpperCase();
