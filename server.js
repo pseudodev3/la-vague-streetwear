@@ -96,6 +96,27 @@ async function sendOrderEmailSafely(order, type = 'confirmation', status = null)
     }
 }
 
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+/**
+ * Safely parse JSON string, return default value on error
+ * @param {string} str - JSON string to parse
+ * @param {*} defaultValue - Default value if parsing fails
+ * @returns {*} Parsed JSON or default value
+ */
+function safeParseJSON(str, defaultValue = null) {
+    if (!str || str === 'null' || str === 'undefined') {
+        return defaultValue;
+    }
+    try {
+        return JSON.parse(str);
+    } catch (e) {
+        return defaultValue;
+    }
+}
+
 const app = express();
 
 // Initialize services (will be set after DB connection)
@@ -3045,8 +3066,8 @@ app.get('/api/admin/coupons', verifyAdminToken, asyncHandler(async (req, res) =>
     
     const coupons = result.map(c => ({
         ...c,
-        applicable_categories: c.applicable_categories ? JSON.parse(c.applicable_categories) : [],
-        applicable_products: c.applicable_products ? JSON.parse(c.applicable_products) : []
+        applicable_categories: safeParseJSON(c.applicable_categories, []),
+        applicable_products: safeParseJSON(c.applicable_products, [])
     }));
     
     res.json({ success: true, coupons });
@@ -3147,8 +3168,8 @@ app.post('/api/coupons/validate', csrfProtection, asyncHandler(async (req, res) 
     
     const coupon = {
         ...result,
-        applicable_categories: result.applicable_categories ? JSON.parse(result.applicable_categories) : [],
-        applicable_products: result.applicable_products ? JSON.parse(result.applicable_products) : []
+        applicable_categories: safeParseJSON(result.applicable_categories, []),
+        applicable_products: safeParseJSON(result.applicable_products, [])
     };
     
     // Check dates
@@ -3167,7 +3188,7 @@ app.post('/api/coupons/validate', csrfProtection, asyncHandler(async (req, res) 
     
     // Check minimum order
     if (cartTotal < coupon.min_order_amount) {
-        return res.status(400).json({ valid: false, error: `Minimum order amount is $${coupon.min_order_amount}` });
+        return res.status(400).json({ valid: false, error: `Minimum order amount is ₦${coupon.min_order_amount}` });
     }
     
     // Check per-customer limit

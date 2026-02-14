@@ -2191,11 +2191,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         code,
                         type,
                         value: type === 'free_shipping' ? 0 : value,
-                        minOrderAmount: minOrder,
-                        maxDiscountAmount: maxDiscount,
-                        usageLimit,
-                        startDate,
-                        endDate
+                        min_order_amount: minOrder,
+                        max_discount_amount: maxDiscount,
+                        usage_limit: usageLimit,
+                        start_date: startDate,
+                        end_date: endDate
                     }
                 });
                 
