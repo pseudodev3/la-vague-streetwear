@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     const elements = {
         nav: document.getElementById('nav'),
+        mobileMenuBtn: document.getElementById('mobileMenuBtn'),
+        navLinks: document.getElementById('navLinks'),
         cartCount: document.getElementById('cartCount'),
         cartOverlay: document.getElementById('cartOverlay'),
         cartSidebar: document.getElementById('cartSidebar'),
@@ -22,6 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
         cartItems: document.getElementById('cartItems'),
         cartSubtotal: document.getElementById('cartSubtotal'),
         cartBtn: document.getElementById('cartBtn'),
+        wishlistCount: document.getElementById('wishlistCount'),
+        wishlistBtn: document.getElementById('wishlistBtn'),
+        wishlistSidebar: document.getElementById('wishlistSidebar'),
+        wishlistClose: document.getElementById('wishlistClose'),
+        wishlistOverlay: document.getElementById('wishlistOverlay'),
         searchOverlay: document.getElementById('searchOverlay'),
         searchBtn: document.getElementById('searchBtn'),
         searchClose: document.getElementById('searchClose'),
@@ -35,10 +42,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // INITIALIZATION
     // ==========================================
     function init() {
-        // Initialize currency selector
-        initCurrencySelector();
+        // Initialize combined locale selector
+        initLocaleSelector();
+        
+        // Initialize legacy selectors (mobile menu)
+        initLegacySelectors();
         
         updateCartCount();
+        updateWishlistCount();
         bindEvents();
         initFAQ();
         
@@ -54,6 +65,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // Listen for currency changes
         window.addEventListener('currencyChanged', () => {
             renderCart();
+        });
+        
+        // Listen for storage changes from other pages
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'cart') {
+                state.cart = JSON.parse(e.newValue) || [];
+                updateCartCount();
+                renderCart();
+            }
+            if (e.key === 'wishlist') {
+                updateWishlistCount();
+            }
         });
     }
 
@@ -140,6 +163,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
         elements.cartCount.textContent = count;
         elements.cartCount.style.display = count > 0 ? 'flex' : 'none';
+    }
+    
+    function updateWishlistCount() {
+        const wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+        const count = wishlist.length;
+        if (elements.wishlistCount) {
+            elements.wishlistCount.textContent = count;
+            elements.wishlistCount.style.display = count > 0 ? 'flex' : 'none';
+        }
     }
 
     // ==========================================
@@ -235,9 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add phone input masking if phone field exists
         const phoneInput = document.getElementById('phone');
         if (phoneInput && typeof InputMasks !== 'undefined') {
-            phoneInput.addEventListener('input', function() {
-                this.value = InputMasks.phoneNumber(this.value, 'auto');
-            });
+            InputMasks.phone(phoneInput);
         }
         
         contactForm.addEventListener('submit', async (e) => {
@@ -316,10 +346,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // EVENTS
     // ==========================================
     function bindEvents() {
+        // Mobile menu
+        elements.mobileMenuBtn?.addEventListener('click', () => {
+            elements.mobileMenuBtn.classList.toggle('active');
+            elements.navLinks?.classList.toggle('active');
+            document.body.style.overflow = elements.navLinks?.classList.contains('active') ? 'hidden' : '';
+        });
+        
+        // Close mobile menu when clicking a link
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                elements.mobileMenuBtn?.classList.remove('active');
+                elements.navLinks?.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        });
+        
         // Cart
         elements.cartBtn?.addEventListener('click', openCart);
         elements.cartClose?.addEventListener('click', window.closeCart);
         elements.cartOverlay?.addEventListener('click', window.closeCart);
+        
+        // Wishlist
+        elements.wishlistBtn?.addEventListener('click', window.openWishlist);
+        elements.wishlistClose?.addEventListener('click', window.closeWishlist);
+        elements.wishlistOverlay?.addEventListener('click', window.closeWishlist);
         
         // Search
         elements.searchBtn?.addEventListener('click', openSearch);
@@ -339,6 +390,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'Escape') {
                 closeSearch();
                 window.closeCart();
+                window.closeWishlist();
+                if (elements.navLinks?.classList.contains('active')) {
+                    elements.mobileMenuBtn?.click();
+                }
             }
             
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -365,35 +420,107 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Initialize currency selector
-    const currencySelect = document.getElementById('currencySelect');
-    if (currencySelect) {
-        currencySelect.value = CurrencyConfig.getCurrentCurrency();
-        currencySelect.addEventListener('change', (e) => {
-            CurrencyConfig.setCurrency(e.target.value);
-            window.location.reload();
+    // Combined Locale Selector
+    function initLocaleSelector() {
+        const localeBtn = document.getElementById('localeBtn');
+        const localeDropdown = document.getElementById('localeDropdown');
+        
+        if (!localeBtn || !localeDropdown) return;
+        
+        const currentCurrency = CurrencyConfig.getCurrentCurrency();
+        const currentLang = localStorage.getItem('preferredLanguage') || 'en';
+        
+        updateLocaleDisplay(currentCurrency, currentLang);
+        
+        document.querySelectorAll('#currencyOptions .locale-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.currency === currentCurrency);
+            btn.addEventListener('click', () => {
+                CurrencyConfig.setCurrency(btn.dataset.currency);
+                window.location.reload();
+            });
+        });
+        
+        document.querySelectorAll('#languageOptions .locale-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === currentLang);
+            btn.addEventListener('click', () => {
+                localStorage.setItem('preferredLanguage', btn.dataset.lang);
+                document.documentElement.lang = btn.dataset.lang;
+                document.documentElement.dir = btn.dataset.lang === 'ar' ? 'rtl' : 'ltr';
+                window.location.reload();
+            });
+        });
+        
+        localeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            localeDropdown.classList.toggle('active');
+        });
+        
+        document.addEventListener('click', () => {
+            localeDropdown.classList.remove('active');
+        });
+        
+        localeDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
     }
     
-    // Initialize language selector
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
+    function updateLocaleDisplay(currency, lang) {
+        const localeCurrent = document.getElementById('localeCurrent');
+        if (localeCurrent) {
+            const symbols = { USD: '$', NGN: '₦', EUR: '€', GBP: '£' };
+            localeCurrent.textContent = `${symbols[currency]} · ${lang.toUpperCase()}`;
+        }
+    }
+    
+    function initLegacySelectors() {
+        const currencySelect = document.getElementById('currencySelect');
+        if (currencySelect) {
+            currencySelect.value = CurrencyConfig.getCurrentCurrency();
+            currencySelect.addEventListener('change', (e) => {
+                CurrencyConfig.setCurrency(e.target.value);
+                window.location.reload();
+            });
+        }
+        
+        const languageSelect = document.getElementById('languageSelect');
+        if (languageSelect) {
+            const savedLang = localStorage.getItem('preferredLanguage') || 'en';
+            languageSelect.value = savedLang;
+            languageSelect.addEventListener('change', (e) => {
+                localStorage.setItem('preferredLanguage', e.target.value);
+                document.documentElement.lang = e.target.value;
+                document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
+                window.location.reload();
+            });
+        }
+        
+        const mobileCurrencySelect = document.getElementById('mobileCurrencySelect');
+        if (mobileCurrencySelect) {
+            mobileCurrencySelect.value = CurrencyConfig.getCurrentCurrency();
+            mobileCurrencySelect.addEventListener('change', (e) => {
+                CurrencyConfig.setCurrency(e.target.value);
+                window.location.reload();
+            });
+        }
+        
+        const mobileLanguageSelect = document.getElementById('mobileLanguageSelect');
+        if (mobileLanguageSelect) {
+            const savedLang = localStorage.getItem('preferredLanguage') || 'en';
+            mobileLanguageSelect.value = savedLang;
+            mobileLanguageSelect.addEventListener('change', (e) => {
+                localStorage.setItem('preferredLanguage', e.target.value);
+                document.documentElement.lang = e.target.value;
+                document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
+                window.location.reload();
+            });
+        }
+        
         const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-        languageSelect.value = savedLang;
         document.documentElement.lang = savedLang;
         document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
-        
-        // Apply translations on load
         if (typeof applyTranslations === 'function') {
             applyTranslations();
         }
-        
-        languageSelect.addEventListener('change', (e) => {
-            localStorage.setItem('preferredLanguage', e.target.value);
-            document.documentElement.lang = e.target.value;
-            document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
-            window.location.reload();
-        });
     }
 
     // Start

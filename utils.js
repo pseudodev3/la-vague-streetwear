@@ -37,6 +37,18 @@ const InputMasks = {
         });
     },
 
+    // Alias for phone - used by contact forms
+    phoneNumber(value, country = 'auto') {
+        // If called with input element, bind the mask
+        if (value && value.tagName) {
+            return this.phone(value);
+        }
+        // Otherwise just return formatted value
+        let digits = String(value).replace(/\D/g, '');
+        if (digits.length > 15) digits = digits.substring(0, 15);
+        return digits;
+    },
+
     // CVV: 3-4 digits
     cvv(input) {
         input.addEventListener('input', (e) => {
