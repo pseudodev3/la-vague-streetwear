@@ -217,13 +217,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderProducts() {
+        console.log('[SHOP] renderProducts called. Filtered count:', state.filteredProducts.length);
+        
         if (state.filteredProducts.length === 0) {
+            console.log('[SHOP] No products to show, displaying empty state');
             elements.productsGrid.style.display = 'none';
             elements.emptyState.style.display = 'block';
             elements.resultsCount.textContent = '0 products';
             return;
         }
         
+        console.log('[SHOP] Rendering', state.filteredProducts.length, 'products');
         elements.productsGrid.style.display = 'grid';
         elements.emptyState.style.display = 'none';
         elements.resultsCount.textContent = `${state.filteredProducts.length} product${state.filteredProducts.length !== 1 ? 's' : ''}`;
@@ -284,6 +288,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </article>
         `}).join('');
+        
+        console.log('[SHOP] Generated HTML length:', elements.productsGrid.innerHTML.length);
+        console.log('[SHOP] First product HTML preview:', elements.productsGrid.innerHTML.substring(0, 200));
         
         // Re-initialize reveal animations
         initRevealAnimations();
