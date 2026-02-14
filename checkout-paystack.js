@@ -109,31 +109,67 @@
         const currentCurrency = CurrencyConfig.getCurrentCurrency ? 
             CurrencyConfig.getCurrentCurrency() : 'USD';
         
+        console.log('[PAYSTACK] Converting from currency:', currentCurrency, 'amount:', amountInDisplayCurrency);
+        
         // If already NGN, no conversion needed
         if (currentCurrency === 'NGN') {
+            console.log('[PAYSTACK] Already NGN, no conversion needed');
             return amountInDisplayCurrency;
         }
         
-        // Get rates
-        const rates = CurrencyConfig.rates && Object.keys(CurrencyConfig.rates).length > 0 
-            ? CurrencyConfig.rates 
-            : (CurrencyConfig.defaultRates || { USD: 1, NGN: 1550 });
+        // Get rates - check both rates and defaultRates
+        let rates = CurrencyConfig.rates;
+        console.log('[PAYSTACK] CurrencyConfig.rates:', rates);
         
-        const currentRate = rates[currentCurrency] || 1;
-        const ngnRate = rates.NGN || 1550;
+        if (!rates || Object.keys(rates).length === 0) {
+            rates = CurrencyConfig.defaultRates;
+            console.log('[PAYSTACK] Using defaultRates:', rates);
+        }
+        
+        if (!rates || Object.keys(rates).length === 0) {
+            console.error('[PAYSTACK] No rates available!');
+            rates = { USD: 1, NGN: 1550 }; // Hard fallback
+        }
+        
+        const currentRate = rates[currentCurrency];
+        const ngnRate = rates.NGN;
+        
+        console.log('[PAYSTACK] Rates lookup:', {
+            currentCurrency,
+            currentRate,
+            ngnRate,
+            allRates: rates
+        });
+        
+        // Validate rates
+        if (!currentRate || currentRate <= 0) {
+            console.error('[PAYSTACK] Invalid currentRate for', currentCurrency, ':', currentRate);
+            // Fallback: assume 1:1 for USD, or use common defaults
+            const fallbackRates = { USD: 1, EUR: 1.06, GBP: 1.25 };
+            const fallbackRate = fallbackRates[currentCurrency] || 1;
+            console.log('[PAYSTACK] Using fallback rate:', fallbackRate);
+            
+            const amountInNGN = (amountInDisplayCurrency / fallbackRate) * (ngnRate || 1550);
+            console.log('[PAYSTACK] Converted with fallback:', amountInNGN);
+            return Math.round(amountInNGN);
+        }
+        
+        if (!ngnRate || ngnRate <= 0) {
+            console.error('[PAYSTACK] Invalid ngnRate:', ngnRate);
+        }
         
         // Convert: display amount / current rate * NGN rate
         // Example: $23 USD → 23 / 1 * 1550 = 35,650 NGN
-        const amountInNGN = (amountInDisplayCurrency / currentRate) * ngnRate;
+        const amountInNGN = (amountInDisplayCurrency / currentRate) * (ngnRate || 1550);
         
-        console.log('[PAYSTACK] Currency conversion:', {
+        console.log('[PAYSTACK] Currency conversion result:', {
             from: currentCurrency,
             fromAmount: amountInDisplayCurrency,
             to: 'NGN',
             toAmount: Math.round(amountInNGN),
-            rate: currentRate,
-            ngnRate: ngnRate,
-            hasCurrencyConfig: typeof CurrencyConfig !== 'undefined'
+            currentRate: currentRate,
+            ngnRate: ngnRate || 1550,
+            formula: `${amountInDisplayCurrency} / ${currentRate} * ${ngnRate || 1550}`
         });
         
         return Math.round(amountInNGN);
