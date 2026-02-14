@@ -1,0 +1,1156 @@
+openapi: 3.0.3
+info:
+  title: LA VAGUE API
+  description: |
+    Backend API for LA VAGUE Streetwear e-commerce platform.
+    
+    ## Authentication
+    Admin endpoints require a Bearer token obtained via `/api/admin/login`.
+    
+    ## Rate Limiting
+    - General API: 100 requests per 15 minutes per IP
+    - Order creation: 5 requests per hour per IP
+    - Admin login: 5 attempts per 15 minutes per IP
+    
+    ## CSRF Protection
+    State-changing endpoints (POST, PUT, DELETE) require a CSRF token obtained from `/api/csrf-token`.
+  version: 1.1.0
+  contact:
+    name: LA VAGUE Support
+    email: support@la-vague.store
+  license:
+    name: Private
+    
+servers:
+  - url: https://la-vague-api.onrender.com/api
+    description: Production server
+  - url: http://localhost:3000/api
+    description: Local development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Health
+    description: Health check and status endpoints
+  - name: Products
+    description: Product catalog operations
+  - name: Orders
+    description: Order creation and tracking
+  - name: Reviews
+    description: Product reviews
+  - name: Coupons
+    description: Discount codes and promotions
+  - name: Waitlist
+    description: Out-of-stock notifications
+  - name: Admin
+    description: Admin dashboard operations
+  - name: GDPR
+    description: Data privacy compliance
+  - name: Security
+    description: CSRF and security utilities
+
+paths:
+  # Health
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns API health status
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  database:
+                    type: string
+                    enum: [postgresql, sqlite]
+                  version:
+                    type: string
+
+  /test:
+    get:
+      tags: [Health]
+      summary: Test connectivity
+      description: Simple test endpoint
+      security: []
+      responses:
+        '200':
+          description: API reachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  origin:
+                    type: string
+
+  # CSRF
+  /csrf-token:
+    get:
+      tags: [Security]
+      summary: Get CSRF token
+      description: Obtain a CSRF token for state-changing requests
+      security: []
+      responses:
+        '200':
+          description: CSRF token generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  csrfToken:
+                    type: string
+
+  # Products
+  /products:
+    get:
+      tags: [Products]
+      summary: List all products
+      description: Get all products in the catalog
+      security: []
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+
+  /products/{slug}:
+    get:
+      tags: [Products]
+      summary: Get product by slug
+      description: Get detailed information about a specific product
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          example: urban-street-hoodie
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  product:
+                    $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Orders
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Create order
+      description: Create a new order with inventory validation
+      security: []
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimit'
+
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get order by ID
+      description: Retrieve order details (customer lookup)
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: LV-A1B2C3D4
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: '#/components/schemas/Order'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /orders/{id}/track:
+    get:
+      tags: [Orders]
+      summary: Track order
+      description: Get order tracking information
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tracking information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  tracking:
+                    type: object
+                    properties:
+                      orderId:
+                        type: string
+                      status:
+                        type: string
+                      statusHistory:
+                        type: array
+                        items:
+                          type: object
+
+  # Reviews
+  /products/{id}/reviews:
+    get:
+      tags: [Reviews]
+      summary: Get product reviews
+      description: Get approved reviews for a product
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  reviews:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  summary:
+                    type: object
+                    properties:
+                      average:
+                        type: number
+                      count:
+                        type: integer
+    post:
+      tags: [Reviews]
+      summary: Submit review
+      description: Submit a product review (pending approval)
+      security: []
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+      responses:
+        '201':
+          description: Review submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  # Coupons
+  /coupons/validate:
+    post:
+      tags: [Coupons]
+      summary: Validate coupon
+      description: Check if a coupon code is valid and get discount
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, subtotal, email]
+              properties:
+                code:
+                  type: string
+                subtotal:
+                  type: integer
+                  description: Amount in cents
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Coupon validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  coupon:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      type:
+                        type: string
+                      value:
+                        type: integer
+                  discount:
+                    type: integer
+                  message:
+                    type: string
+
+  # Waitlist
+  /waitlist:
+    post:
+      tags: [Waitlist]
+      summary: Join waitlist
+      description: Add email to waitlist for out-of-stock product
+      security: []
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, email]
+              properties:
+                productId:
+                  type: string
+                email:
+                  type: string
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Added to waitlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  # Contact
+  /contact:
+    post:
+      tags: [General]
+      summary: Contact form
+      description: Submit contact form
+      security: []
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, message]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                subject:
+                  type: string
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  # GDPR
+  /gdpr/export:
+    post:
+      tags: [GDPR]
+      summary: Export personal data
+      description: Export all personal data for a customer (Right to Data Portability)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Data export completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  export:
+                    type: object
+                    properties:
+                      exportDate:
+                        type: string
+                        format: date-time
+                      customerEmail:
+                        type: string
+                      summary:
+                        type: object
+                        properties:
+                          totalOrders:
+                            type: integer
+                          totalReviews:
+                            type: integer
+                          totalWaitlistEntries:
+                            type: integer
+                          totalCouponUsages:
+                            type: integer
+                      data:
+                        type: object
+
+  /gdpr/delete:
+    post:
+      tags: [GDPR]
+      summary: Delete personal data
+      description: Delete/anonymize all personal data (Right to be Forgotten)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, confirm]
+              properties:
+                email:
+                  type: string
+                  format: email
+                confirm:
+                  type: boolean
+                  description: Must be true to confirm deletion
+      responses:
+        '200':
+          description: Data deletion completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  stats:
+                    type: object
+                    properties:
+                      ordersAnonymized:
+                        type: integer
+                      reviewsDeleted:
+                        type: integer
+                      waitlistEntriesDeleted:
+                        type: integer
+                      couponUsagesAnonymized:
+                        type: integer
+
+  # Admin
+  /admin/login:
+    post:
+      tags: [Admin]
+      summary: Admin login
+      description: Authenticate as admin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  expiresIn:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimit'
+
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: Dashboard stats
+      description: Get admin dashboard statistics
+      responses:
+        '200':
+          description: Statistics retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  stats:
+                    type: object
+                    properties:
+                      totalOrders:
+                        type: integer
+                      totalRevenue:
+                        type: integer
+                      pendingOrders:
+                        type: integer
+                      lowStockProducts:
+                        type: integer
+
+  /admin/orders:
+    get:
+      tags: [Admin]
+      summary: List orders
+      description: Get all orders with pagination
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, processing, shipped, delivered, cancelled]
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  pagination:
+                    type: object
+
+  /admin/orders/{id}/status:
+    put:
+      tags: [Admin]
+      summary: Update order status
+      description: Change order status and send notification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, processing, shipped, delivered, cancelled]
+                trackingNumber:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: '#/components/schemas/Order'
+
+  /admin/products:
+    post:
+      tags: [Admin]
+      summary: Create product
+      description: Add new product to catalog
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  product:
+                    $ref: '#/components/schemas/Product'
+
+  /admin/products/{id}:
+    put:
+      tags: [Admin]
+      summary: Update product
+      description: Update existing product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  product:
+                    $ref: '#/components/schemas/Product'
+
+    delete:
+      tags: [Admin]
+      summary: Delete product
+      description: Remove product from catalog
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /admin/inventory/reservations:
+    get:
+      tags: [Admin]
+      summary: Get reservations
+      description: Get active inventory reservations
+      responses:
+        '200':
+          description: Reservations list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  reservations:
+                    type: array
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        category:
+          type: string
+        price:
+          type: integer
+          description: Price in cents
+        compare_at_price:
+          type: integer
+        description:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+        colors:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              hex:
+                type: string
+        sizes:
+          type: array
+          items:
+            type: string
+        inventory:
+          type: object
+          additionalProperties:
+            type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        badge:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ProductRequest:
+      type: object
+      required: [name, slug, category, price]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        category:
+          type: string
+        price:
+          type: integer
+        compareAtPrice:
+          type: integer
+        description:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+        colors:
+          type: array
+        sizes:
+          type: array
+          items:
+            type: string
+        inventory:
+          type: object
+        tags:
+          type: array
+          items:
+            type: string
+        badge:
+          type: string
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          example: LV-A1B2C3D4
+        customer_name:
+          type: string
+        customer_email:
+          type: string
+        customer_phone:
+          type: string
+        shipping_address:
+          type: object
+          properties:
+            address:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            zip:
+              type: string
+            country:
+              type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              price:
+                type: integer
+              quantity:
+                type: integer
+              color:
+                type: string
+              size:
+                type: string
+        subtotal:
+          type: integer
+        shipping_cost:
+          type: integer
+        discount:
+          type: integer
+        total:
+          type: integer
+        payment_method:
+          type: string
+          enum: [paystack, cod]
+        payment_status:
+          type: string
+          enum: [pending, paid, failed]
+        payment_reference:
+          type: string
+        order_status:
+          type: string
+          enum: [pending, processing, shipped, delivered, cancelled]
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    OrderRequest:
+      type: object
+      required: [customerName, customerEmail, shippingAddress, items, total]
+      properties:
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        customerPhone:
+          type: string
+        shippingAddress:
+          type: object
+          required: [address, city, state, zip]
+          properties:
+            address:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            zip:
+              type: string
+            country:
+              type: string
+              default: Nigeria
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, name, price, quantity]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              price:
+                type: integer
+              quantity:
+                type: integer
+              color:
+                type: string
+              size:
+                type: string
+        subtotal:
+          type: integer
+        shippingCost:
+          type: integer
+        discount:
+          type: integer
+        total:
+          type: integer
+        paymentMethod:
+          type: string
+          default: paystack
+        couponCode:
+          type: string
+        notes:
+          type: string
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: string
+        customer_name:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        title:
+          type: string
+        content:
+          type: string
+        verified_purchase:
+          type: boolean
+        admin_response:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ReviewRequest:
+      type: object
+      required: [customerName, customerEmail, rating, title, content]
+      properties:
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        title:
+          type: string
+        content:
+          type: string
+        verifiedPurchase:
+          type: boolean
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+              message:
+                type: string
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: UNAUTHORIZED
+              message:
+                type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: NOT_FOUND
+              message:
+                type: string
+
+    RateLimit:
+      description: Too many requests
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retry
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: TOO_MANY_REQUESTS
+              message:
+                type: string
