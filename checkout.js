@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // DISCOUNT CODE
     // ==========================================
-    function applyDiscountCode() {
+    async function applyDiscountCode() {
         const code = elements.discountCode.value.trim().toUpperCase();
         
         if (!code) {
@@ -116,29 +116,58 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Mock discount codes
-        const codes = {
-            'WELCOME10': 10,
-            'WAVE20': 20,
-            'FREESHIP': 0 // Special handling for free shipping
-        };
+        // Get cart total for validation
+        const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const shipping = state.shipping;
+        const cartTotal = subtotal + shipping;
         
-        if (codes[code] !== undefined) {
-            if (code === 'FREESHIP') {
+        try {
+            // Get CSRF token first
+            const csrfResponse = await fetch(`${API_URL}/csrf-token`);
+            const csrfData = await csrfResponse.json();
+            
+            // Validate coupon with API
+            const response = await fetch(`${API_URL}/coupons/validate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfData.csrfToken
+                },
+                body: JSON.stringify({
+                    code: code,
+                    cartTotal: cartTotal,
+                    items: state.cart
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok || !data.valid) {
+                showToast(data.error || 'Invalid discount code', 'error');
+                return;
+            }
+            
+            // Apply discount based on type
+            if (data.coupon.type === 'free_shipping') {
                 state.shipping = 0;
                 state.discount = 0;
                 showToast('Free shipping applied!', 'success');
-            } else {
-                const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                state.discount = (subtotal * codes[code]) / 100;
-                showToast(`${codes[code]}% discount applied!`, 'success');
+            } else if (data.coupon.type === 'percentage') {
+                const discountAmount = Math.round((subtotal * data.coupon.discount) / 100);
+                state.discount = discountAmount;
+                showToast(`${data.coupon.discount}% discount applied!`, 'success');
+            } else if (data.coupon.type === 'fixed') {
+                state.discount = data.coupon.discount;
+                showToast(`₦${data.coupon.discount.toLocaleString()} discount applied!`, 'success');
             }
             
             state.discountCode = code;
             updateTotals();
             elements.discountCode.value = '';
-        } else {
-            showToast('Invalid discount code', 'error');
+            
+        } catch (error) {
+            console.error('Coupon validation error:', error);
+            showToast('Failed to validate coupon. Please try again.', 'error');
         }
     }
 

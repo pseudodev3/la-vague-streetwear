@@ -2278,12 +2278,12 @@ async function loadCoupons() {
             
             // Usage
             const usageText = coupon.usageLimit 
-                ? `${coupon.usageCount || 0} / ${coupon.usageLimit}` 
-                : `${coupon.usageCount || 0} / ∞`;
+                ? `${coupon.usage_count || 0} / ${coupon.usage_limit}` 
+                : `${coupon.usage_count || 0} / ∞`;
             tr.appendChild(createElement('td', {}, usageText));
             
             // Status
-            const isActive = coupon.isActive && (!coupon.endDate || new Date(coupon.endDate) > new Date());
+            const isActive = coupon.is_active && (!coupon.end_date || new Date(coupon.end_date) > new Date());
             const statusBadge = createElement('span', { 
                 className: `status-badge ${isActive ? 'active' : 'inactive'}` 
             }, isActive ? 'Active' : 'Inactive');
