@@ -327,19 +327,34 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('[SHOP] Filtered count:', filtered.length);
         }
         
+        console.log('[SHOP] Before tag filters, count:', filtered.length);
+        
         // Tag filters
         if (state.filters.sale) {
             filtered = filtered.filter(p => p.compareAtPrice !== null);
+            console.log('[SHOP] After sale filter, count:', filtered.length);
         }
         if (state.filters.new) {
             filtered = filtered.filter(p => p.tags.includes('new'));
+            console.log('[SHOP] After new filter, count:', filtered.length);
         }
         if (state.filters.bestseller) {
             filtered = filtered.filter(p => p.tags.includes('bestseller'));
+            console.log('[SHOP] After bestseller filter, count:', filtered.length);
         }
         
+        console.log('[SHOP] Before price filter, count:', filtered.length);
+        console.log('[SHOP] Price filter - maxPrice:', state.filters.maxPrice);
+        
         // Price filter
-        filtered = filtered.filter(p => p.price <= state.filters.maxPrice);
+        filtered = filtered.filter(p => {
+            const matches = p.price <= state.filters.maxPrice;
+            if (!matches) {
+                console.log(`[SHOP] ${p.name}: price=${p.price}, maxPrice=${state.filters.maxPrice}, excluded`);
+            }
+            return matches;
+        });
+        console.log('[SHOP] After price filter, count:', filtered.length);
         
         // Sort
         switch (state.sortBy) {
