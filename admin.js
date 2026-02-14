@@ -342,7 +342,7 @@ async function loadStats() {
             totalProducts: productData.totalProducts || productData.total_products || 0
         };
         
-        elements.statRevenue.textContent = `$${(state.stats.totalRevenue || 0).toLocaleString()}`;
+        elements.statRevenue.textContent = `₦${(state.stats.totalRevenue || 0).toLocaleString()}`;
         elements.statOrders.textContent = (state.stats.totalOrders || 0).toLocaleString();
         elements.statProducts.textContent = (state.stats.totalProducts || 0).toLocaleString();
         elements.statPending.textContent = (state.stats.pendingOrders || 0).toLocaleString();
@@ -383,7 +383,7 @@ async function loadRecentOrders() {
                 order.customer_name || order.customerName || ''
             );
             
-            const tdTotal = createElement('td', {}, `$${order.total || 0}`);
+            const tdTotal = createElement('td', {}, `₦${order.total || 0}`);
             
             const status = order.order_status || order.status || 'pending';
             const tdStatus = createElement('td', {}, 
@@ -535,7 +535,7 @@ function renderOrdersTable(orders) {
         tr.appendChild(createElement('td', {}, String(items.length)));
         
         // Total
-        tr.appendChild(createElement('td', {}, `$${order.total || 0}`));
+        tr.appendChild(createElement('td', {}, `₦${order.total || 0}`));
         
         // Status select
         const tdStatus = createElement('td');
@@ -631,7 +631,7 @@ function renderProductsTable(products) {
         tr.appendChild(createElement('td', {}, product.category));
         
         // Price
-        tr.appendChild(createElement('td', {}, `$${product.price}`));
+        tr.appendChild(createElement('td', {}, `₦${product.price}`));
         
         // Variants
         tr.appendChild(createElement('td', {}, `${variantCount} variants`));
@@ -886,7 +886,7 @@ window.viewOrder = async function(orderId) {
             tr.appendChild(createElement('td', {}, item.name || 'Unknown'));
             tr.appendChild(createElement('td', {}, `${item.color || 'N/A'} / ${item.size || 'N/A'}`));
             tr.appendChild(createElement('td', {}, String(item.quantity || 0)));
-            tr.appendChild(createElement('td', {}, `$${item.price || 0}`));
+            tr.appendChild(createElement('td', {}, `₦${item.price || 0}`));
             tbody.appendChild(tr);
         });
         itemsTable.appendChild(tbody);
@@ -908,27 +908,27 @@ window.viewOrder = async function(orderId) {
     // Subtotal
     const subtotalP = createElement('p', {});
     subtotalP.appendChild(createElement('strong', {}, 'Subtotal: '));
-    subtotalP.appendChild(document.createTextNode(`$${subtotal.toLocaleString()}`));
+    subtotalP.appendChild(document.createTextNode(`₦${subtotal.toLocaleString()}`));
     paymentSection.appendChild(subtotalP);
     
     // Shipping
     const shippingP = createElement('p', {});
     shippingP.appendChild(createElement('strong', {}, 'Shipping: '));
-    shippingP.appendChild(document.createTextNode(`$${shipping.toLocaleString()}`));
+    shippingP.appendChild(document.createTextNode(`₦${shipping.toLocaleString()}`));
     paymentSection.appendChild(shippingP);
     
     // Discount
     if (discount > 0) {
         const discountP = createElement('p', {});
         discountP.appendChild(createElement('strong', {}, 'Discount: '));
-        discountP.appendChild(document.createTextNode(`-$${discount.toLocaleString()}`));
+        discountP.appendChild(document.createTextNode(`-₦${discount.toLocaleString()}`));
         paymentSection.appendChild(discountP);
     }
     
     // Total
     const totalP = createElement('p', { className: 'text-bold', style: 'font-size: 1.1rem; margin-top: 0.5rem;' });
     totalP.appendChild(createElement('strong', {}, 'Total: '));
-    totalP.appendChild(document.createTextNode(`$${total.toLocaleString()}`));
+    totalP.appendChild(document.createTextNode(`₦${total.toLocaleString()}`));
     paymentSection.appendChild(totalP);
     
     // Payment Status
@@ -1091,7 +1091,7 @@ elements.saveProductBtn.addEventListener('click', async () => {
     }
     
     // Parse and validate price
-    const priceValue = elements.productPrice.value.replace(/[$,]/g, '').trim();
+    const priceValue = elements.productPrice.value.replace(/[₦$,]/g, '').trim();
     const price = parseInt(priceValue, 10);
     if (!priceValue || isNaN(price) || price <= 0) {
         showToast('Valid price is required (numbers only)', 'error');
@@ -1101,7 +1101,7 @@ elements.saveProductBtn.addEventListener('click', async () => {
     // Parse compare at price if provided
     let compareAtPrice = null;
     if (elements.productComparePrice.value) {
-        const compareValue = elements.productComparePrice.value.replace(/[$,]/g, '').trim();
+        const compareValue = elements.productComparePrice.value.replace(/[₦$,]/g, '').trim();
         const compareParsed = parseInt(compareValue, 10);
         if (!isNaN(compareParsed) && compareParsed > 0) {
             compareAtPrice = compareParsed;
@@ -1591,7 +1591,7 @@ function renderCustomersTable(customers) {
         tr.appendChild(createElement('td', {}, customer.customer_name || 'N/A'));
         tr.appendChild(createElement('td', {}, customer.customer_email));
         tr.appendChild(createElement('td', {}, String(customer.order_count || 0)));
-        tr.appendChild(createElement('td', {}, `$${(customer.lifetime_value || 0).toLocaleString()}`));
+        tr.appendChild(createElement('td', {}, `₦${(customer.lifetime_value || 0).toLocaleString()}`));
         tr.appendChild(createElement('td', {}, formatDate(customer.last_order_date)));
         
         const tdActions = createElement('td');
@@ -1623,7 +1623,7 @@ window.viewCustomer = async function(email) {
         infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Email: '), customer.customer_email));
         infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Phone: '), customer.customer_phone || 'N/A'));
         infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Total Orders: '), String(customer.order_count || 0)));
-        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Lifetime Value: '), `$${(customer.lifetime_value || 0).toLocaleString()}`));
+        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Lifetime Value: '), `₦${(customer.lifetime_value || 0).toLocaleString()}`));
         infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'First Order: '), formatDate(customer.first_order_date)));
         infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Last Order: '), formatDate(customer.last_order_date)));
         container.appendChild(infoSection);
@@ -1647,7 +1647,7 @@ window.viewCustomer = async function(email) {
                 const tr = createElement('tr');
                 tr.appendChild(createElement('td', {}, order.id));
                 tr.appendChild(createElement('td', {}, formatDate(order.created_at)));
-                tr.appendChild(createElement('td', {}, `$${order.total || 0}`));
+                tr.appendChild(createElement('td', {}, `₦${order.total || 0}`));
                 tr.appendChild(createElement('td', {}, order.order_status || 'pending'));
                 tbody.appendChild(tr);
             });
@@ -1689,7 +1689,7 @@ async function loadAnalytics() {
         const ordersEl = document.getElementById('analyticsOrders');
         
         if (revenueEl) {
-            revenueEl.textContent = '$' + totalRevenue.toLocaleString('en-US');
+            revenueEl.textContent = '₦' + totalRevenue.toLocaleString('en-US');
         }
         if (ordersEl) {
             ordersEl.textContent = totalOrders.toLocaleString('en-US');
@@ -1702,7 +1702,7 @@ async function loadAnalytics() {
             customersEl.textContent = (customerStats.stats?.total_customers || 0).toLocaleString('en-US');
         }
         if (aovEl) {
-            aovEl.textContent = '$' + aov.toLocaleString('en-US');
+            aovEl.textContent = '₦' + aov.toLocaleString('en-US');
         }
         
         // Render sales chart (simple bar chart using DOM)
@@ -1718,14 +1718,50 @@ async function loadAnalytics() {
     }
 }
 
+function renderTopProducts(products) {
+    const tableBody = document.getElementById('topProductsTable');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    if (!products || products.length === 0) {
+        const tr = createElement('tr', {}, 
+            createElement('td', { colspan: 3, className: 'text-center text-muted' }, 'No product data available')
+        );
+        tableBody.appendChild(tr);
+        return;
+    }
+    
+    products.forEach(product => {
+        const tr = createElement('tr');
+        
+        // Product name
+        tr.appendChild(createElement('td', {}, 
+            createElement('strong', {}, product.name || 'Unknown Product')
+        ));
+        
+        // Quantity sold
+        tr.appendChild(createElement('td', {}, 
+            createElement('span', { className: 'badge' }, String(product.totalQty || 0))
+        ));
+        
+        // Revenue
+        const revenue = product.totalRevenue || 0;
+        tr.appendChild(createElement('td', {}, `₦${revenue.toLocaleString()}`));
+        
+        tableBody.appendChild(tr);
+    });
+}
+
 function renderSalesChart(data) {
     const container = document.getElementById('salesChart');
     if (!container) return;
     
     container.innerHTML = '';
+    container.style.cssText = 'height: 400px; padding: 0; position: relative;';
     
     if (!data || data.length === 0) {
-        container.appendChild(createElement('p', { className: 'text-center text-muted' }, 'No data available'));
+        container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%;"><p class="text-muted">No sales data available</p></div>';
         return;
     }
     
@@ -1741,89 +1777,159 @@ function renderSalesChart(data) {
     
     // If no sales yet, show message
     if (filteredData.length === 0) {
-        container.appendChild(createElement('p', { className: 'text-center text-muted' }, 'No sales data yet'));
+        container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%;"><p class="text-muted">No sales data yet</p></div>';
         return;
     }
     
+    // Calculate statistics
     const maxRevenue = Math.max(...filteredData.map(d => d.revenue));
+    const totalRevenue = filteredData.reduce((sum, d) => sum + d.revenue, 0);
+    const totalOrders = filteredData.reduce((sum, d) => sum + d.orders, 0);
+    const avgRevenue = Math.round(totalRevenue / filteredData.length);
     
-    console.log('Chart data:', { maxRevenue, dataPoints: filteredData.length, sample: filteredData[0] });
-    
-    // Chart container with better styling
-    const chartWrapper = createElement('div', {
-        style: 'padding: 1rem;'
+    // Create professional chart container
+    const chartContainer = createElement('div', {
+        style: 'height: 100%; display: flex; flex-direction: column; padding: 1.5rem;'
     });
     
-    // Stats summary
-    const statsDiv = createElement('div', {
-        style: 'display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);'
-    });
-    statsDiv.appendChild(createElement('span', {}, `Max: $${maxRevenue.toLocaleString('en-US')}`));
-    statsDiv.appendChild(createElement('span', {}, `${filteredData.length} days with sales`));
-    chartWrapper.appendChild(statsDiv);
-    
-    // Chart bars
-    const chartDiv = createElement('div', { 
-        className: 'simple-chart',
-        style: 'display: flex; align-items: flex-end; height: 250px; gap: 8px; overflow-x: auto; padding-bottom: 30px;'
+    // Header with key metrics
+    const headerDiv = createElement('div', {
+        style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);'
     });
     
-    // Show last 14 days max for better visibility
-    const displayData = filteredData.slice(-14);
+    const titleDiv = createElement('div');
+    titleDiv.appendChild(createElement('h4', { 
+        style: 'margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;' 
+    }, 'Sales Performance'));
+    titleDiv.appendChild(createElement('span', { 
+        style: 'font-size: 0.85rem; color: var(--color-text-muted);' 
+    }, `${filteredData.length} days tracked`));
+    headerDiv.appendChild(titleDiv);
     
-    displayData.forEach(day => {
+    // Metrics summary
+    const metricsDiv = createElement('div', { 
+        style: 'display: flex; gap: 2rem;' 
+    });
+    
+    const metrics = [
+        { label: 'Total Revenue', value: `₦${totalRevenue.toLocaleString()}` },
+        { label: 'Total Orders', value: totalOrders.toLocaleString() },
+        { label: 'Daily Avg', value: `₦${avgRevenue.toLocaleString()}` }
+    ];
+    
+    metrics.forEach(metric => {
+        const metricDiv = createElement('div', { style: 'text-align: right;' });
+        metricDiv.appendChild(createElement('div', { 
+            style: 'font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px;' 
+        }, metric.label));
+        metricDiv.appendChild(createElement('div', { 
+            style: 'font-size: 1.1rem; font-weight: 700; color: var(--color-text);' 
+        }, metric.value));
+        metricsDiv.appendChild(metricDiv);
+    });
+    headerDiv.appendChild(metricsDiv);
+    chartContainer.appendChild(headerDiv);
+    
+    // Chart area
+    const chartArea = createElement('div', { 
+        style: 'flex: 1; display: flex; position: relative; min-height: 0;' 
+    });
+    
+    // Y-axis labels
+    const yAxisDiv = createElement('div', { 
+        style: 'display: flex; flex-direction: column; justify-content: space-between; padding-right: 1rem; min-width: 60px; text-align: right;' 
+    });
+    
+    const yAxisSteps = 5;
+    for (let i = yAxisSteps; i >= 0; i--) {
+        const value = Math.round((maxRevenue / yAxisSteps) * i);
+        let labelText;
+        if (value >= 1000000) {
+            labelText = `₦${(value / 1000000).toFixed(1)}M`;
+        } else if (value >= 1000) {
+            labelText = `₦${(value / 1000).toFixed(0)}k`;
+        } else {
+            labelText = `₦${value}`;
+        }
+        yAxisDiv.appendChild(createElement('span', { 
+            style: 'font-size: 0.7rem; color: var(--color-text-muted); line-height: 1;' 
+        }, labelText));
+    }
+    chartArea.appendChild(yAxisDiv);
+    
+    // Chart canvas area
+    const canvasArea = createElement('div', { 
+        style: 'flex: 1; position: relative; display: flex; flex-direction: column;' 
+    });
+    
+    // Grid lines
+    const gridDiv = createElement('div', { 
+        style: 'position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;' 
+    });
+    for (let i = 0; i <= yAxisSteps; i++) {
+        const line = createElement('div', { 
+            style: 'border-top: 1px dashed var(--color-border); width: 100%;' 
+        });
+        gridDiv.appendChild(line);
+    }
+    canvasArea.appendChild(gridDiv);
+    
+    // Bars container
+    const barsContainer = createElement('div', { 
+        style: 'flex: 1; display: flex; align-items: flex-end; justify-content: space-around; gap: 4px; padding-top: 0.5rem; position: relative; z-index: 1;' 
+    });
+    
+    // Show last 30 days or all if less
+    const displayData = filteredData.slice(-30);
+    
+    displayData.forEach((day, index) => {
         const revenue = day.revenue;
         const orders = day.orders;
         
-        // Calculate height as percentage (no minimum, let 0 be 0)
-        let heightPercent = maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
-        
-        // Ensure at least visible for very small values (but proportional)
-        if (revenue > 0 && heightPercent < 2) {
-            heightPercent = 2;
-        }
-        
-        console.log(`Bar ${day.date}: revenue=$${revenue}, height=${heightPercent}%`);
+        // Calculate height percentage
+        const heightPercent = maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
         
         // Bar wrapper
         const barWrapper = createElement('div', {
-            style: 'display: flex; flex-direction: column; align-items: center; min-width: 50px; flex: 1;'
+            style: 'flex: 1; max-width: 40px; display: flex; flex-direction: column; align-items: center; position: relative; group: "bar";'
         });
         
-        // Revenue amount label (on top of bar) - format based on size
-        if (revenue > 0) {
-            let labelText;
-            if (revenue >= 1000000) {
-                labelText = `$${(revenue / 1000000).toFixed(1)}M`;
-            } else if (revenue >= 1000) {
-                labelText = `$${(revenue / 1000).toFixed(0)}k`;
-            } else {
-                labelText = `$${revenue}`;
-            }
-            barWrapper.appendChild(createElement('span', {
-                style: 'font-size: 0.7rem; color: var(--color-text-secondary); margin-bottom: 4px; font-weight: 500;'
-            }, labelText));
-        }
+        // Tooltip
+        const tooltip = createElement('div', {
+            style: 'position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-8px); background: var(--color-text); color: white; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.75rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.15);'
+        });
+        tooltip.innerHTML = `
+            <div style="font-weight: 600; margin-bottom: 0.25rem;">${formatDate(day.date)}</div>
+            <div>Revenue: ₦${revenue.toLocaleString()}</div>
+            <div>Orders: ${orders}</div>
+        `;
         
-        // The bar - use pixel height for more accurate representation
-        const barHeight = Math.max((heightPercent / 100) * 200, revenue > 0 ? 4 : 0);
+        // Bar
+        const barHeight = Math.max(heightPercent, 0);
         const bar = createElement('div', {
-            style: `width: 36px; background: linear-gradient(to top, var(--color-primary), var(--color-primary-dark)); height: ${barHeight}px; border-radius: 4px 4px 0 0; position: relative; transition: all 0.3s ease; flex-shrink: 0;`,
-            title: `${formatDate(day.date)}\nRevenue: $${revenue.toLocaleString('en-US')}\nOrders: ${orders}`
+            style: `width: 100%; max-width: 24px; height: ${barHeight}%; background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%); border-radius: 3px 3px 0 0; transition: all 0.3s ease; cursor: pointer; position: relative;`,
+            onmouseenter: () => { tooltip.style.opacity = '1'; bar.style.filter = 'brightness(1.1)'; },
+            onmouseleave: () => { tooltip.style.opacity = '0'; bar.style.filter = 'brightness(1)'; }
         });
+        
+        barWrapper.appendChild(tooltip);
         barWrapper.appendChild(bar);
         
-        // Date label
-        const dateLabel = createElement('span', {
-            style: 'font-size: 0.65rem; color: var(--color-text-muted); margin-top: 8px; white-space: nowrap;'
-        }, new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-        barWrapper.appendChild(dateLabel);
+        // X-axis label (show every 5th label or if less than 10 items)
+        if (displayData.length <= 10 || index % Math.ceil(displayData.length / 10) === 0) {
+            const dateLabel = createElement('span', {
+                style: 'font-size: 0.65rem; color: var(--color-text-muted); margin-top: 0.5rem; white-space: nowrap; transform: rotate(-45deg); transform-origin: top left; position: absolute; bottom: -20px; left: 50%;'
+            }, new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            barWrapper.appendChild(dateLabel);
+        }
         
-        chartDiv.appendChild(barWrapper);
+        barsContainer.appendChild(barWrapper);
     });
     
-    chartWrapper.appendChild(chartDiv);
-    container.appendChild(chartWrapper);
+    canvasArea.appendChild(barsContainer);
+    chartArea.appendChild(canvasArea);
+    chartContainer.appendChild(chartArea);
+    container.appendChild(chartContainer);
 }
 
 // ==========================================
@@ -2038,4 +2144,255 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // Coupon Management
+    const manageCouponsBtn = document.getElementById('manageCouponsBtn');
+    const couponManagementPanel = document.getElementById('couponManagementPanel');
+    const createCouponBtn = document.getElementById('createCouponBtn');
+    
+    if (manageCouponsBtn && couponManagementPanel) {
+        manageCouponsBtn.addEventListener('click', () => {
+            const isVisible = couponManagementPanel.style.display === 'block';
+            couponManagementPanel.style.display = isVisible ? 'none' : 'block';
+            manageCouponsBtn.textContent = isVisible ? 'Manage Coupons' : 'Hide Coupons';
+            if (!isVisible) {
+                loadCoupons();
+            }
+        });
+    }
+    
+    if (createCouponBtn) {
+        createCouponBtn.addEventListener('click', async () => {
+            const code = document.getElementById('couponCode').value.trim().toUpperCase();
+            const type = document.getElementById('couponType').value;
+            const value = parseFloat(document.getElementById('couponValue').value) || 0;
+            const minOrder = parseFloat(document.getElementById('couponMinOrder').value) || 0;
+            const maxDiscount = parseFloat(document.getElementById('couponMaxDiscount').value) || null;
+            const usageLimit = parseInt(document.getElementById('couponUsageLimit').value) || null;
+            const startDate = document.getElementById('couponStartDate').value || null;
+            const endDate = document.getElementById('couponEndDate').value || null;
+            
+            if (!code) {
+                showToast('Coupon code is required', 'error');
+                return;
+            }
+            if (type !== 'free_shipping' && value <= 0) {
+                showToast('Discount value is required', 'error');
+                return;
+            }
+            
+            try {
+                createCouponBtn.disabled = true;
+                createCouponBtn.textContent = 'Creating...';
+                
+                await fetchAPI('/admin/coupons', {
+                    method: 'POST',
+                    body: {
+                        code,
+                        type,
+                        value: type === 'free_shipping' ? 0 : value,
+                        minOrderAmount: minOrder,
+                        maxDiscountAmount: maxDiscount,
+                        usageLimit,
+                        startDate,
+                        endDate
+                    }
+                });
+                
+                showToast('Coupon created successfully!', 'success');
+                
+                // Clear form
+                document.getElementById('couponCode').value = '';
+                document.getElementById('couponValue').value = '';
+                document.getElementById('couponMinOrder').value = '';
+                document.getElementById('couponMaxDiscount').value = '';
+                document.getElementById('couponUsageLimit').value = '';
+                document.getElementById('couponStartDate').value = '';
+                document.getElementById('couponEndDate').value = '';
+                
+                // Reload coupons list
+                loadCoupons();
+            } catch (error) {
+                showToast('Failed to create coupon: ' + error.message, 'error');
+            } finally {
+                createCouponBtn.disabled = false;
+                createCouponBtn.textContent = 'Create Coupon';
+            }
+        });
+    }
+    
+    // Export buttons
+    const exportOrdersBtn = document.getElementById('exportOrdersBtn');
+    const exportProductsBtn = document.getElementById('exportProductsBtn');
+    
+    if (exportOrdersBtn) {
+        exportOrdersBtn.addEventListener('click', exportOrdersCSV);
+    }
+    
+    if (exportProductsBtn) {
+        exportProductsBtn.addEventListener('click', exportProductsCSV);
+    }
 });
+
+// Coupon Management Functions
+async function loadCoupons() {
+    const couponsList = document.getElementById('couponsList');
+    if (!couponsList) return;
+    
+    try {
+        const data = await fetchAPI('/admin/coupons');
+        const coupons = data.coupons || [];
+        
+        if (coupons.length === 0) {
+            couponsList.innerHTML = '<p class="text-muted">No coupons created yet</p>';
+            return;
+        }
+        
+        couponsList.innerHTML = '';
+        const table = createElement('table', { className: 'table table-sm' });
+        const thead = createElement('thead');
+        const headerRow = createElement('tr');
+        ['Code', 'Type', 'Value', 'Usage', 'Status', 'Actions'].forEach(text => {
+            headerRow.appendChild(createElement('th', {}, text));
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        const tbody = createElement('tbody');
+        coupons.forEach(coupon => {
+            const tr = createElement('tr');
+            
+            // Code
+            tr.appendChild(createElement('td', {}, createElement('strong', {}, coupon.code)));
+            
+            // Type
+            const typeLabels = { percentage: 'Percentage (%)', fixed: 'Fixed (₦)', free_shipping: 'Free Shipping' };
+            tr.appendChild(createElement('td', {}, typeLabels[coupon.type] || coupon.type));
+            
+            // Value
+            let valueText = '-';
+            if (coupon.type === 'percentage') valueText = `${coupon.value}%`;
+            else if (coupon.type === 'fixed') valueText = `₦${coupon.value}`;
+            else if (coupon.type === 'free_shipping') valueText = 'Free';
+            tr.appendChild(createElement('td', {}, valueText));
+            
+            // Usage
+            const usageText = coupon.usageLimit 
+                ? `${coupon.usageCount || 0} / ${coupon.usageLimit}` 
+                : `${coupon.usageCount || 0} / ∞`;
+            tr.appendChild(createElement('td', {}, usageText));
+            
+            // Status
+            const isActive = coupon.isActive && (!coupon.endDate || new Date(coupon.endDate) > new Date());
+            const statusBadge = createElement('span', { 
+                className: `status-badge ${isActive ? 'active' : 'inactive'}` 
+            }, isActive ? 'Active' : 'Inactive');
+            tr.appendChild(createElement('td', {}, statusBadge));
+            
+            // Actions
+            const tdActions = createElement('td');
+            const deleteBtn = createElement('button', {
+                className: 'btn btn-sm btn-danger',
+                onclick: () => deleteCoupon(coupon.id)
+            }, 'Delete');
+            tdActions.appendChild(deleteBtn);
+            tr.appendChild(tdActions);
+            
+            tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        couponsList.appendChild(table);
+    } catch (error) {
+        couponsList.innerHTML = '<p class="text-muted">Failed to load coupons</p>';
+    }
+}
+
+async function deleteCoupon(couponId) {
+    if (!confirm('Are you sure you want to delete this coupon?')) return;
+    
+    try {
+        await fetchAPI(`/admin/coupons/${couponId}`, { method: 'DELETE' });
+        showToast('Coupon deleted', 'success');
+        loadCoupons();
+    } catch (error) {
+        showToast('Failed to delete coupon', 'error');
+    }
+}
+
+// Export Functions
+async function exportOrdersCSV() {
+    try {
+        showLoading(true);
+        const data = await fetchAPI('/admin/orders');
+        const orders = data.orders || [];
+        
+        if (orders.length === 0) {
+            showToast('No orders to export', 'error');
+            return;
+        }
+        
+        const headers = ['Order ID', 'Customer', 'Email', 'Date', 'Total', 'Status', 'Payment Status'];
+        const rows = orders.map(order => [
+            order.id,
+            order.customer_name || order.customerName || '',
+            order.customer_email || order.email || '',
+            order.created_at || order.date || '',
+            order.total || 0,
+            order.order_status || order.status || 'pending',
+            order.payment_status || order.paymentStatus || 'pending'
+        ]);
+        
+        downloadCSV([headers, ...rows], 'orders.csv');
+        showToast('Orders exported successfully', 'success');
+    } catch (error) {
+        showToast('Failed to export orders', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function exportProductsCSV() {
+    try {
+        showLoading(true);
+        const data = await fetchAPI('/admin/products');
+        const products = data.products || [];
+        
+        if (products.length === 0) {
+            showToast('No products to export', 'error');
+            return;
+        }
+        
+        const headers = ['ID', 'Name', 'Category', 'Price', 'Compare Price', 'Badge'];
+        const rows = products.map(product => [
+            product.id,
+            product.name,
+            product.category,
+            product.price,
+            product.compareAtPrice || '',
+            product.badge || ''
+        ]);
+        
+        downloadCSV([headers, ...rows], 'products.csv');
+        showToast('Products exported successfully', 'success');
+    } catch (error) {
+        showToast('Failed to export products', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function downloadCSV(rows, filename) {
+    const csv = rows.map(row => 
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
