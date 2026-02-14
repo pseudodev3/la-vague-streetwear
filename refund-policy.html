@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23dc2626'/><text x='50' y='68' font-size='50' font-family='Arial Black' font-weight='bold' text-anchor='middle' fill='white'>LV</text></svg>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refund Policy | LA VAGUE Streetwear</title>
+    <meta name="description" content="Refund Policy for LA VAGUE Streetwear. Learn about our refund process, timelines, and conditions.">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="shop-styles.css">
+    <link rel="stylesheet" href="page-styles.css">
+    <style>
+        .legal-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .legal-section {
+            margin-bottom: 2.5rem;
+        }
+        
+        .legal-section h2 {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--color-text);
+        }
+        
+        .legal-section h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--color-text);
+        }
+        
+        .legal-section p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+            color: var(--color-text-secondary);
+        }
+        
+        .legal-section ul {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+        
+        .legal-section li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+            color: var(--color-text-secondary);
+        }
+        
+        .last-updated {
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .policy-highlight {
+            background: var(--color-bg-secondary);
+            border-left: 4px solid var(--color-accent);
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+        }
+        
+        .policy-highlight p {
+            margin: 0;
+        }
+        
+        .timeline-box {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .timeline-box h4 {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+        
+        .timeline-number {
+            width: 28px;
+            height: 28px;
+            background: var(--color-accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+        
+        .timeline-content {
+            flex: 1;
+        }
+        
+        .timeline-content strong {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        
+        .timeline-content span {
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Bar -->
+    <div class="announcement-bar">
+        <div class="announcement-content">
+            <span>FREE SHIPPING ON ORDERS OVER $150</span>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-text">LA VAGUE</span>
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="shop.html" class="nav-link">Shop</a></li>
+                <li><a href="index.html#collections" class="nav-link">Collections</a></li>
+                <li><a href="index.html#about" class="nav-link">About</a></li>
+                <li><a href="faq.html" class="nav-link">FAQ</a></li>
+                <li class="mobile-selectors">
+                    <div class="mobile-currency-selector">
+                        <select id="mobileCurrencySelect" aria-label="Currency">
+                            <option value="USD">$ USD</option>
+                            <option value="NGN">₦ NGN</option>
+                            <option value="EUR">€ EUR</option>
+                            <option value="GBP">£ GBP</option>
+                        </select>
+                    </div>
+                    <div class="mobile-language-selector">
+                        <select id="mobileLanguageSelect" aria-label="Language">
+                            <option value="en">EN</option>
+                            <option value="fr">FR</option>
+                            <option value="ar">AR</option>
+                        </select>
+                    </div>
+                </li>
+            </ul>
+            <div class="nav-actions">
+                <div class="locale-selector">
+                    <button class="locale-btn" id="localeBtn" aria-label="Select currency and language">
+                        <span class="locale-current" id="localeCurrent">$ · EN</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="locale-dropdown" id="localeDropdown">
+                        <div class="locale-section">
+                            <span class="locale-label">Currency</span>
+                            <div class="locale-options" id="currencyOptions">
+                                <button class="locale-option" data-currency="USD">$ USD</button>
+                                <button class="locale-option" data-currency="NGN">₦ NGN</button>
+                                <button class="locale-option" data-currency="EUR">€ EUR</button>
+                                <button class="locale-option" data-currency="GBP">£ GBP</button>
+                            </div>
+                        </div>
+                        <div class="locale-section">
+                            <span class="locale-label">Language</span>
+                            <div class="locale-options" id="languageOptions">
+                                <button class="locale-option" data-lang="en">English</button>
+                                <button class="locale-option" data-lang="fr">Français</button>
+                                <button class="locale-option" data-lang="ar">العربية</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="nav-btn" id="searchBtn" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+                <button class="nav-btn" id="wishlistBtn" aria-label="Wishlist">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <span class="wishlist-count" id="wishlistCount">0</span>
+                </button>
+                <button class="nav-btn cart-btn" aria-label="Cart" id="cartBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 6h15l-1.5 9h-12z"></path>
+                        <circle cx="9" cy="20" r="1"></circle>
+                        <circle cx="18" cy="20" r="1"></circle>
+                        <path d="M6 6L5 3H2"></path>
+                    </svg>
+                    <span class="cart-count" id="cartCount">0</span>
+                </button>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="container">
+            <h1 class="page-title">Refund Policy</h1>
+            <p class="page-subtitle">Our commitment to fair and transparent refunds</p>
+        </div>
+    </header>
+
+    <!-- Legal Content -->
+    <main class="page-content">
+        <div class="container">
+            <div class="legal-content">
+                <p class="last-updated">Last Updated: February 14, 2024</p>
+                
+                <div class="policy-highlight">
+                    <p><strong>Our Promise:</strong> We want you to be completely satisfied with your purchase. If you're not happy with your order, we'll make it right through a refund, exchange, or store credit.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>1. Overview</h2>
+                    <p>LA VAGUE offers refunds under specific conditions outlined in this policy. By making a purchase, you agree to the terms of this Refund Policy. This policy works alongside our <a href="returns.html">Returns Policy</a>, which covers the process for returning items.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>2. Refund Eligibility</h2>
+                    <h3>2.1 Eligible for Full Refund</h3>
+                    <ul>
+                        <li>Items returned within 14 days of delivery</li>
+                        <li>Items in original condition with tags attached</li>
+                        <li>Items that are unworn, unwashed, and unaltered</li>
+                        <li>Defective or damaged items (with photo evidence)</li>
+                        <li>Incorrect items shipped</li>
+                        <li>Items that never arrived (after investigation)</li>
+                    </ul>
+                    
+                    <h3>2.2 Eligible for Partial Refund</h3>
+                    <ul>
+                        <li>Items returned after 14 days but within 30 days (store credit only)</li>
+                        <li>Items missing original packaging (up to 15% restocking fee)</li>
+                        <li>Sale items (refund difference between sale price and current price)</li>
+                    </ul>
+                    
+                    <h3>2.3 Not Eligible for Refund</h3>
+                    <ul>
+                        <li>Items worn, washed, or altered</li>
+                        <li>Items without original tags</li>
+                        <li>Final sale items (marked as "No Returns")</li>
+                        <li>Gift cards and store credits</li>
+                        <li>Items damaged due to customer misuse</li>
+                        <li>Intimate wear (for hygiene reasons)</li>
+                    </ul>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>3. Refund Process</h2>
+                    
+                    <div class="timeline-box">
+                        <h4>Refund Timeline</h4>
+                        <div class="timeline-item">
+                            <div class="timeline-number">1</div>
+                            <div class="timeline-content">
+                                <strong>Return Request</strong>
+                                <span>Submit within 14 days of delivery</span>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">2</div>
+                            <div class="timeline-content">
+                                <strong>Return Shipment</strong>
+                                <span>Ship item back within 7 days of approval</span>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">3</div>
+                            <div class="timeline-content">
+                                <strong>Item Inspection</strong>
+                                <span>We inspect within 2-3 business days of receipt</span>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">4</div>
+                            <div class="timeline-content">
+                                <strong>Refund Processing</strong>
+                                <span>Processed within 5-10 business days after approval</span>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">5</div>
+                            <div class="timeline-content">
+                                <strong>Refund Received</strong>
+                                <span>Appears in your account (varies by payment method)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>4. Refund Methods</h2>
+                    <h3>4.1 Original Payment Method</h3>
+                    <p>Refunds will be issued to the original payment method used for the purchase:</p>
+                    <ul>
+                        <li><strong>Credit/Debit Cards:</strong> 5-10 business days</li>
+                        <li><strong>Bank Transfer:</strong> 3-7 business days</li>
+                        <li><strong>Mobile Money:</strong> 1-3 business days</li>
+                    </ul>
+                    
+                    <h3>4.2 Store Credit</h3>
+                    <p>You may choose to receive store credit instead of a refund. Benefits include:</p>
+                    <ul>
+                        <li>No restocking fees</li>
+                        <li>Instant availability</li>
+                        <li>Never expires</li>
+                        <li>Can be used with other promotions</li>
+                    </ul>
+                    
+                    <h3>4.3 Exchange</h3>
+                    <p>Exchange for a different size or color is available at no additional cost, subject to inventory availability.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>5. Refund Amounts</h2>
+                    <h3>5.1 Full Refund</h3>
+                    <p>A full refund includes:</p>
+                    <ul>
+                        <li>Item purchase price</li>
+                        <li>Original shipping cost (if item is defective or incorrect)</li>
+                    </ul>
+                    
+                    <h3>5.2 Partial Refunds</h3>
+                    <p>Partial refunds may be issued for:</p>
+                    <ul>
+                        <li>Late returns (store credit value only)</li>
+                        <li>Items missing packaging (minus 15% restocking fee)</li>
+                        <li>Sale items (current sale price)</li>
+                    </ul>
+                    
+                    <h3>5.3 Non-Refundable Items</h3>
+                    <p>The following are never refunded:</p>
+                    <ul>
+                        <li>Return shipping costs (unless item is defective)</li>
+                        <li>Gift wrapping fees</li>
+                        <li>Express shipping upgrades (unless order was cancelled)</li>
+                    </ul>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>6. Special Circumstances</h2>
+                    <h3>6.1 Defective Items</h3>
+                    <p>If you receive a defective item:</p>
+                    <ul>
+                        <li>Contact us within 48 hours of delivery</li>
+                        <li>Provide photos of the defect</li>
+                        <li>We will provide a prepaid return label</li>
+                        <li>Full refund including return shipping</li>
+                    </ul>
+                    
+                    <h3>6.2 Lost Packages</h3>
+                    <p>If your package is lost in transit:</p>
+                    <ul>
+                        <li>We will investigate with the carrier</li>
+                        <li>If confirmed lost, full refund or reshipment at your choice</li>
+                        <li>Investigation may take 5-10 business days</li>
+                    </ul>
+                    
+                    <h3>6.3 Cancelled Orders</h3>
+                    <ul>
+                        <li>Orders cancelled before shipment: Full refund</li>
+                        <li>Orders cancelled after shipment: Refund minus shipping costs</li>
+                        <li>Custom orders cannot be cancelled once production begins</li>
+                    </ul>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>7. How to Request a Refund</h2>
+                    <p>To request a refund:</p>
+                    <ol style="margin: 1rem 0; padding-left: 1.5rem;">
+                        <li style="margin-bottom: 0.5rem;">Contact our support team at <strong>support@lavague.com</strong></li>
+                        <li style="margin-bottom: 0.5rem;">Provide your order number and reason for refund</li>
+                        <li style="margin-bottom: 0.5rem;">Wait for return authorization (within 24 hours)</li>
+                        <li style="margin-bottom: 0.5rem;">Ship the item using the provided return label</li>
+                        <li style="margin-bottom: 0.5rem;">Receive confirmation when refund is processed</li>
+                    </ol>
+                    <p>You can also initiate a return through your <a href="track-order.html">order tracking page</a> if you have your order details.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>8. Currency and Exchange Rates</h2>
+                    <p>Refunds are processed in the original currency of purchase. If you paid in:</p>
+                    <ul>
+                        <li><strong>NGN:</strong> Refund in NGN to your Nigerian account</li>
+                        <li><strong>USD:</strong> Refund in USD to your original card</li>
+                        <li><strong>Other currencies:</strong> Refund at current exchange rate (may differ from purchase rate)</li>
+                    </ul>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>9. Changes to This Policy</h2>
+                    <p>We may update this Refund Policy from time to time. Changes will be posted on this page with an updated "Last Updated" date. Refund requests are processed according to the policy in effect at the time of your purchase.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>10. Contact Us</h2>
+                    <p>If you have questions about refunds or need assistance:</p>
+                    <ul>
+                        <li>Email: support@lavague.com</li>
+                        <li>Phone: Available on our <a href="contact.html">Contact Page</a></li>
+                        <li>Response time: Within 24 hours</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <img src="la-vague-red-wordmark.png" alt="LA VAGUE" class="footer-logo-img" width="200">
+                    <p class="footer-tagline">Ride the wave. Timeless streetwear for the modern individual.</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="shop.html">All Products</a></li>
+                        <li><a href="shop.html?category=hoodies">Hoodies</a></li>
+                        <li><a href="shop.html?category=tshirts">T-Shirts</a></li>
+                        <li><a href="shop.html?category=bottoms">Bottoms</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Help</h4>
+                    <ul>
+                        <li><a href="track-order.html">Track Order</a></li>
+                        <li><a href="shipping.html">Shipping</a></li>
+                        <li><a href="returns.html">Returns</a></li>
+                        <li><a href="faq.html">FAQ</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                        <li><a href="refund-policy.html">Refund Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 LA VAGUE. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-overlay" id="cartOverlay"></div>
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header">
+            <h3>Your Cart</h3>
+            <button class="cart-close" id="cartClose">×</button>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <div class="cart-empty">
+                <p>Your cart is empty</p>
+                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()">Continue Shopping</a>
+            </div>
+        </div>
+        <div class="cart-footer" id="cartFooter">
+            <div class="cart-subtotal">
+                <span>Subtotal</span>
+                <span id="cartSubtotal">$0</span>
+            </div>
+            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()">Checkout</a>
+            <p class="cart-note">Shipping & taxes calculated at checkout</p>
+        </div>
+    </div>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-container">
+            <button class="search-close" id="searchClose">×</button>
+            <div class="search-input-wrapper">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search products..." autocomplete="off">
+            </div>
+            <div class="search-results" id="searchResults"></div>
+        </div>
+    </div>
+
+    <!-- Wishlist Sidebar -->
+    <div class="wishlist-overlay" id="wishlistOverlay"></div>
+    <div class="wishlist-sidebar" id="wishlistSidebar">
+        <div class="wishlist-header">
+            <h3>Your Wishlist</h3>
+            <button class="wishlist-close" id="wishlistClose">×</button>
+        </div>
+        <div class="wishlist-items" id="wishlistItems">
+            <div class="wishlist-empty">
+                <p>Your wishlist is empty</p>
+                <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Continue Shopping</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="products.js"></script>
+    <script src="cart.js"></script>
+    <script src="utils.js"></script>
+    <script src="translations.js"></script>
+    <script src="page.js"></script>
+</body>
+</html>

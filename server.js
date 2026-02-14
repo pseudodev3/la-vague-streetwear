@@ -9,6 +9,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -31,6 +32,7 @@ import {
     notFoundHandler,
     APIError 
 } from './src/middleware/errorHandler.js';
+import { csrfProtection, csrfToken } from './src/middleware/csrf.js';
 import {
     sendOrderConfirmation,
     sendOrderStatusUpdate,
@@ -197,6 +199,9 @@ app.use(cors({
 
 // Compression
 app.use(compression());
+
+// Cookie parser
+app.use(cookieParser());
 
 // Body parsing with limits
 app.use(express.json({ 
@@ -905,6 +910,14 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// CSRF Token endpoint - provides token for forms
+app.get('/api/csrf-token', csrfToken, (req, res) => {
+    res.json({ 
+        success: true,
+        csrfToken: req.csrfToken 
+    });
+});
+
 // Test endpoint
 app.get('/api/test', (req, res) => {
     res.json({ 
@@ -956,7 +969,7 @@ app.get('/api/products/:slug', asyncHandler(async (req, res) => {
 }));
 
 // Create order with validation and inventory check
-app.post('/api/orders', orderLimiter, validateCreateOrder, asyncHandler(async (req, res) => {
+app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, asyncHandler(async (req, res) => {
     const orderId = 'LV-' + crypto.randomBytes(4).toString('hex').toUpperCase();
     const { 
         customerName, 
@@ -1036,6 +1049,74 @@ app.post('/api/orders', orderLimiter, validateCreateOrder, asyncHandler(async (r
         console.error(`[ORDER] Failed to create order, released reservation: ${error.message}`);
         throw error;
     }
+}));
+
+// Public order lookup endpoint (for order tracking)
+app.post('/api/orders/lookup', apiLimiter, asyncHandler(async (req, res) => {
+    const { orderId, email } = req.body;
+    
+    if (!orderId || !email) {
+        throw new APIError('Order ID and email are required', 400, 'MISSING_FIELDS');
+    }
+    
+    console.log(`[ORDER LOOKUP] Looking up order: ${orderId} for email: ${email}`);
+    
+    let order;
+    if (USE_POSTGRES) {
+        const result = await db.query(
+            'SELECT * FROM orders WHERE id = $1 AND customer_email = $2',
+            [orderId, email]
+        );
+        order = result.rows[0];
+    } else {
+        order = db.prepare('SELECT * FROM orders WHERE id = ? AND customer_email = ?').get(orderId, email);
+    }
+    
+    if (!order) {
+        console.log(`[ORDER LOOKUP] Order not found: ${orderId}`);
+        throw new APIError('Order not found. Please check your order ID and email.', 404, 'ORDER_NOT_FOUND');
+    }
+    
+    // Parse JSON fields
+    let items = [];
+    let shippingAddress = {};
+    try {
+        items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        shippingAddress = typeof order.shipping_address === 'string' 
+            ? JSON.parse(order.shipping_address) 
+            : order.shipping_address;
+    } catch (e) {
+        console.error('[ORDER LOOKUP] Error parsing order data:', e.message);
+    }
+    
+    // Return order details (sanitized)
+    const orderData = {
+        id: order.id,
+        order_status: order.order_status || 'pending',
+        payment_status: order.payment_status || 'pending',
+        total: order.total,
+        subtotal: order.subtotal,
+        shipping_cost: order.shipping_cost,
+        discount: order.discount || 0,
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+        items: items.map(item => ({
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            color: item.color,
+            size: item.size,
+            image: item.image
+        })),
+        shipping_city: shippingAddress.city,
+        shipping_state: shippingAddress.state,
+        shipping_country: shippingAddress.country,
+        tracking_number: order.tracking_number || null,
+        tracking_url: order.tracking_url || null
+    };
+    
+    console.log(`[ORDER LOOKUP] Found order: ${orderId}`);
+    res.json({ success: true, order: orderData });
 }));
 
 // Test database connection endpoint
@@ -1460,7 +1541,7 @@ app.get('/api/inventory/check/:productId', asyncHandler(async (req, res) => {
 // ==========================================
 // CONTACT FORM
 // ==========================================
-app.post('/api/contact', validateContactForm, asyncHandler(async (req, res) => {
+app.post('/api/contact', csrfProtection, validateContactForm, asyncHandler(async (req, res) => {
     const { name, email, subject, message } = req.body;
     
     // Create transporter
@@ -2052,7 +2133,7 @@ app.delete('/api/admin/coupons/:id', verifyAdminToken, asyncHandler(async (req, 
 }));
 
 // Validate and apply coupon (public endpoint)
-app.post('/api/coupons/validate', asyncHandler(async (req, res) => {
+app.post('/api/coupons/validate', csrfProtection, asyncHandler(async (req, res) => {
     const { code, cartTotal, customerEmail, items } = req.body;
     
     let result;
@@ -2421,7 +2502,7 @@ app.get('/api/admin/reviews', verifyAdminToken, asyncHandler(async (req, res) =>
 }));
 
 // Submit review (public)
-app.post('/api/products/:id/reviews', asyncHandler(async (req, res) => {
+app.post('/api/products/:id/reviews', csrfProtection, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { orderId, customerEmail, customerName, rating, title, reviewText, photos } = req.body;
     
@@ -2553,7 +2634,7 @@ app.post('/api/admin/reviews/:id/response', verifyAdminToken, asyncHandler(async
 // ==========================================
 
 // Join waitlist (public)
-app.post('/api/products/:id/waitlist', asyncHandler(async (req, res) => {
+app.post('/api/products/:id/waitlist', csrfProtection, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { email, name, variantKey } = req.body;
     

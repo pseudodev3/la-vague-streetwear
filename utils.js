@@ -49,7 +49,7 @@ const InputMasks = {
         return digits;
     },
 
-    // CVV: 3-4 digits
+    // CVV: 3 or 4 digits
     cvv(input) {
         input.addEventListener('input', (e) => {
             let value = e.target.value.replace(/\D/g, '');
@@ -74,48 +74,66 @@ function debounce(func, wait) {
 // Button state management
 const ButtonState = {
     setLoading(button, text = 'Loading...') {
-        button.dataset.originalText = button.innerHTML;
-        button.innerHTML = `<span class="btn-spinner"></span> ${text}`;
         button.disabled = true;
+        button.dataset.originalText = button.textContent;
+        button.textContent = text;
+        button.classList.add('loading');
     },
-
+    
     setSuccess(button, text = 'Success!') {
-        button.innerHTML = `<span class="btn-checkmark">✓</span> ${text}`;
-        button.disabled = false;
+        button.textContent = text;
+        button.classList.remove('loading');
+        button.classList.add('success');
         setTimeout(() => this.reset(button), 2000);
     },
-
+    
     setError(button, text = 'Error') {
-        button.innerHTML = `<span class="btn-x">✕</span> ${text}`;
-        button.disabled = false;
+        button.textContent = text;
+        button.classList.remove('loading');
+        button.classList.add('error');
         setTimeout(() => this.reset(button), 2000);
     },
-
+    
     reset(button) {
-        if (button.dataset.originalText) {
-            button.innerHTML = button.dataset.originalText;
-        }
         button.disabled = false;
+        button.textContent = button.dataset.originalText || 'Submit';
+        button.classList.remove('loading', 'success', 'error');
     }
 };
 
-// Form validation
+// Form validation helpers
 const FormValidation = {
-    email(email) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    email(value) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     },
-
-    phone(phone) {
-        return phone.length >= 10;
+    
+    phone(value) {
+        return /^[\d\s\-\+\(\)]{7,20}$/.test(value);
     },
-
-    creditCard(card) {
-        return card.replace(/\s/g, '').length === 16;
+    
+    creditCard(value) {
+        // Remove spaces and check length
+        const clean = value.replace(/\s/g, '');
+        if (!/^\d{13,19}$/.test(clean)) return false;
+        
+        // Luhn algorithm
+        let sum = 0;
+        let isEven = false;
+        for (let i = clean.length - 1; i >= 0; i--) {
+            let digit = parseInt(clean.charAt(i), 10);
+            if (isEven) {
+                digit *= 2;
+                if (digit > 9) digit -= 9;
+            }
+            sum += digit;
+            isEven = !isEven;
+        }
+        return sum % 10 === 0;
     },
-
-    expiryDate(expiry) {
-        if (!expiry || expiry.length !== 5) return false;
-        const [month, year] = expiry.split('/');
+    
+    expiryDate(value) {
+        if (!/^\d{2}\/\d{2}$/.test(value)) return false;
+        const [month, year] = value.split('/');
         const now = new Date();
         const currentYear = now.getFullYear() % 100;
         const currentMonth = now.getMonth() + 1;
@@ -142,7 +160,86 @@ const SearchHelper = {
     }
 };
 
+// CSRF Protection Utilities
+const CSRFProtection = {
+    token: null,
+    
+    // Initialize and fetch CSRF token
+    async init() {
+        try {
+            const API_BASE_URL = window.location.hostname === 'localhost' 
+                ? 'http://localhost:3000/api' 
+                : 'https://la-vague-api.onrender.com/api';
+                
+            const response = await fetch(`${API_BASE_URL}/csrf-token`, {
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.token = data.csrfToken;
+                console.log('[CSRF] Token initialized');
+            }
+        } catch (error) {
+            console.error('[CSRF] Failed to initialize token:', error);
+        }
+    },
+    
+    // Get current token
+    getToken() {
+        return this.token;
+    },
+    
+    // Refresh token
+    async refreshToken() {
+        return this.init();
+    },
+    
+    // Make authenticated fetch request with CSRF token
+    async fetch(url, options = {}) {
+        // Ensure we have a token
+        if (!this.token) {
+            await this.init();
+        }
+        
+        // Add CSRF token to headers
+        const headers = {
+            ...options.headers,
+            'X-CSRF-Token': this.token
+        };
+        
+        // Add credentials to include cookies
+        const fetchOptions = {
+            ...options,
+            headers,
+            credentials: 'include'
+        };
+        
+        const response = await fetch(url, fetchOptions);
+        
+        // If we get a 403 with CSRF error, try refreshing the token once
+        if (response.status === 403) {
+            const data = await response.json().catch(() => ({}));
+            if (data.code === 'CSRF_INVALID' || data.code === 'CSRF_MISSING') {
+                console.log('[CSRF] Token invalid, refreshing...');
+                await this.refreshToken();
+                
+                // Retry with new token
+                fetchOptions.headers['X-CSRF-Token'] = this.token;
+                return fetch(url, fetchOptions);
+            }
+        }
+        
+        return response;
+    }
+};
+
+// Auto-initialize CSRF on page load
+document.addEventListener('DOMContentLoaded', () => {
+    CSRFProtection.init();
+});
+
 // Export for use
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { InputMasks, debounce, ButtonState, FormValidation, SearchHelper };
+    module.exports = { InputMasks, debounce, ButtonState, FormValidation, SearchHelper, CSRFProtection };
 }

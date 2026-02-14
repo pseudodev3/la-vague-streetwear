@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23dc2626'/><text x='50' y='68' font-size='50' font-family='Arial Black' font-weight='bold' text-anchor='middle' fill='white'>LV</text></svg>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy | LA VAGUE Streetwear</title>
+    <meta name="description" content="Privacy Policy for LA VAGUE Streetwear. Learn how we collect, use, and protect your personal information.">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="shop-styles.css">
+    <link rel="stylesheet" href="page-styles.css">
+    <style>
+        .legal-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .legal-section {
+            margin-bottom: 2.5rem;
+        }
+        
+        .legal-section h2 {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--color-text);
+        }
+        
+        .legal-section h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--color-text);
+        }
+        
+        .legal-section p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+            color: var(--color-text-secondary);
+        }
+        
+        .legal-section ul {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+        
+        .legal-section li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+            color: var(--color-text-secondary);
+        }
+        
+        .last-updated {
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .privacy-highlight {
+            background: var(--color-bg-secondary);
+            border-left: 4px solid var(--color-accent);
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+        }
+        
+        .privacy-highlight p {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Bar -->
+    <div class="announcement-bar">
+        <div class="announcement-content">
+            <span>FREE SHIPPING ON ORDERS OVER $150</span>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-text">LA VAGUE</span>
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="shop.html" class="nav-link">Shop</a></li>
+                <li><a href="index.html#collections" class="nav-link">Collections</a></li>
+                <li><a href="index.html#about" class="nav-link">About</a></li>
+                <li><a href="faq.html" class="nav-link">FAQ</a></li>
+                <li class="mobile-selectors">
+                    <div class="mobile-currency-selector">
+                        <select id="mobileCurrencySelect" aria-label="Currency">
+                            <option value="USD">$ USD</option>
+                            <option value="NGN">₦ NGN</option>
+                            <option value="EUR">€ EUR</option>
+                            <option value="GBP">£ GBP</option>
+                        </select>
+                    </div>
+                    <div class="mobile-language-selector">
+                        <select id="mobileLanguageSelect" aria-label="Language">
+                            <option value="en">EN</option>
+                            <option value="fr">FR</option>
+                            <option value="ar">AR</option>
+                        </select>
+                    </div>
+                </li>
+            </ul>
+            <div class="nav-actions">
+                <div class="locale-selector">
+                    <button class="locale-btn" id="localeBtn" aria-label="Select currency and language">
+                        <span class="locale-current" id="localeCurrent">$ · EN</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="locale-dropdown" id="localeDropdown">
+                        <div class="locale-section">
+                            <span class="locale-label">Currency</span>
+                            <div class="locale-options" id="currencyOptions">
+                                <button class="locale-option" data-currency="USD">$ USD</button>
+                                <button class="locale-option" data-currency="NGN">₦ NGN</button>
+                                <button class="locale-option" data-currency="EUR">€ EUR</button>
+                                <button class="locale-option" data-currency="GBP">£ GBP</button>
+                            </div>
+                        </div>
+                        <div class="locale-section">
+                            <span class="locale-label">Language</span>
+                            <div class="locale-options" id="languageOptions">
+                                <button class="locale-option" data-lang="en">English</button>
+                                <button class="locale-option" data-lang="fr">Français</button>
+                                <button class="locale-option" data-lang="ar">العربية</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="nav-btn" id="searchBtn" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+                <button class="nav-btn" id="wishlistBtn" aria-label="Wishlist">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <span class="wishlist-count" id="wishlistCount">0</span>
+                </button>
+                <button class="nav-btn cart-btn" aria-label="Cart" id="cartBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 6h15l-1.5 9h-12z"></path>
+                        <circle cx="9" cy="20" r="1"></circle>
+                        <circle cx="18" cy="20" r="1"></circle>
+                        <path d="M6 6L5 3H2"></path>
+                    </svg>
+                    <span class="cart-count" id="cartCount">0</span>
+                </button>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="container">
+            <h1 class="page-title">Privacy Policy</h1>
+            <p class="page-subtitle">How we collect, use, and protect your information</p>
+        </div>
+    </header>
+
+    <!-- Legal Content -->
+    <main class="page-content">
+        <div class="container">
+            <div class="legal-content">
+                <p class="last-updated">Last Updated: February 14, 2024</p>
+                
+                <div class="privacy-highlight">
+                    <p><strong>Your privacy is important to us.</strong> This Privacy Policy explains how LA VAGUE collects, uses, and protects your personal information when you visit our website or make a purchase.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>1. Information We Collect</h2>
+                    <h3>1.1 Personal Information</h3>
+                    <p>We collect personal information that you provide directly to us, including:</p>
+                    <ul>
+                        <li><strong>Contact Information:</strong> Name, email address, phone number</li>
+                        <li><strong>Shipping Information:</strong> Delivery address, postal code</li>
+                        <li><strong>Payment Information:</strong> Processed securely by our payment providers (we do not store full card details)</li>
+                        <li><strong>Order History:</strong> Products purchased, order dates, amounts</li>
+                        <li><strong>Communication:</strong> Customer service inquiries, feedback</li>
+                    </ul>
+                    
+                    <h3>1.2 Automatically Collected Information</h3>
+                    <p>When you visit our Site, we automatically collect:</p>
+                    <ul>
+                        <li><strong>Device Information:</strong> IP address, browser type, operating system</li>
+                        <li><strong>Usage Data:</strong> Pages visited, time spent, clicks, referring website</li>
+                        <li><strong>Cookies:</strong> See our Cookie section below for details</li>
+                    </ul>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>2. How We Use Your Information</h2>
+                    <p>We use your personal information for the following purposes:</p>
+                    <ul>
+                        <li><strong>Order Processing:</strong> To process and fulfill your orders, including shipping and delivery</li>
+                        <li><strong>Communication:</strong> To send order confirmations, shipping updates, and respond to inquiries</li>
+                        <li><strong>Customer Service:</strong> To provide support and resolve issues</li>
+                        <li><strong>Marketing:</strong> To send promotional emails (with your consent, which you can withdraw anytime)</li>
+                        <li><strong>Improvement:</strong> To analyze usage and improve our products and services</li>
+                        <li><strong>Security:</strong> To detect and prevent fraud and unauthorized access</li>
+                        <li><strong>Legal Compliance:</strong> To comply with applicable laws and regulations</li>
+                    </ul>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>3. How We Share Your Information</h2>
+                    <p>We do not sell your personal information. We may share your information with:</p>
+                    <ul>
+                        <li><strong>Service Providers:</strong> Shipping carriers, payment processors, email service providers</li>
+                        <li><strong>Business Partners:</strong> Only when necessary to provide our services</li>
+                        <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
+                    </ul>
+                    <p>All third parties are contractually obligated to protect your information and use it only for the specified purposes.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>4. Data Security</h2>
+                    <p>We implement appropriate technical and organizational measures to protect your personal information:</p>
+                    <ul>
+                        <li>SSL/TLS encryption for all data transmission</li>
+                        <li>Secure server infrastructure with firewalls</li>
+                        <li>Regular security assessments and updates</li>
+                        <li>Limited access to personal information (authorized personnel only)</li>
+                        <li>Secure payment processing through PCI DSS compliant providers</li>
+                    </ul>
+                    <p>While we strive to protect your information, no method of transmission over the Internet is 100% secure. We encourage you to take steps to protect your personal information as well.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>5. Your Rights and Choices</h2>
+                    <p>Depending on your location, you may have the following rights:</p>
+                    <ul>
+                        <li><strong>Access:</strong> Request a copy of your personal information</li>
+                        <li><strong>Correction:</strong> Request correction of inaccurate information</li>
+                        <li><strong>Deletion:</strong> Request deletion of your personal information</li>
+                        <li><strong>Opt-out:</strong> Unsubscribe from marketing communications</li>
+                        <li><strong>Data Portability:</strong> Request transfer of your data to another service</li>
+                        <li><strong>Restriction:</strong> Request limitation of processing in certain circumstances</li>
+                    </ul>
+                    <p>To exercise these rights, please contact us using the information in the Contact section below.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>6. Cookies and Tracking</h2>
+                    <p>We use cookies and similar technologies to:</p>
+                    <ul>
+                        <li>Remember your preferences (currency, language, cart contents)</li>
+                        <li>Analyze site traffic and usage patterns</li>
+                        <li>Improve site functionality and performance</li>
+                    </ul>
+                    <p><strong>Types of cookies we use:</strong></p>
+                    <ul>
+                        <li><strong>Essential:</strong> Required for the site to function (cart, checkout)</li>
+                        <li><strong>Functional:</strong> Remember your preferences</li>
+                        <li><strong>Analytics:</strong> Help us understand how visitors use our site</li>
+                    </ul>
+                    <p>You can control cookies through your browser settings. Note that disabling certain cookies may affect site functionality.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>7. Data Retention</h2>
+                    <p>We retain your personal information for as long as necessary to:</p>
+                    <ul>
+                        <li>Provide our services and fulfill transactions</li>
+                        <li>Comply with legal obligations (tax, accounting records)</li>
+                        <li>Resolve disputes and enforce our agreements</li>
+                    </ul>
+                    <p>Typically, we retain order information for 7 years for tax and accounting purposes. Marketing data is retained until you unsubscribe or request deletion.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>8. Children's Privacy</h2>
+                    <p>Our Site is not intended for children under 16 years of age. We do not knowingly collect personal information from children under 16. If you are a parent or guardian and believe your child has provided us with personal information, please contact us and we will delete such information.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>9. International Data Transfers</h2>
+                    <p>Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place to protect your information in accordance with this Privacy Policy.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>10. Changes to This Policy</h2>
+                    <p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated "Last Updated" date. We encourage you to review this policy periodically.</p>
+                </div>
+                
+                <div class="legal-section">
+                    <h2>11. Contact Us</h2>
+                    <p>If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:</p>
+                    <ul>
+                        <li>Email: support@lavague.com</li>
+                        <li>Address: Lagos, Nigeria</li>
+                        <li>Phone: Available on our <a href="contact.html">Contact Page</a></li>
+                    </ul>
+                    <p>We will respond to your inquiry within 30 days.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <img src="la-vague-red-wordmark.png" alt="LA VAGUE" class="footer-logo-img" width="200">
+                    <p class="footer-tagline">Ride the wave. Timeless streetwear for the modern individual.</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="shop.html">All Products</a></li>
+                        <li><a href="shop.html?category=hoodies">Hoodies</a></li>
+                        <li><a href="shop.html?category=tshirts">T-Shirts</a></li>
+                        <li><a href="shop.html?category=bottoms">Bottoms</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Help</h4>
+                    <ul>
+                        <li><a href="track-order.html">Track Order</a></li>
+                        <li><a href="shipping.html">Shipping</a></li>
+                        <li><a href="returns.html">Returns</a></li>
+                        <li><a href="faq.html">FAQ</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                        <li><a href="refund-policy.html">Refund Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 LA VAGUE. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-overlay" id="cartOverlay"></div>
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header">
+            <h3>Your Cart</h3>
+            <button class="cart-close" id="cartClose">×</button>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <div class="cart-empty">
+                <p>Your cart is empty</p>
+                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()">Continue Shopping</a>
+            </div>
+        </div>
+        <div class="cart-footer" id="cartFooter">
+            <div class="cart-subtotal">
+                <span>Subtotal</span>
+                <span id="cartSubtotal">$0</span>
+            </div>
+            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()">Checkout</a>
+            <p class="cart-note">Shipping & taxes calculated at checkout</p>
+        </div>
+    </div>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-container">
+            <button class="search-close" id="searchClose">×</button>
+            <div class="search-input-wrapper">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search products..." autocomplete="off">
+            </div>
+            <div class="search-results" id="searchResults"></div>
+        </div>
+    </div>
+
+    <!-- Wishlist Sidebar -->
+    <div class="wishlist-overlay" id="wishlistOverlay"></div>
+    <div class="wishlist-sidebar" id="wishlistSidebar">
+        <div class="wishlist-header">
+            <h3>Your Wishlist</h3>
+            <button class="wishlist-close" id="wishlistClose">×</button>
+        </div>
+        <div class="wishlist-items" id="wishlistItems">
+            <div class="wishlist-empty">
+                <p>Your wishlist is empty</p>
+                <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Continue Shopping</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="products.js"></script>
+    <script src="cart.js"></script>
+    <script src="utils.js"></script>
+    <script src="translations.js"></script>
+    <script src="page.js"></script>
+</body>
+</html>

@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23dc2626'/><text x='50' y='68' font-size='50' font-family='Arial Black' font-weight='bold' text-anchor='middle' fill='white'>LV</text></svg>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Your Order | LA VAGUE Streetwear</title>
+    <meta name="description" content="Track your LA VAGUE order status. Enter your order ID and email to see shipping updates.">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="shop-styles.css">
+    <link rel="stylesheet" href="page-styles.css">
+    <style>
+        .track-order-form {
+            max-width: 500px;
+            margin: 0 auto 3rem;
+            padding: 2rem;
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+        }
+        
+        .track-order-form .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .track-order-form label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .track-order-form input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg);
+            color: var(--color-text);
+            font-size: 1rem;
+            transition: var(--transition-fast);
+        }
+        
+        .track-order-form input:focus {
+            outline: none;
+            border-color: var(--color-accent);
+        }
+        
+        .track-order-form .btn {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+        }
+        
+        .order-result {
+            max-width: 700px;
+            margin: 0 auto;
+            display: none;
+        }
+        
+        .order-result.active {
+            display: block;
+        }
+        
+        .order-card {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            margin-bottom: 2rem;
+        }
+        
+        .order-card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .order-card-title {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .order-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .order-status-badge.pending { background: #fef3c7; color: #92400e; }
+        .order-status-badge.processing { background: #dbeafe; color: #1e40af; }
+        .order-status-badge.shipped { background: #e0e7ff; color: #3730a3; }
+        .order-status-badge.delivered { background: #d1fae5; color: #065f46; }
+        .order-status-badge.cancelled { background: #fee2e2; color: #991b1b; }
+        
+        .order-card-body {
+            padding: 1.5rem;
+        }
+        
+        .order-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .order-info-item dt {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            margin-bottom: 0.25rem;
+        }
+        
+        .order-info-item dd {
+            font-weight: 500;
+        }
+        
+        .tracking-timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .tracking-timeline::before {
+            content: '';
+            position: absolute;
+            left: 0.5rem;
+            top: 0.5rem;
+            bottom: 0.5rem;
+            width: 2px;
+            background: var(--color-border);
+        }
+        
+        .tracking-step {
+            position: relative;
+            padding-bottom: 1.5rem;
+        }
+        
+        .tracking-step:last-child {
+            padding-bottom: 0;
+        }
+        
+        .tracking-step::before {
+            content: '';
+            position: absolute;
+            left: -1.75rem;
+            top: 0.25rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--color-border);
+            border: 2px solid var(--color-bg);
+        }
+        
+        .tracking-step.completed::before {
+            background: var(--color-accent);
+        }
+        
+        .tracking-step.active::before {
+            background: var(--color-accent);
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.2);
+        }
+        
+        .tracking-step-time {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+        }
+        
+        .tracking-step-title {
+            font-weight: 500;
+            margin: 0.25rem 0;
+        }
+        
+        .tracking-step-desc {
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+        }
+        
+        .order-items {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--color-border);
+        }
+        
+        .order-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .order-item:last-child {
+            border-bottom: none;
+        }
+        
+        .order-item-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            background: var(--color-bg);
+        }
+        
+        .order-item-details {
+            flex: 1;
+        }
+        
+        .order-item-name {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        
+        .order-item-variant {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+        }
+        
+        .order-item-price {
+            font-weight: 600;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+        
+        .error-message.active {
+            display: block;
+        }
+        
+        @media (max-width: 640px) {
+            .order-info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-card-header {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Bar -->
+    <div class="announcement-bar">
+        <div class="announcement-content">
+            <span>FREE SHIPPING ON ORDERS OVER $150</span>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-text">LA VAGUE</span>
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="shop.html" class="nav-link">Shop</a></li>
+                <li><a href="index.html#collections" class="nav-link">Collections</a></li>
+                <li><a href="index.html#about" class="nav-link">About</a></li>
+                <li><a href="faq.html" class="nav-link">FAQ</a></li>
+                <li class="mobile-selectors">
+                    <div class="mobile-currency-selector">
+                        <select id="mobileCurrencySelect" aria-label="Currency">
+                            <option value="USD">$ USD</option>
+                            <option value="NGN">₦ NGN</option>
+                            <option value="EUR">€ EUR</option>
+                            <option value="GBP">£ GBP</option>
+                        </select>
+                    </div>
+                    <div class="mobile-language-selector">
+                        <select id="mobileLanguageSelect" aria-label="Language">
+                            <option value="en">EN</option>
+                            <option value="fr">FR</option>
+                            <option value="ar">AR</option>
+                        </select>
+                    </div>
+                </li>
+            </ul>
+            <div class="nav-actions">
+                <div class="locale-selector">
+                    <button class="locale-btn" id="localeBtn" aria-label="Select currency and language">
+                        <span class="locale-current" id="localeCurrent">$ · EN</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="locale-dropdown" id="localeDropdown">
+                        <div class="locale-section">
+                            <span class="locale-label">Currency</span>
+                            <div class="locale-options" id="currencyOptions">
+                                <button class="locale-option" data-currency="USD">$ USD</button>
+                                <button class="locale-option" data-currency="NGN">₦ NGN</button>
+                                <button class="locale-option" data-currency="EUR">€ EUR</button>
+                                <button class="locale-option" data-currency="GBP">£ GBP</button>
+                            </div>
+                        </div>
+                        <div class="locale-section">
+                            <span class="locale-label">Language</span>
+                            <div class="locale-options" id="languageOptions">
+                                <button class="locale-option" data-lang="en">English</button>
+                                <button class="locale-option" data-lang="fr">Français</button>
+                                <button class="locale-option" data-lang="ar">العربية</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="nav-btn" id="searchBtn" aria-label="Search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+                <button class="nav-btn" id="wishlistBtn" aria-label="Wishlist">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <span class="wishlist-count" id="wishlistCount">0</span>
+                </button>
+                <button class="nav-btn cart-btn" aria-label="Cart" id="cartBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 6h15l-1.5 9h-12z"></path>
+                        <circle cx="9" cy="20" r="1"></circle>
+                        <circle cx="18" cy="20" r="1"></circle>
+                        <path d="M6 6L5 3H2"></path>
+                    </svg>
+                    <span class="cart-count" id="cartCount">0</span>
+                </button>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="container">
+            <h1 class="page-title">Track Your Order</h1>
+            <p class="page-subtitle">Enter your order details to check the status</p>
+        </div>
+    </header>
+
+    <!-- Track Order Content -->
+    <main class="page-content">
+        <div class="container">
+            <!-- Track Form -->
+            <form class="track-order-form" id="trackOrderForm">
+                <div class="error-message" id="errorMessage"></div>
+                
+                <div class="form-group">
+                    <label for="orderId">Order ID *</label>
+                    <input type="text" id="orderId" name="orderId" placeholder="e.g., ORD-12345678" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" placeholder="Enter the email used for the order" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" id="trackBtn">
+                    Track Order
+                </button>
+            </form>
+            
+            <!-- Order Result -->
+            <div class="order-result" id="orderResult">
+                <div class="order-card">
+                    <div class="order-card-header">
+                        <div>
+                            <div class="order-card-title" id="resultOrderId">Order #ORD-12345678</div>
+                            <div style="color: var(--color-text-muted); font-size: 0.9rem; margin-top: 0.25rem;" id="resultOrderDate">Placed on Jan 15, 2024</div>
+                        </div>
+                        <span class="order-status-badge" id="resultStatus">Processing</span>
+                    </div>
+                    
+                    <div class="order-card-body">
+                        <div class="order-info-grid">
+                            <div class="order-info-item">
+                                <dt>Total</dt>
+                                <dd id="resultTotal">$150.00</dd>
+                            </div>
+                            <div class="order-info-item">
+                                <dt>Items</dt>
+                                <dd id="resultItems">3 items</dd>
+                            </div>
+                            <div class="order-info-item">
+                                <dt>Shipping To</dt>
+                                <dd id="resultShipping">Lagos, Nigeria</dd>
+                            </div>
+                            <div class="order-info-item">
+                                <dt>Tracking Number</dt>
+                                <dd id="resultTracking">-</dd>
+                            </div>
+                        </div>
+                        
+                        <div class="tracking-timeline" id="trackingTimeline">
+                            <!-- Timeline steps will be inserted here -->
+                        </div>
+                        
+                        <div class="order-items" id="orderItems">
+                            <!-- Order items will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <img src="la-vague-red-wordmark.png" alt="LA VAGUE" class="footer-logo-img" width="200">
+                    <p class="footer-tagline">Ride the wave. Timeless streetwear for the modern individual.</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="shop.html">All Products</a></li>
+                        <li><a href="shop.html?category=hoodies">Hoodies</a></li>
+                        <li><a href="shop.html?category=tshirts">T-Shirts</a></li>
+                        <li><a href="shop.html?category=bottoms">Bottoms</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Help</h4>
+                    <ul>
+                        <li><a href="track-order.html">Track Order</a></li>
+                        <li><a href="shipping.html">Shipping</a></li>
+                        <li><a href="returns.html">Returns</a></li>
+                        <li><a href="faq.html">FAQ</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                        <li><a href="refund-policy.html">Refund Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 LA VAGUE. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-overlay" id="cartOverlay"></div>
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header">
+            <h3>Your Cart</h3>
+            <button class="cart-close" id="cartClose">×</button>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <div class="cart-empty">
+                <p>Your cart is empty</p>
+                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()">Continue Shopping</a>
+            </div>
+        </div>
+        <div class="cart-footer" id="cartFooter">
+            <div class="cart-subtotal">
+                <span>Subtotal</span>
+                <span id="cartSubtotal">$0</span>
+            </div>
+            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()">Checkout</a>
+            <p class="cart-note">Shipping & taxes calculated at checkout</p>
+        </div>
+    </div>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-container">
+            <button class="search-close" id="searchClose">×</button>
+            <div class="search-input-wrapper">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search products..." autocomplete="off">
+            </div>
+            <div class="search-results" id="searchResults"></div>
+        </div>
+    </div>
+
+    <!-- Wishlist Sidebar -->
+    <div class="wishlist-overlay" id="wishlistOverlay"></div>
+    <div class="wishlist-sidebar" id="wishlistSidebar">
+        <div class="wishlist-header">
+            <h3>Your Wishlist</h3>
+            <button class="wishlist-close" id="wishlistClose">×</button>
+        </div>
+        <div class="wishlist-items" id="wishlistItems">
+            <div class="wishlist-empty">
+                <p>Your wishlist is empty</p>
+                <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Continue Shopping</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="products.js"></script>
+    <script src="cart.js"></script>
+    <script src="utils.js"></script>
+    <script src="translations.js"></script>
+    <script src="page.js"></script>
+    <script>
+    // Track Order Page Specific JavaScript
+    (function() {
+        const API_BASE_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000/api' 
+            : 'https://la-vague-api.onrender.com/api';
+        
+        const trackForm = document.getElementById('trackOrderForm');
+        const trackBtn = document.getElementById('trackBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const orderResult = document.getElementById('orderResult');
+        
+        // Status configurations
+        const statusConfig = {
+            pending: { label: 'Pending', class: 'pending', steps: ['Order Placed'] },
+            processing: { label: 'Processing', class: 'processing', steps: ['Order Placed', 'Processing'] },
+            shipped: { label: 'Shipped', class: 'shipped', steps: ['Order Placed', 'Processing', 'Shipped'] },
+            delivered: { label: 'Delivered', class: 'delivered', steps: ['Order Placed', 'Processing', 'Shipped', 'Delivered'] },
+            cancelled: { label: 'Cancelled', class: 'cancelled', steps: ['Order Placed', 'Cancelled'] }
+        };
+        
+        trackForm?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const orderId = document.getElementById('orderId').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            // Reset states
+            errorMessage.classList.remove('active');
+            orderResult.classList.remove('active');
+            
+            // Validate
+            if (!orderId || !email) {
+                showError('Please enter both order ID and email address.');
+                return;
+            }
+            
+            // Set loading state
+            const originalText = trackBtn.textContent;
+            trackBtn.textContent = 'Tracking...';
+            trackBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/orders/lookup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId, email })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok || !data.success) {
+                    showError(data.error || 'Order not found. Please check your order ID and email.');
+                    return;
+                }
+                
+                displayOrder(data.order);
+                
+            } catch (error) {
+                console.error('Track order error:', error);
+                showError('Unable to track order. Please try again later.');
+            } finally {
+                trackBtn.textContent = originalText;
+                trackBtn.disabled = false;
+            }
+        });
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+        }
+        
+        function displayOrder(order) {
+            const config = statusConfig[order.order_status || order.status] || statusConfig.pending;
+            
+            // Update header info
+            document.getElementById('resultOrderId').textContent = `Order #${order.id}`;
+            document.getElementById('resultOrderDate').textContent = `Placed on ${formatDate(order.created_at || order.createdAt)}`;
+            
+            const statusBadge = document.getElementById('resultStatus');
+            statusBadge.textContent = config.label;
+            statusBadge.className = `order-status-badge ${config.class}`;
+            
+            // Update info grid
+            document.getElementById('resultTotal').textContent = CurrencyConfig.formatPrice(order.total);
+            document.getElementById('resultItems').textContent = `${getItemCount(order)} items`;
+            document.getElementById('resultShipping').textContent = formatAddress(order);
+            document.getElementById('resultTracking').textContent = order.tracking_number || order.trackingNumber || '-';
+            
+            // Build timeline
+            buildTimeline(config.steps, order.order_status || order.status);
+            
+            // Build items list
+            buildItemsList(order);
+            
+            // Show result
+            orderResult.classList.add('active');
+            orderResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function buildTimeline(completedSteps, currentStatus) {
+            const timeline = document.getElementById('trackingTimeline');
+            const steps = [
+                { key: 'Order Placed', title: 'Order Placed', desc: 'We\'ve received your order' },
+                { key: 'Processing', title: 'Processing', desc: 'We\'re preparing your items' },
+                { key: 'Shipped', title: 'Shipped', desc: 'Your order is on its way' },
+                { key: 'Delivered', title: 'Delivered', desc: 'Package delivered successfully' }
+            ];
+            
+            if (currentStatus === 'cancelled') {
+                steps[1] = { key: 'Cancelled', title: 'Cancelled', desc: 'Order has been cancelled' };
+                steps.length = 2;
+            }
+            
+            const currentStepIndex = completedSteps.length - 1;
+            
+            timeline.innerHTML = steps.map((step, index) => {
+                const isCompleted = index <= currentStepIndex;
+                const isActive = index === currentStepIndex;
+                const statusClass = isActive ? 'active' : (isCompleted ? 'completed' : '');
+                
+                return `
+                    <div class="tracking-step ${statusClass}">
+                        <div class="tracking-step-time">${isCompleted ? 'Completed' : 'Pending'}</div>
+                        <div class="tracking-step-title">${step.title}</div>
+                        <div class="tracking-step-desc">${step.desc}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function buildItemsList(order) {
+            const container = document.getElementById('orderItems');
+            const items = order.items || [];
+            
+            if (items.length === 0) {
+                container.innerHTML = '<p style="color: var(--color-text-muted);">No item details available.</p>';
+                return;
+            }
+            
+            container.innerHTML = items.map(item => `
+                <div class="order-item">
+                    <img src="${item.image || './assets/hoodie.jpg'}" alt="${item.name}" class="order-item-image">
+                    <div class="order-item-details">
+                        <div class="order-item-name">${item.name}</div>
+                        <div class="order-item-variant">${item.color || ''} / ${item.size || ''} × ${item.quantity}</div>
+                    </div>
+                    <div class="order-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</div>
+                </div>
+            `).join('');
+        }
+        
+        function getItemCount(order) {
+            const items = order.items || [];
+            return items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+        
+        function formatAddress(order) {
+            const city = order.shipping_city || order.shippingCity || '';
+            const state = order.shipping_state || order.shippingState || '';
+            const country = order.shipping_country || order.shippingCountry || 'Nigeria';
+            
+            const parts = [city, state].filter(Boolean);
+            return parts.length > 0 ? `${parts.join(', ')}, ${country}` : country;
+        }
+        
+        // Check for URL params (e.g., ?order=ORD-123&email=user@example.com)
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramOrderId = urlParams.get('order');
+        const paramEmail = urlParams.get('email');
+        
+        if (paramOrderId && paramEmail) {
+            document.getElementById('orderId').value = paramOrderId;
+            document.getElementById('email').value = paramEmail;
+            trackForm.dispatchEvent(new Event('submit'));
+        }
+    })();
+    </script>
+</body>
+</html>
