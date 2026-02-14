@@ -268,16 +268,21 @@ const I18n = {
             metaItems[2].textContent = this.getTranslation('product.returns');
         }
         
-        // Accordion headers
+        // Accordion headers - preserve span structure for CSS layout
         const accordionHeaders = document.querySelectorAll('.accordion-header');
         accordionHeaders.forEach(header => {
-            const text = header.textContent.trim();
-            if (text.includes('Description') || text.includes('Description')) {
-                header.innerHTML = this.getTranslation('product.description') + 
-                    header.querySelector('svg')?.outerHTML || '';
-            } else if (text.includes('Shipping') || text.includes('Livraison') || text.includes('الشحن')) {
-                header.innerHTML = this.getTranslation('product.shippingReturns') + 
-                    (header.querySelector('svg')?.outerHTML || '');
+            const textSpan = header.querySelector('.accordion-text');
+            const iconSpan = header.querySelector('.accordion-icon');
+            const currentText = textSpan ? textSpan.textContent.trim() : header.textContent.trim();
+            
+            if (currentText.includes('Description')) {
+                if (textSpan) {
+                    textSpan.textContent = this.getTranslation('product.description');
+                }
+            } else if (currentText.includes('Shipping') || currentText.includes('Livraison') || currentText.includes('الشحن')) {
+                if (textSpan) {
+                    textSpan.textContent = this.getTranslation('product.shippingReturns');
+                }
             }
         });
         
