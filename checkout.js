@@ -127,13 +127,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const cartTotal = subtotal + shipping;
         
         try {
-            // Get CSRF token first
-            const csrfResponse = await fetch(`${API_URL}/csrf-token`);
+            // Get CSRF token first (with credentials for cookie)
+            const csrfResponse = await fetch(`${API_URL}/csrf-token`, {
+                credentials: 'include'
+            });
             const csrfData = await csrfResponse.json();
             
             // Validate coupon with API
             const response = await fetch(`${API_URL}/coupons/validate`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': csrfData.csrfToken
