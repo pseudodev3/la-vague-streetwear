@@ -18,7 +18,9 @@ export {
     sendTestEmail,
     getEmailQueueStats,
     isEmailConfigured,
-    getEmailConfig
+    getEmailConfig,
+    sendReviewConfirmationEmail,
+    sendNewReviewNotification
 } from './email-service.js';
 
 export { default as emailService } from './email-service.js';

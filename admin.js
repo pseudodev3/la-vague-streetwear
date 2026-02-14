@@ -162,7 +162,10 @@ const elements = {
     updateInventoryBtn: document.getElementById('updateInventoryBtn'),
     
     // Customers
-    customersTable: document.getElementById('customersTable')
+    customersTable: document.getElementById('customersTable'),
+    
+    // Reviews
+    reviewsTable: document.getElementById('reviewsTable')
 };
 
 // ==========================================
@@ -265,6 +268,7 @@ function navigateTo(section) {
         products: 'Products',
         inventory: 'Inventory',
         customers: 'Customers',
+        reviews: 'Reviews',
         analytics: 'Analytics',
         settings: 'Settings'
     };
@@ -275,6 +279,7 @@ function navigateTo(section) {
     if (section === 'products') loadProducts();
     if (section === 'inventory') loadInventory();
     if (section === 'customers') loadCustomers();
+    if (section === 'reviews') loadReviews();
     if (section === 'analytics') loadAnalytics();
     if (section === 'settings') loadSettings();
 }
@@ -1666,6 +1671,139 @@ window.viewCustomer = async function(email) {
 };
 
 // ==========================================
+// REVIEW MANAGEMENT
+// ==========================================
+
+let reviewsState = [];
+
+async function loadReviews() {
+    showLoading(true);
+    try {
+        const data = await fetchAPI('/admin/reviews');
+        reviewsState = data.reviews || [];
+        renderReviewsTable(reviewsState);
+        updatePendingReviewsCount();
+    } catch (error) {
+        elements.reviewsTable.innerHTML = '';
+        const tr = createElement('tr', {}, 
+            createElement('td', { colspan: 7, className: 'text-center' }, 'Error loading reviews')
+        );
+        elements.reviewsTable.appendChild(tr);
+    } finally {
+        showLoading(false);
+    }
+}
+
+function renderReviewsTable(reviews) {
+    const filter = document.getElementById('reviewFilter')?.value || 'pending';
+    
+    let filtered = reviews;
+    if (filter !== 'all') {
+        filtered = reviews.filter(r => r.status === filter);
+    }
+    
+    elements.reviewsTable.innerHTML = '';
+    
+    if (filtered.length === 0) {
+        const tr = createElement('tr', {}, 
+            createElement('td', { colspan: 7, className: 'text-center' }, 
+                filter === 'pending' ? 'No pending reviews' : 'No reviews found'
+            )
+        );
+        elements.reviewsTable.appendChild(tr);
+        return;
+    }
+    
+    filtered.forEach(review => {
+        const tr = createElement('tr');
+        
+        // Product
+        tr.appendChild(createElement('td', {}, review.product_name || review.productId));
+        
+        // Customer
+        tr.appendChild(createElement('td', {}, review.customer_name || review.customerName || 'Anonymous'));
+        
+        // Rating
+        const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+        tr.appendChild(createElement('td', {}, 
+            createElement('span', { style: 'color: #f59e0b;' }, stars)
+        ));
+        
+        // Title
+        tr.appendChild(createElement('td', {}, review.title || '-'));
+        
+        // Date
+        tr.appendChild(createElement('td', {}, formatDate(review.created_at)));
+        
+        // Status
+        const statusBadge = createElement('span', { 
+            className: `status-badge ${review.status}` 
+        }, review.status);
+        tr.appendChild(createElement('td', {}, statusBadge));
+        
+        // Actions
+        const tdActions = createElement('td');
+        
+        if (review.status === 'pending') {
+            const approveBtn = createElement('button', {
+                className: 'btn btn-sm btn-success',
+                style: 'margin-right: 0.5rem;',
+                onclick: () => updateReviewStatus(review.id, 'approved')
+            }, 'Approve');
+            const rejectBtn = createElement('button', {
+                className: 'btn btn-sm btn-danger',
+                onclick: () => updateReviewStatus(review.id, 'rejected')
+            }, 'Reject');
+            tdActions.appendChild(approveBtn);
+            tdActions.appendChild(rejectBtn);
+        } else {
+            const deleteBtn = createElement('button', {
+                className: 'btn btn-sm btn-danger',
+                onclick: () => deleteReview(review.id)
+            }, 'Delete');
+            tdActions.appendChild(deleteBtn);
+        }
+        
+        tr.appendChild(tdActions);
+        elements.reviewsTable.appendChild(tr);
+    });
+}
+
+async function updateReviewStatus(reviewId, status) {
+    try {
+        await fetchAPI(`/admin/reviews/${reviewId}/status`, {
+            method: 'POST',
+            body: { status }
+        });
+        showToast(`Review ${status}`, 'success');
+        loadReviews();
+    } catch (error) {
+        showToast(`Failed to ${status} review`, 'error');
+    }
+}
+
+async function deleteReview(reviewId) {
+    if (!confirm('Are you sure you want to delete this review?')) return;
+    
+    try {
+        await fetchAPI(`/admin/reviews/${reviewId}`, { method: 'DELETE' });
+        showToast('Review deleted', 'success');
+        loadReviews();
+    } catch (error) {
+        showToast('Failed to delete review', 'error');
+    }
+}
+
+function updatePendingReviewsCount() {
+    const pendingCount = reviewsState.filter(r => r.status === 'pending').length;
+    const badge = document.getElementById('pendingReviewsCount');
+    if (badge) {
+        badge.textContent = pendingCount;
+        badge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
+    }
+}
+
+// ==========================================
 // ANALYTICS
 // ==========================================
 
@@ -2030,6 +2168,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const customerSearch = document.getElementById('customerSearch');
     if (customerSearch) {
         customerSearch.addEventListener('input', () => renderCustomersTable(customersState));
+    }
+    
+    // Reviews filter
+    const reviewFilter = document.getElementById('reviewFilter');
+    if (reviewFilter) {
+        reviewFilter.addEventListener('change', () => renderReviewsTable(reviewsState));
     }
     
     // Settings form

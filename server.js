@@ -41,7 +41,9 @@ import {
     testEmailConfig,
     getEmailQueueStats,
     isEmailConfigured,
-    getEmailConfig
+    getEmailConfig,
+    sendReviewConfirmationEmail,
+    sendNewReviewNotification
 } from './email-templates/index.js';
 import {
     initSentry,
@@ -3565,6 +3567,42 @@ app.post('/api/products/:id/reviews', csrfProtection, asyncHandler(async (req, r
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
         `).run(reviewId, id, orderId, customerEmail, customerName, rating, title, reviewText, JSON.stringify(photos || []));
     }
+    
+    // Send notifications asynchronously (don't block response)
+    (async () => {
+        try {
+            // Get product name for email
+            let productName = id;
+            if (USE_POSTGRES) {
+                const productResult = await db.query('SELECT name FROM products WHERE id = $1', [id]);
+                if (productResult.rows[0]) productName = productResult.rows[0].name;
+            } else {
+                const productResult = db.prepare('SELECT name FROM products WHERE id = ?').get(id);
+                if (productResult) productName = productResult.name;
+            }
+            
+            // Send confirmation to customer
+            await sendReviewConfirmationEmail({
+                customerEmail,
+                customerName,
+                productName,
+                rating,
+                title
+            });
+            
+            // Send notification to admin
+            await sendNewReviewNotification({
+                reviewId,
+                productName,
+                customerName,
+                rating,
+                title,
+                reviewText
+            });
+        } catch (emailError) {
+            console.error('[REVIEWS] Failed to send notification emails:', emailError);
+        }
+    })();
     
     res.json({ success: true, message: 'Review submitted for approval', reviewId });
 }));
