@@ -3450,7 +3450,7 @@ app.get('/api/products/:id/reviews', asyncHandler(async (req, res) => {
         
         const reviews = result.map(r => ({
             ...r,
-            photos: r.photos ? (typeof r.photos === 'string' ? JSON.parse(r.photos) : r.photos) : []
+            photos: safeParseJSON(r.photos, [])
         }));
         
         // Get summary
@@ -3515,7 +3515,7 @@ app.get('/api/admin/reviews', verifyAdminToken, asyncHandler(async (req, res) =>
     
     const reviews = result.map(r => ({
         ...r,
-        photos: r.photos ? JSON.parse(r.photos) : []
+        photos: safeParseJSON(r.photos, [])
     }));
     
     res.json({ success: true, reviews });
