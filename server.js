@@ -2033,6 +2033,165 @@ app.post('/api/admin/settings', verifyAdminToken, asyncHandler(async (req, res) 
 }));
 
 // ==========================================
+// CURRENCY RATE MANAGEMENT
+// ==========================================
+
+// Default currency rates (fallback)
+const DEFAULT_RATES = {
+    USD: 1,
+    NGN: 1550,
+    EUR: 0.94,
+    GBP: 0.80
+};
+
+// Get current currency rates (Public - for frontend)
+app.get('/api/currency-rates', asyncHandler(async (req, res) => {
+    let rates = { ...DEFAULT_RATES };
+    
+    try {
+        // Try to get rates from settings
+        let result;
+        if (USE_POSTGRES) {
+            result = await db.query(
+                "SELECT value FROM settings WHERE key = 'currency_rates'"
+            );
+            if (result.rows.length > 0) {
+                rates = JSON.parse(result.rows[0].value);
+            }
+        } else {
+            result = db.prepare(
+                "SELECT value FROM settings WHERE key = 'currency_rates'"
+            ).get();
+            if (result) {
+                rates = JSON.parse(result.value);
+            }
+        }
+    } catch (error) {
+        console.error('[CURRENCY] Error fetching rates:', error.message);
+        // Return defaults on error
+    }
+    
+    res.json({ 
+        success: true, 
+        rates,
+        baseCurrency: 'USD',
+        lastUpdated: new Date().toISOString()
+    });
+}));
+
+// Get currency rates for admin (includes metadata)
+app.get('/api/admin/currency-rates', verifyAdminToken, asyncHandler(async (req, res) => {
+    let rates = { ...DEFAULT_RATES };
+    let lastUpdated = null;
+    
+    try {
+        let result;
+        if (USE_POSTGRES) {
+            result = await db.query(
+                "SELECT value, updated_at FROM settings WHERE key = 'currency_rates'"
+            );
+            if (result.rows.length > 0) {
+                rates = JSON.parse(result.rows[0].value);
+                lastUpdated = result.rows[0].updated_at;
+            }
+        } else {
+            result = db.prepare(
+                "SELECT value, updated_at FROM settings WHERE key = 'currency_rates'"
+            ).get();
+            if (result) {
+                rates = JSON.parse(result.value);
+                lastUpdated = result.updated_at;
+            }
+        }
+    } catch (error) {
+        console.error('[CURRENCY] Error fetching rates:', error.message);
+    }
+    
+    res.json({ 
+        success: true, 
+        rates,
+        baseCurrency: 'USD',
+        defaultRates: DEFAULT_RATES,
+        lastUpdated: lastUpdated || new Date().toISOString()
+    });
+}));
+
+// Update currency rates (Admin only)
+app.post('/api/admin/currency-rates', verifyAdminToken, asyncHandler(async (req, res) => {
+    const { rates } = req.body;
+    
+    // Validate rates
+    if (!rates || typeof rates !== 'object') {
+        throw new APIError('Invalid rates data', 400, 'INVALID_RATES');
+    }
+    
+    // Ensure USD is always 1 (base currency)
+    rates.USD = 1;
+    
+    // Validate each rate is a positive number
+    for (const [currency, rate] of Object.entries(rates)) {
+        if (typeof rate !== 'number' || rate <= 0) {
+            throw new APIError(`Invalid rate for ${currency}`, 400, 'INVALID_RATE');
+        }
+    }
+    
+    // Store rates as JSON in settings
+    const ratesJson = JSON.stringify(rates);
+    
+    if (USE_POSTGRES) {
+        await db.query(
+            `INSERT INTO settings (key, value) VALUES ('currency_rates', $1)
+             ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP`,
+            [ratesJson]
+        );
+    } else {
+        db.prepare(
+            `INSERT OR REPLACE INTO settings (key, value, updated_at) 
+             VALUES ('currency_rates', ?, datetime('now'))`
+        ).run(ratesJson);
+    }
+    
+    await logAudit('UPDATE_CURRENCY_RATES', 'settings', 'currency_rates', null, rates, req);
+    
+    console.log('[ADMIN] Currency rates updated:', rates);
+    
+    res.json({ 
+        success: true, 
+        message: 'Currency rates updated successfully',
+        rates,
+        updatedAt: new Date().toISOString()
+    });
+}));
+
+// Reset currency rates to defaults (Admin only)
+app.post('/api/admin/currency-rates/reset', verifyAdminToken, asyncHandler(async (req, res) => {
+    const ratesJson = JSON.stringify(DEFAULT_RATES);
+    
+    if (USE_POSTGRES) {
+        await db.query(
+            `INSERT INTO settings (key, value) VALUES ('currency_rates', $1)
+             ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP`,
+            [ratesJson]
+        );
+    } else {
+        db.prepare(
+            `INSERT OR REPLACE INTO settings (key, value, updated_at) 
+             VALUES ('currency_rates', ?, datetime('now'))`
+        ).run(ratesJson);
+    }
+    
+    await logAudit('RESET_CURRENCY_RATES', 'settings', 'currency_rates', null, DEFAULT_RATES, req);
+    
+    console.log('[ADMIN] Currency rates reset to defaults');
+    
+    res.json({ 
+        success: true, 
+        message: 'Currency rates reset to defaults',
+        rates: DEFAULT_RATES
+    });
+}));
+
+// ==========================================
 // COUPON MANAGEMENT (Admin Only)
 // ==========================================
 

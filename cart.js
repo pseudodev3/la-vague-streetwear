@@ -7,13 +7,16 @@
 // CURRENCY CONFIGURATION
 // ==========================================
 const CurrencyConfig = {
-    // Exchange rates (USD base)
-    rates: {
+    // Default fallback rates (USD base)
+    defaultRates: {
         USD: 1,
-        NGN: 1500,
-        EUR: 0.92,
-        GBP: 0.79
+        NGN: 1550,
+        EUR: 0.94,
+        GBP: 0.80
     },
+    
+    // Current rates (loaded from server or defaults)
+    rates: {},
     
     // Currency symbols
     symbols: {
@@ -31,6 +34,69 @@ const CurrencyConfig = {
         GBP: 'GBP'
     },
     
+    // API base URL
+    get API_BASE_URL() {
+        return window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000/api' 
+            : 'https://la-vague-api.onrender.com/api';
+    },
+    
+    // Initialize rates from localStorage or defaults
+    init() {
+        // Try to load cached rates from localStorage
+        const cached = localStorage.getItem('currencyRates');
+        const cachedTime = localStorage.getItem('currencyRatesUpdated');
+        
+        if (cached && cachedTime) {
+            const age = Date.now() - parseInt(cachedTime);
+            // Use cache if less than 1 hour old
+            if (age < 60 * 60 * 1000) {
+                try {
+                    this.rates = JSON.parse(cached);
+                    console.log('[CURRENCY] Loaded rates from cache');
+                } catch (e) {
+                    this.rates = { ...this.defaultRates };
+                }
+            } else {
+                // Cache expired, use defaults and fetch fresh
+                this.rates = { ...this.defaultRates };
+                this.fetchRates();
+            }
+        } else {
+            // No cache, use defaults and fetch
+            this.rates = { ...this.defaultRates };
+            this.fetchRates();
+        }
+        
+        // Refresh rates every 30 minutes
+        setInterval(() => this.fetchRates(), 30 * 60 * 1000);
+    },
+    
+    // Fetch rates from server
+    async fetchRates() {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/currency-rates`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.rates) {
+                    this.rates = data.rates;
+                    // Cache in localStorage
+                    localStorage.setItem('currencyRates', JSON.stringify(this.rates));
+                    localStorage.setItem('currencyRatesUpdated', Date.now().toString());
+                    console.log('[CURRENCY] Rates updated from server');
+                    
+                    // Notify listeners that rates have been updated
+                    window.dispatchEvent(new CustomEvent('currencyRatesUpdated', { 
+                        detail: { rates: this.rates } 
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('[CURRENCY] Failed to fetch rates:', error);
+            // Keep using cached or default rates
+        }
+    },
+    
     // Get current currency from localStorage
     getCurrentCurrency() {
         return localStorage.getItem('preferredCurrency') || 'USD';
@@ -38,7 +104,7 @@ const CurrencyConfig = {
     
     // Set currency and notify listeners
     setCurrency(currency) {
-        if (this.rates[currency]) {
+        if (this.rates[currency] || this.defaultRates[currency]) {
             localStorage.setItem('preferredCurrency', currency);
             // Dispatch custom event for currency change
             window.dispatchEvent(new CustomEvent('currencyChanged', { detail: { currency } }));
@@ -50,7 +116,8 @@ const CurrencyConfig = {
     // Convert USD amount to target currency
     convert(amount, targetCurrency = null) {
         const currency = targetCurrency || this.getCurrentCurrency();
-        const rate = this.rates[currency] || 1;
+        // Use current rates if available, otherwise fall back to defaults
+        const rate = this.rates[currency] || this.defaultRates[currency] || 1;
         return amount * rate;
     },
     
@@ -71,9 +138,18 @@ const CurrencyConfig = {
     
     // Get all supported currencies
     getSupportedCurrencies() {
-        return Object.keys(this.rates);
+        const currentRates = Object.keys(this.rates).length > 0 ? this.rates : this.defaultRates;
+        return Object.keys(currentRates);
+    },
+    
+    // Get current rates for admin display
+    getCurrentRates() {
+        return Object.keys(this.rates).length > 0 ? this.rates : this.defaultRates;
     }
 };
+
+// Initialize currency config on load
+CurrencyConfig.init();
 
 // ==========================================
 // SHARED STATE
