@@ -1204,7 +1204,7 @@ app.post('/api/gdpr/delete', apiLimiter, asyncHandler(async (req, res) => {
 }));
 
 // ==========================================
-// PAYSTACK CONFIGURATION ENDPOINT
+// PAYSTACK CONFIGURATION & TEST ENDPOINTS
 // ==========================================
 
 /**
@@ -1231,6 +1231,20 @@ app.get('/api/config/paystack', (req, res) => {
     });
 });
 
+/**
+ * Test webhook endpoint (for debugging)
+ * POST /api/payment/webhook-test
+ * Accepts any JSON body and logs it
+ */
+app.post('/api/payment/webhook-test', express.json(), asyncHandler(async (req, res) => {
+    console.log('[WEBHOOK TEST] Received:', {
+        headers: req.headers,
+        body: req.body,
+        timestamp: new Date().toISOString()
+    });
+    res.json({ received: true, timestamp: new Date().toISOString() });
+}));
+
 // ==========================================
 // PAYSTACK WEBHOOK HANDLER
 // ==========================================
@@ -1249,7 +1263,17 @@ function verifyPaystackSignature(body, signature) {
     }
     
     const hash = crypto.createHmac('sha512', secret).update(body).digest('hex');
-    return hash === signature;
+    const isValid = hash === signature;
+    
+    if (!isValid) {
+        console.log('[PAYSTACK WEBHOOK] Signature mismatch:', {
+            received: signature?.substring(0, 20) + '...',
+            computed: hash.substring(0, 20) + '...',
+            bodyLength: body.length
+        });
+    }
+    
+    return isValid;
 }
 
 /**

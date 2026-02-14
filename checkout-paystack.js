@@ -228,12 +228,15 @@
      */
     async function verifyPaymentOnBackend(orderId, reference) {
         try {
-            // Get CSRF token first
-            const csrfResponse = await fetch(`${API_URL}/csrf-token`);
+            // Get CSRF token first (with credentials)
+            const csrfResponse = await fetch(`${API_URL}/csrf-token`, {
+                credentials: 'include'
+            });
             const csrfData = await csrfResponse.json();
             
             const response = await fetch(`${API_URL}/orders/verify-payment`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': csrfData.csrfToken
