@@ -484,15 +484,15 @@
     transition: var(--transition-fast);
 }
 
-/* Accordion layout: icon on left, text on right */
-.accordion-icon {
+/* Accordion layout: text on left, icon on right */
+.accordion-text {
     order: 1;
-    display: flex;
-    align-items: center;
 }
 
-.accordion-text {
+.accordion-icon {
     order: 2;
+    display: flex;
+    align-items: center;
 }
 
 .accordion-header svg {
