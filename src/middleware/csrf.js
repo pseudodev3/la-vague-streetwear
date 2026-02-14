@@ -10,6 +10,9 @@ const CSRF_COOKIE_NAME = 'csrf_token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
 const TOKEN_LENGTH = 32;
 
+// Determine SameSite based on environment
+const SAME_SITE = process.env.NODE_ENV === 'production' ? 'none' : 'lax';
+
 /**
  * Generate a random CSRF token
  */
@@ -32,7 +35,7 @@ export function csrfProtection(req, res, next) {
             res.cookie(CSRF_COOKIE_NAME, token, {
                 httpOnly: false, // Must be accessible by JavaScript
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: SAME_SITE,
                 maxAge: 24 * 60 * 60 * 1000 // 24 hours
             });
             req.csrfToken = token;
@@ -84,7 +87,7 @@ export function csrfProtection(req, res, next) {
     res.cookie(CSRF_COOKIE_NAME, newToken, {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: SAME_SITE,
         maxAge: 24 * 60 * 60 * 1000
     });
     req.csrfToken = newToken;
@@ -104,7 +107,7 @@ export function csrfToken(req, res, next) {
         res.cookie(CSRF_COOKIE_NAME, token, {
             httpOnly: false,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: SAME_SITE,
             maxAge: 24 * 60 * 60 * 1000
         });
     }
@@ -143,7 +146,7 @@ export function optionalCSRF(req, res, next) {
     res.cookie(CSRF_COOKIE_NAME, newToken, {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: SAME_SITE,
         maxAge: 24 * 60 * 60 * 1000
     });
     req.csrfToken = newToken;
