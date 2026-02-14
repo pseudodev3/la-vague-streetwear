@@ -43,8 +43,21 @@ import {
     isEmailConfigured,
     getEmailConfig
 } from './email-templates/index.js';
+import {
+    initSentry,
+    sentryRequestHandler,
+    sentryTracingHandler,
+    sentryErrorHandler,
+    captureException,
+    captureMessage
+} from './src/config/sentry.js';
 
 dotenv.config();
+
+// ==========================================
+// SENTRY ERROR TRACKING
+// ==========================================
+initSentry();
 
 // ==========================================
 // EMAIL SERVICE CONFIGURATION
@@ -139,6 +152,12 @@ app.set('trust proxy', 1);
 // ==========================================
 // SECURITY MIDDLEWARE
 // ==========================================
+
+// Sentry request handler (must be first)
+app.use(sentryRequestHandler());
+
+// Sentry tracing handler
+app.use(sentryTracingHandler());
 
 // Helmet with secure defaults
 app.use(helmet({
@@ -2983,6 +3002,9 @@ app.get('/api/admin/export/products', verifyAdminToken, asyncHandler(async (req,
 
 // 404 handler
 app.use(notFoundHandler);
+
+// Sentry error handler (must be before global error handler)
+app.use(sentryErrorHandler());
 
 // Global error handler
 app.use(globalErrorHandler);
