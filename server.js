@@ -600,6 +600,22 @@ async function initAuditTables() {
         `);
         await db.query(`CREATE INDEX IF NOT EXISTS idx_coupon_usage_coupon ON coupon_usage(coupon_id)`);
         await db.query(`CREATE INDEX IF NOT EXISTS idx_coupon_usage_email ON coupon_usage(customer_email)`);
+        
+        // Webhook logs for audit
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS webhook_logs (
+                id SERIAL PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                reference TEXT,
+                amount INTEGER,
+                customer_email TEXT,
+                raw_data JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_webhook_reference ON webhook_logs(reference)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_webhook_event ON webhook_logs(event_type)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_webhook_created ON webhook_logs(created_at DESC)`);
     } else {
         // SQLite versions
         db.exec(`
@@ -732,6 +748,22 @@ async function initAuditTables() {
         `);
         db.exec(`CREATE INDEX IF NOT EXISTS idx_coupon_usage_coupon ON coupon_usage(coupon_id)`);
         db.exec(`CREATE INDEX IF NOT EXISTS idx_coupon_usage_email ON coupon_usage(customer_email)`);
+        
+        // Webhook logs for audit
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS webhook_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_type TEXT NOT NULL,
+                reference TEXT,
+                amount INTEGER,
+                customer_email TEXT,
+                raw_data TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_webhook_reference ON webhook_logs(reference)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_webhook_event ON webhook_logs(event_type)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_webhook_created ON webhook_logs(created_at DESC)`);
     }
     
     console.log('✅ Audit tables initialized');
@@ -1171,6 +1203,321 @@ app.post('/api/gdpr/delete', apiLimiter, asyncHandler(async (req, res) => {
     });
 }));
 
+// ==========================================
+// PAYSTACK WEBHOOK HANDLER
+// ==========================================
+
+/**
+ * Verify Paystack webhook signature
+ * @param {string} body - Raw request body
+ * @param {string} signature - X-Paystack-Signature header
+ * @returns {boolean} - Whether signature is valid
+ */
+function verifyPaystackSignature(body, signature) {
+    const secret = process.env.PAYSTACK_SECRET_KEY;
+    if (!secret) {
+        console.error('[PAYSTACK WEBHOOK] PAYSTACK_SECRET_KEY not configured');
+        return false;
+    }
+    
+    const hash = crypto.createHmac('sha512', secret).update(body).digest('hex');
+    return hash === signature;
+}
+
+/**
+ * Handle Paystack webhook events
+ * POST /api/payment/webhook
+ * No CSRF protection - called by Paystack servers
+ */
+app.post('/api/payment/webhook', 
+    express.raw({ type: 'application/json' }), 
+    asyncHandler(async (req, res) => {
+        const signature = req.headers['x-paystack-signature'];
+        
+        // Verify signature
+        if (!signature || !verifyPaystackSignature(req.body, signature)) {
+            console.error('[PAYSTACK WEBHOOK] Invalid signature');
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+        
+        let event;
+        try {
+            event = JSON.parse(req.body);
+        } catch (error) {
+            console.error('[PAYSTACK WEBHOOK] Invalid JSON:', error.message);
+            res.status(400).json({ error: 'Invalid JSON' });
+            return;
+        }
+        
+        const eventType = event.event;
+        const data = event.data;
+        
+        console.log(`[PAYSTACK WEBHOOK] Received: ${eventType}`, {
+            reference: data?.reference,
+            amount: data?.amount,
+            status: data?.status
+        });
+        
+        // Log webhook for audit
+        await logWebhookEvent(eventType, data);
+        
+        switch (eventType) {
+            case 'charge.success':
+                await handleChargeSuccess(data);
+                break;
+                
+            case 'charge.failed':
+                await handleChargeFailed(data);
+                break;
+                
+            case 'refund.processed':
+                await handleRefundProcessed(data);
+                break;
+                
+            case 'refund.failed':
+                console.log(`[PAYSTACK WEBHOOK] Refund failed: ${data?.reference}`);
+                break;
+                
+            default:
+                console.log(`[PAYSTACK WEBHOOK] Unhandled event: ${eventType}`);
+        }
+        
+        // Always return 200 to prevent retries
+        res.json({ received: true });
+    })
+);
+
+/**
+ * Log webhook event for audit trail
+ */
+async function logWebhookEvent(eventType, data) {
+    try {
+        const logEntry = {
+            timestamp: new Date().toISOString(),
+            event: eventType,
+            reference: data?.reference,
+            amount: data?.amount,
+            customer_email: data?.customer?.email
+        };
+        
+        // Store in database for audit
+        if (USE_POSTGRES) {
+            await db.query(`
+                INSERT INTO webhook_logs (event_type, reference, amount, customer_email, raw_data, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                eventType,
+                data?.reference || null,
+                data?.amount || null,
+                data?.customer?.email || null,
+                JSON.stringify(data),
+                new Date().toISOString()
+            ]);
+        } else {
+            // SQLite fallback - just log to console
+            console.log('[WEBHOOK LOG]', JSON.stringify(logEntry));
+        }
+    } catch (error) {
+        // Log error but don't fail the webhook
+        console.error('[PAYSTACK WEBHOOK] Failed to log event:', error.message);
+    }
+}
+
+/**
+ * Handle successful charge
+ */
+async function handleChargeSuccess(data) {
+    const { reference, amount, metadata } = data;
+    
+    if (!reference) {
+        console.error('[PAYSTACK WEBHOOK] No reference in charge.success');
+        return;
+    }
+    
+    // Find order by payment reference
+    const orderResult = await query(
+        'SELECT * FROM orders WHERE payment_reference = $1 OR id = $2',
+        [reference, metadata?.order_id || '']
+    );
+    
+    if (orderResult.rows.length === 0) {
+        console.error(`[PAYSTACK WEBHOOK] Order not found for reference: ${reference}`);
+        
+        // Alert if payment received but no order found
+        captureMessage(`Payment received but order not found: ${reference}`, {
+            level: 'warning',
+            extra: { reference, amount, metadata }
+        });
+        return;
+    }
+    
+    const order = orderResult.rows[0];
+    
+    // Check if already processed (idempotency)
+    if (order.payment_status === 'paid') {
+        console.log(`[PAYSTACK WEBHOOK] Order ${order.id} already marked as paid`);
+        return;
+    }
+    
+    try {
+        // Update order status
+        if (USE_POSTGRES) {
+            await db.query(`
+                UPDATE orders 
+                SET payment_status = 'paid', 
+                    payment_reference = $1,
+                    order_status = CASE WHEN order_status = 'pending' THEN 'processing' ELSE order_status END,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $2
+            `, [reference, order.id]);
+        } else {
+            db.prepare(`
+                UPDATE orders 
+                SET payment_status = 'paid', 
+                    payment_reference = ?,
+                    order_status = CASE WHEN order_status = 'pending' THEN 'processing' ELSE order_status END,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `).run(reference, order.id);
+        }
+        
+        console.log(`[PAYSTACK WEBHOOK] Order ${order.id} marked as paid`);
+        
+        // Send payment confirmation email
+        const orderData = {
+            id: order.id,
+            customer_name: order.customer_name,
+            customer_email: order.customer_email,
+            total: order.total,
+            payment_method: 'paystack',
+            payment_status: 'paid'
+        };
+        
+        await sendOrderEmailSafely(orderData, 'confirmation');
+        
+        // Confirm inventory reservation (it was already reserved at order creation)
+        // This ensures stock is properly deducted
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        await inventoryService.confirmReservation(order.id, items);
+        
+        captureMessage(`Payment confirmed for order ${order.id}`, {
+            level: 'info',
+            extra: { orderId: order.id, reference, amount }
+        });
+        
+    } catch (error) {
+        console.error(`[PAYSTACK WEBHOOK] Failed to update order ${order.id}:`, error.message);
+        captureException(error, {
+            extra: { orderId: order.id, reference, event: 'charge.success' }
+        });
+        throw error; // Re-throw to trigger webhook retry
+    }
+}
+
+/**
+ * Handle failed charge
+ */
+async function handleChargeFailed(data) {
+    const { reference, metadata } = data;
+    
+    if (!reference) {
+        console.error('[PAYSTACK WEBHOOK] No reference in charge.failed');
+        return;
+    }
+    
+    // Find order
+    const orderResult = await query(
+        'SELECT * FROM orders WHERE payment_reference = $1 OR id = $2',
+        [reference, metadata?.order_id || '']
+    );
+    
+    if (orderResult.rows.length === 0) {
+        console.log(`[PAYSTACK WEBHOOK] Order not found for failed charge: ${reference}`);
+        return;
+    }
+    
+    const order = orderResult.rows[0];
+    
+    try {
+        // Update order status
+        if (USE_POSTGRES) {
+            await db.query(`
+                UPDATE orders 
+                SET payment_status = 'failed', 
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $1
+            `, [order.id]);
+        } else {
+            db.prepare(`
+                UPDATE orders 
+                SET payment_status = 'failed', 
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `).run(order.id);
+        }
+        
+        // Release inventory reservation
+        await inventoryService.cancelReservation(order.id);
+        
+        console.log(`[PAYSTACK WEBHOOK] Order ${order.id} marked as failed, inventory released`);
+        
+    } catch (error) {
+        console.error(`[PAYSTACK WEBHOOK] Failed to update order ${order.id}:`, error.message);
+        captureException(error);
+        throw error;
+    }
+}
+
+/**
+ * Handle refund processed
+ */
+async function handleRefundProcessed(data) {
+    const { reference, transaction_reference } = data;
+    
+    console.log(`[PAYSTACK WEBHOOK] Refund processed: ${reference} for transaction: ${transaction_reference}`);
+    
+    // Find and update order
+    const orderResult = await query(
+        'SELECT * FROM orders WHERE payment_reference = $1',
+        [transaction_reference]
+    );
+    
+    if (orderResult.rows.length === 0) {
+        console.log(`[PAYSTACK WEBHOOK] Order not found for refund: ${transaction_reference}`);
+        return;
+    }
+    
+    const order = orderResult.rows[0];
+    
+    try {
+        if (USE_POSTGRES) {
+            await db.query(`
+                UPDATE orders 
+                SET order_status = 'refunded', 
+                    notes = COALESCE(notes, '') || ' | Refund processed: ' || $1,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $2
+            `, [reference, order.id]);
+        } else {
+            db.prepare(`
+                UPDATE orders 
+                SET order_status = 'refunded', 
+                    notes = COALESCE(notes, '') || ' | Refund processed: ' || ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `).run(reference, order.id);
+        }
+        
+        console.log(`[PAYSTACK WEBHOOK] Order ${order.id} marked as refunded`);
+        
+    } catch (error) {
+        console.error(`[PAYSTACK WEBHOOK] Failed to update order ${order.id}:`, error.message);
+        captureException(error);
+    }
+}
+
+// ==========================================
 // CSRF Token endpoint - provides token for forms
 app.get('/api/csrf-token', csrfToken, (req, res) => {
     res.json({ 
@@ -1378,6 +1725,164 @@ app.post('/api/orders/lookup', apiLimiter, asyncHandler(async (req, res) => {
     
     console.log(`[ORDER LOOKUP] Found order: ${orderId}`);
     res.json({ success: true, order: orderData });
+}));
+
+/**
+ * Verify payment status with Paystack
+ * POST /api/orders/verify-payment
+ * Used as fallback when webhook wasn't received
+ */
+app.post('/api/orders/verify-payment', apiLimiter, csrfProtection, asyncHandler(async (req, res) => {
+    const { orderId, reference } = req.body;
+    
+    if (!orderId && !reference) {
+        throw new APIError('Order ID or payment reference is required', 400, 'MISSING_FIELDS');
+    }
+    
+    console.log(`[PAYMENT VERIFY] Verifying: orderId=${orderId}, reference=${reference}`);
+    
+    // Find order
+    let order;
+    if (reference) {
+        const result = await query(
+            'SELECT * FROM orders WHERE payment_reference = $1 OR id = $2',
+            [reference, orderId || '']
+        );
+        order = result.rows[0];
+    } else {
+        const result = await query('SELECT * FROM orders WHERE id = $1', [orderId]);
+        order = result.rows[0];
+    }
+    
+    if (!order) {
+        throw new APIError('Order not found', 404, 'ORDER_NOT_FOUND');
+    }
+    
+    // If already paid, return success
+    if (order.payment_status === 'paid') {
+        res.json({ 
+            success: true, 
+            status: 'paid',
+            orderId: order.id,
+            message: 'Payment already confirmed'
+        });
+        return;
+    }
+    
+    // If no Paystack secret key, can't verify
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+        console.log('[PAYMENT VERIFY] Paystack not configured');
+        res.json({ 
+            success: true, 
+            status: order.payment_status,
+            orderId: order.id,
+            verified: false,
+            message: 'Paystack not configured'
+        });
+        return;
+    }
+    
+    // Verify with Paystack API
+    try {
+        const paystackRef = reference || order.payment_reference;
+        
+        if (!paystackRef) {
+            res.json({ 
+                success: true, 
+                status: order.payment_status,
+                orderId: order.id,
+                verified: false,
+                message: 'No payment reference found'
+            });
+            return;
+        }
+        
+        const response = await fetch(`https://api.paystack.co/transaction/verify/${paystackRef}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const paystackData = await response.json();
+        
+        if (!paystackData.status) {
+            console.error('[PAYMENT VERIFY] Paystack error:', paystackData.message);
+            res.json({ 
+                success: false, 
+                status: order.payment_status,
+                orderId: order.id,
+                verified: false,
+                message: paystackData.message 
+            });
+            return;
+        }
+        
+        const transaction = paystackData.data;
+        
+        if (transaction.status === 'success') {
+            // Update order to paid
+            if (USE_POSTGRES) {
+                await db.query(`
+                    UPDATE orders 
+                    SET payment_status = 'paid', 
+                        payment_reference = $1,
+                        order_status = CASE WHEN order_status = 'pending' THEN 'processing' ELSE order_status END,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = $2
+                `, [paystackRef, order.id]);
+            } else {
+                db.prepare(`
+                    UPDATE orders 
+                    SET payment_status = 'paid', 
+                        payment_reference = ?,
+                        order_status = CASE WHEN order_status = 'pending' THEN 'processing' ELSE order_status END,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                `).run(paystackRef, order.id);
+            }
+            
+            // Confirm inventory
+            const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+            await inventoryService.confirmReservation(order.id, items);
+            
+            // Send confirmation email
+            const orderData = {
+                id: order.id,
+                customer_name: order.customer_name,
+                customer_email: order.customer_email,
+                total: order.total,
+                payment_method: 'paystack',
+                payment_status: 'paid'
+            };
+            await sendOrderEmailSafely(orderData, 'confirmation');
+            
+            console.log(`[PAYMENT VERIFY] Order ${order.id} verified and updated`);
+            
+            res.json({ 
+                success: true, 
+                status: 'paid',
+                orderId: order.id,
+                verified: true,
+                amount: transaction.amount,
+                message: 'Payment verified successfully'
+            });
+        } else {
+            res.json({ 
+                success: true, 
+                status: transaction.status,
+                orderId: order.id,
+                verified: false,
+                message: `Payment status: ${transaction.status}`
+            });
+        }
+        
+    } catch (error) {
+        console.error('[PAYMENT VERIFY] Error:', error.message);
+        captureException(error, { extra: { orderId, reference } });
+        throw new APIError('Failed to verify payment', 500, 'VERIFICATION_ERROR');
+    }
 }));
 
 // Test database connection endpoint
