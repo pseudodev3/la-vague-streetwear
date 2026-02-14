@@ -260,58 +260,266 @@
      * Show payment pending message
      */
     function showPaymentPendingMessage(orderId) {
-        const message = `
-            <div style="text-align: center; padding: 2rem;">
-                <h3 style="color: #f59e0b; margin-bottom: 1rem;">⏳ Payment Processing</h3>
-                <p>Your payment is being processed.</p>
-                <p style="margin: 1rem 0;">Order ID: <strong>${orderId}</strong></p>
-                <p>You will receive an email confirmation once payment is confirmed.</p>
-                <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">
-                    You can check your order status on the <a href="track-order.html">order tracking page</a>.
-                </p>
-                <button onclick="window.location.href='track-order.html'" 
-                        style="margin-top: 1.5rem; padding: 0.75rem 1.5rem; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                    Track Order
-                </button>
+        const content = `
+            <div class="paystack-modal-icon paystack-modal-icon--pending">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+            </div>
+            <h3 class="paystack-modal-title">Processing Payment</h3>
+            <p class="paystack-modal-text">Your payment is being verified. This may take a moment.</p>
+            <div class="paystack-modal-order">
+                <span class="paystack-modal-label">Order ID</span>
+                <span class="paystack-modal-value">${orderId}</span>
+            </div>
+            <p class="paystack-modal-hint">You will receive an email confirmation once your payment is confirmed.</p>
+            <div class="paystack-modal-actions">
+                <a href="track-order.html" class="paystack-modal-btn paystack-modal-btn--secondary">Track Order</a>
             </div>
         `;
         
-        showModal(message);
+        showStyledModal(content);
     }
 
     /**
      * Show payment failed message
      */
     function showPaymentFailedMessage(status) {
-        const message = `
-            <div style="text-align: center; padding: 2rem;">
-                <h3 style="color: #dc2626; margin-bottom: 1rem;">❌ Payment Failed</h3>
-                <p>Your payment could not be completed.</p>
-                <p style="margin: 1rem 0; color: #666;">Status: ${status}</p>
-                <p>Please try again or contact support if the problem persists.</p>
-                <button onclick="closeModal()" 
-                        style="margin-top: 1.5rem; padding: 0.75rem 1.5rem; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                    Try Again
-                </button>
+        const content = `
+            <div class="paystack-modal-icon paystack-modal-icon--error">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+            </div>
+            <h3 class="paystack-modal-title">Payment Failed</h3>
+            <p class="paystack-modal-text">We couldn't process your payment at this time.</p>
+            <div class="paystack-modal-order">
+                <span class="paystack-modal-label">Status</span>
+                <span class="paystack-modal-value">${status}</span>
+            </div>
+            <p class="paystack-modal-hint">Please try again or use a different payment method.</p>
+            <div class="paystack-modal-actions">
+                <button onclick="closeModal()" class="paystack-modal-btn paystack-modal-btn--primary">Try Again</button>
             </div>
         `;
         
-        showModal(message);
+        showStyledModal(content);
     }
 
     /**
-     * Show modal
+     * Show styled modal with LA VAGUE aesthetic
      */
-    function showModal(content) {
+    function showStyledModal(content) {
         // Remove existing modal
         const existingModal = document.getElementById('paystack-modal');
         if (existingModal) existingModal.remove();
         
+        // Add styles if not already added
+        if (!document.getElementById('paystack-modal-styles')) {
+            const styles = document.createElement('style');
+            styles.id = 'paystack-modal-styles';
+            styles.textContent = `
+                .paystack-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.85);
+                    backdrop-filter: blur(8px);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 1rem;
+                    animation: paystack-modal-fade-in 0.3s ease;
+                }
+                
+                @keyframes paystack-modal-fade-in {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                
+                .paystack-modal-container {
+                    background: #0a0a0a;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 4px;
+                    max-width: 480px;
+                    width: 100%;
+                    padding: 3rem 2.5rem;
+                    text-align: center;
+                    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+                    animation: paystack-modal-slide-up 0.4s ease;
+                }
+                
+                @keyframes paystack-modal-slide-up {
+                    from { 
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                .paystack-modal-icon {
+                    width: 80px;
+                    height: 80px;
+                    margin: 0 auto 1.5rem;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .paystack-modal-icon--pending {
+                    background: rgba(245, 158, 11, 0.1);
+                    color: #f59e0b;
+                    animation: paystack-pulse 2s ease-in-out infinite;
+                }
+                
+                .paystack-modal-icon--error {
+                    background: rgba(220, 38, 38, 0.1);
+                    color: #dc2626;
+                }
+                
+                @keyframes paystack-pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                }
+                
+                .paystack-modal-icon svg {
+                    width: 40px;
+                    height: 40px;
+                }
+                
+                .paystack-modal-title {
+                    font-family: 'Oswald', sans-serif;
+                    font-size: 1.75rem;
+                    font-weight: 600;
+                    color: #fff;
+                    margin: 0 0 1rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+                
+                .paystack-modal-text {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 1rem;
+                    color: rgba(255, 255, 255, 0.7);
+                    margin: 0 0 1.5rem;
+                    line-height: 1.6;
+                }
+                
+                .paystack-modal-order {
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 4px;
+                    padding: 1rem 1.5rem;
+                    margin-bottom: 1.5rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .paystack-modal-label {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 0.875rem;
+                    color: rgba(255, 255, 255, 0.5);
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                }
+                
+                .paystack-modal-value {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 0.9375rem;
+                    color: #fff;
+                    font-weight: 500;
+                    font-family: monospace;
+                }
+                
+                .paystack-modal-hint {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 0.875rem;
+                    color: rgba(255, 255, 255, 0.5);
+                    margin: 0 0 2rem;
+                    line-height: 1.5;
+                }
+                
+                .paystack-modal-actions {
+                    display: flex;
+                    gap: 1rem;
+                    justify-content: center;
+                }
+                
+                .paystack-modal-btn {
+                    font-family: 'Oswald', sans-serif;
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    padding: 1rem 2.5rem;
+                    border: none;
+                    border-radius: 0;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    text-decoration: none;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .paystack-modal-btn--primary {
+                    background: #dc2626;
+                    color: #fff;
+                }
+                
+                .paystack-modal-btn--primary:hover {
+                    background: #ef4444;
+                    transform: translateY(-1px);
+                }
+                
+                .paystack-modal-btn--secondary {
+                    background: transparent;
+                    color: #fff;
+                    border: 1px solid rgba(255, 255, 255, 0.3);
+                }
+                
+                .paystack-modal-btn--secondary:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-color: rgba(255, 255, 255, 0.5);
+                }
+                
+                @media (max-width: 480px) {
+                    .paystack-modal-container {
+                        padding: 2rem 1.5rem;
+                    }
+                    
+                    .paystack-modal-title {
+                        font-size: 1.5rem;
+                    }
+                    
+                    .paystack-modal-actions {
+                        flex-direction: column;
+                    }
+                    
+                    .paystack-modal-btn {
+                        width: 100%;
+                    }
+                }
+            `;
+            document.head.appendChild(styles);
+        }
+        
         const modal = document.createElement('div');
         modal.id = 'paystack-modal';
         modal.innerHTML = `
-            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center;">
-                <div style="background: white; border-radius: 12px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <div class="paystack-modal-overlay">
+                <div class="paystack-modal-container">
                     ${content}
                 </div>
             </div>
@@ -325,7 +533,10 @@
      */
     window.closeModal = function() {
         const modal = document.getElementById('paystack-modal');
-        if (modal) modal.remove();
+        if (modal) {
+            modal.style.animation = 'paystack-modal-fade-in 0.2s ease reverse';
+            setTimeout(() => modal.remove(), 200);
+        }
     };
 
     /**
