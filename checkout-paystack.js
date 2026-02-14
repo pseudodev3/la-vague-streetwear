@@ -96,6 +96,41 @@
     }
 
     /**
+     * Convert amount from display currency to NGN for Paystack
+     */
+    function convertToNGN(amountInDisplayCurrency) {
+        const currentCurrency = CurrencyConfig.getCurrentCurrency();
+        
+        // If already NGN, no conversion needed
+        if (currentCurrency === 'NGN') {
+            return amountInDisplayCurrency;
+        }
+        
+        // Get rates
+        const rates = CurrencyConfig.rates && Object.keys(CurrencyConfig.rates).length > 0 
+            ? CurrencyConfig.rates 
+            : CurrencyConfig.defaultRates;
+        
+        const currentRate = rates[currentCurrency] || 1;
+        const ngnRate = rates.NGN || 1550;
+        
+        // Convert: display amount / current rate * NGN rate
+        // Example: $23 USD → 23 / 1 * 1550 = 35,650 NGN
+        const amountInNGN = (amountInDisplayCurrency / currentRate) * ngnRate;
+        
+        console.log('[PAYSTACK] Currency conversion:', {
+            from: currentCurrency,
+            fromAmount: amountInDisplayCurrency,
+            to: 'NGN',
+            toAmount: Math.round(amountInNGN),
+            rate: currentRate,
+            ngnRate: ngnRate
+        });
+        
+        return Math.round(amountInNGN);
+    }
+
+    /**
      * Initialize Paystack payment
      */
     async function initializePaystackPayment(orderId, orderData, customerData) {
@@ -103,15 +138,20 @@
             throw new Error('Paystack is not available');
         }
 
-        const amountInKobo = Math.round(orderData.total * 100); // Convert to kobo
+        // Convert from display currency to NGN, then to kobo (1 NGN = 100 kobo)
+        const amountInNGN = convertToNGN(orderData.total);
+        const amountInKobo = amountInNGN * 100;
         
         const paymentData = {
             key: PAYSTACK_PUBLIC_KEY,
             email: customerData.email,
             amount: amountInKobo,
+            currency: 'NGN', // Explicitly set currency to NGN
             ref: `LV-${Date.now()}`,
             metadata: {
                 order_id: orderId,
+                original_currency: CurrencyConfig.getCurrentCurrency(),
+                original_amount: orderData.total,
                 custom_fields: [
                     {
                         display_name: "Order ID",
@@ -140,7 +180,13 @@
             paymentData.phone = customerData.phone;
         }
 
-        console.log('[PAYSTACK] Initializing payment:', { orderId, amount: amountInKobo });
+        console.log('[PAYSTACK] Initializing payment:', { 
+            orderId, 
+            originalAmount: orderData.total,
+            originalCurrency: CurrencyConfig.getCurrentCurrency(),
+            ngnAmount: amountInNGN,
+            koboAmount: amountInKobo 
+        });
         
         const popup = new window.PaystackPop();
         popup.newTransaction(paymentData);
