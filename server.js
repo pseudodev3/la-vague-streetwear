@@ -383,6 +383,14 @@ async function initDatabase() {
         // Session cleanup index
         await db.query(`CREATE INDEX IF NOT EXISTS idx_sessions_expires ON admin_sessions(expires_at)`);
         
+        // Add review columns to products if missing
+        try {
+            await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS average_rating DECIMAL(2,1) DEFAULT 0`);
+            await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS review_count INTEGER DEFAULT 0`);
+        } catch (e) {
+            // Columns might already exist
+        }
+        
         // Inventory reservations table
         await db.query(`
             CREATE TABLE IF NOT EXISTS inventory_reservations (
@@ -461,6 +469,22 @@ async function initDatabase() {
         db.exec(`CREATE INDEX IF NOT EXISTS idx_sessions_expires ON admin_sessions(expires_at)`);
         
         // Note: For SQLite, reservations are stored in-memory via InventoryService
+        
+        // Add review columns to products if missing (SQLite)
+        try {
+            const tableInfo = db.prepare("PRAGMA table_info(products)").all();
+            const hasAverageRating = tableInfo.some(col => col.name === 'average_rating');
+            const hasReviewCount = tableInfo.some(col => col.name === 'review_count');
+            
+            if (!hasAverageRating) {
+                db.exec(`ALTER TABLE products ADD COLUMN average_rating REAL DEFAULT 0`);
+            }
+            if (!hasReviewCount) {
+                db.exec(`ALTER TABLE products ADD COLUMN review_count INTEGER DEFAULT 0`);
+            }
+        } catch (e) {
+            // Columns might already exist
+        }
     }
     
     // Seed products if empty
