@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
             shippingCost: state.shipping,
             subtotal: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
             discount: state.discount,
-            total: parseFloat(document.getElementById('summaryTotal').textContent.replace('$', '')) || 0,
+            total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + state.shipping - state.discount,
             items: state.cart,
             paymentMethod: selectedPayment,
             notes: ''

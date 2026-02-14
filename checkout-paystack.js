@@ -151,6 +151,23 @@
         const amountInNGN = convertToNGN(orderData.total);
         const amountInKobo = amountInNGN * 100;
         
+        // Validate amount
+        if (!amountInKobo || amountInKobo <= 0) {
+            console.error('[PAYSTACK] Invalid amount:', { 
+                total: orderData.total, 
+                amountInNGN, 
+                amountInKobo,
+                orderData 
+            });
+            throw new Error('Invalid payment amount: ' + orderData.total);
+        }
+        
+        // Minimum amount check (Paystack minimum is usually 100 kobo = ₦1)
+        if (amountInKobo < 100) {
+            console.error('[PAYSTACK] Amount too small:', amountInKobo);
+            throw new Error('Payment amount too small. Minimum is ₦1 (100 kobo)');
+        }
+        
         const paymentData = {
             key: PAYSTACK_PUBLIC_KEY,
             email: customerData.email,
