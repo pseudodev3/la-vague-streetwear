@@ -256,31 +256,244 @@
         window.location.href = `order-confirmation.html?order=${orderId}&status=success`;
     }
 
+    // Polling state
+    let pollInterval = null;
+    let pollAttempts = 0;
+    const MAX_POLL_ATTEMPTS = 40; // 2 minutes (3 seconds * 40)
+
     /**
-     * Show payment pending message
+     * Show payment pending message with auto-polling
      */
     function showPaymentPendingMessage(orderId) {
+        pollAttempts = 0;
+        
         const content = `
-            <div class="paystack-modal-icon paystack-modal-icon--pending">
+            <div class="paystack-modal-icon paystack-modal-icon--pending" id="paystack-status-icon">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <circle cx="12" cy="12" r="10"/>
                     <path d="M12 6v6l4 2"/>
                 </svg>
             </div>
-            <h3 class="paystack-modal-title">Processing Payment</h3>
-            <p class="paystack-modal-text">Your payment is being verified. This may take a moment.</p>
+            <h3 class="paystack-modal-title" id="paystack-status-title">Processing Payment</h3>
+            <p class="paystack-modal-text" id="paystack-status-text">Verifying your payment. Please wait...</p>
             <div class="paystack-modal-order">
                 <span class="paystack-modal-label">Order ID</span>
                 <span class="paystack-modal-value">${orderId}</span>
             </div>
-            <p class="paystack-modal-hint">You will receive an email confirmation once your payment is confirmed.</p>
-            <div class="paystack-modal-actions">
+            <div class="paystack-modal-progress" id="paystack-progress-container">
+                <div class="paystack-modal-progress-bar" id="paystack-progress-bar"></div>
+            </div>
+            <p class="paystack-modal-hint" id="paystack-status-hint">This usually takes a few seconds</p>
+            <div class="paystack-modal-actions" id="paystack-modal-actions">
+                <button onclick="window.refreshPaymentStatus('${orderId}')" class="paystack-modal-btn paystack-modal-btn--secondary" id="paystack-refresh-btn" style="display: none;">
+                    Check Again
+                </button>
                 <a href="track-order.html" class="paystack-modal-btn paystack-modal-btn--secondary">Track Order</a>
             </div>
         `;
         
         showStyledModal(content);
+        
+        // Start polling
+        startPaymentPolling(orderId);
     }
+
+    /**
+     * Start polling for payment status
+     */
+    function startPaymentPolling(orderId) {
+        // Clear any existing interval
+        if (pollInterval) {
+            clearInterval(pollInterval);
+        }
+        
+        // Update progress bar
+        updateProgressBar();
+        
+        // Poll immediately
+        checkAndUpdateStatus(orderId);
+        
+        // Then poll every 3 seconds
+        pollInterval = setInterval(() => {
+            pollAttempts++;
+            updateProgressBar();
+            checkAndUpdateStatus(orderId);
+        }, 3000);
+    }
+
+    /**
+     * Update progress bar
+     */
+    function updateProgressBar() {
+        const progressBar = document.getElementById('paystack-progress-bar');
+        if (progressBar) {
+            const progress = Math.min((pollAttempts / MAX_POLL_ATTEMPTS) * 100, 100);
+            progressBar.style.width = `${progress}%`;
+        }
+    }
+
+    /**
+     * Check payment status and update UI
+     */
+    async function checkAndUpdateStatus(orderId) {
+        try {
+            const status = await checkPaymentStatus(orderId);
+            console.log(`[PAYSTACK POLL] Attempt ${pollAttempts}: status = ${status}`);
+            
+            if (status === 'paid') {
+                // Payment successful!
+                clearInterval(pollInterval);
+                showPaymentSuccess(orderId);
+                return;
+            }
+            
+            if (status === 'failed') {
+                // Payment failed
+                clearInterval(pollInterval);
+                updateModalToFailed();
+                return;
+            }
+            
+            // Still pending - update hint text occasionally
+            if (pollAttempts === 10) {
+                updateStatusHint('Still processing... Checking again');
+            } else if (pollAttempts === 20) {
+                updateStatusHint('Taking longer than usual. Please wait...');
+            }
+            
+            // Timeout after max attempts
+            if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+                clearInterval(pollInterval);
+                updateModalToTimeout(orderId);
+            }
+            
+        } catch (error) {
+            console.error('[PAYSTACK POLL] Error checking status:', error);
+        }
+    }
+
+    /**
+     * Update status hint text
+     */
+    function updateStatusHint(text) {
+        const hint = document.getElementById('paystack-status-hint');
+        if (hint) {
+            hint.textContent = text;
+        }
+    }
+
+    /**
+     * Show payment success and auto-redirect
+     */
+    function showPaymentSuccess(orderId) {
+        const icon = document.getElementById('paystack-status-icon');
+        const title = document.getElementById('paystack-status-title');
+        const text = document.getElementById('paystack-status-text');
+        const progressContainer = document.getElementById('paystack-progress-container');
+        const hint = document.getElementById('paystack-status-hint');
+        const actions = document.getElementById('paystack-modal-actions');
+        
+        // Update icon
+        if (icon) {
+            icon.className = 'paystack-modal-icon paystack-modal-icon--success';
+            icon.innerHTML = `
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            `;
+        }
+        
+        // Update text
+        if (title) title.textContent = 'Payment Successful!';
+        if (text) text.textContent = 'Your payment has been confirmed.';
+        if (progressContainer) progressContainer.style.display = 'none';
+        if (hint) hint.textContent = 'Redirecting to confirmation page...';
+        
+        // Update actions
+        if (actions) {
+            actions.innerHTML = `
+                <button onclick="window.location.href='order-confirmation.html?order=${orderId}&status=success'" 
+                        class="paystack-modal-btn paystack-modal-btn--primary">
+                    View Order
+                </button>
+            `;
+        }
+        
+        // Auto-redirect after 2 seconds
+        setTimeout(() => {
+            redirectToConfirmation(orderId);
+        }, 2000);
+    }
+
+    /**
+     * Update modal to failed state
+     */
+    function updateModalToFailed() {
+        const icon = document.getElementById('paystack-status-icon');
+        const title = document.getElementById('paystack-status-title');
+        const text = document.getElementById('paystack-status-text');
+        const progressContainer = document.getElementById('paystack-progress-container');
+        const hint = document.getElementById('paystack-status-hint');
+        const actions = document.getElementById('paystack-modal-actions');
+        
+        if (icon) {
+            icon.className = 'paystack-modal-icon paystack-modal-icon--error';
+            icon.innerHTML = `
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+            `;
+        }
+        
+        if (title) title.textContent = 'Payment Failed';
+        if (text) text.textContent = 'We couldn\'t verify your payment.';
+        if (progressContainer) progressContainer.style.display = 'none';
+        if (hint) hint.textContent = 'Please try again or use a different payment method.';
+        
+        if (actions) {
+            actions.innerHTML = `
+                <button onclick="closeModal()" class="paystack-modal-btn paystack-modal-btn--primary">Try Again</button>
+            `;
+        }
+    }
+
+    /**
+     * Update modal to timeout state
+     */
+    function updateModalToTimeout(orderId) {
+        const title = document.getElementById('paystack-status-title');
+        const text = document.getElementById('paystack-status-text');
+        const progressContainer = document.getElementById('paystack-progress-container');
+        const hint = document.getElementById('paystack-status-hint');
+        const refreshBtn = document.getElementById('paystack-refresh-btn');
+        
+        if (title) title.textContent = 'Still Processing';
+        if (text) text.textContent = 'Your payment is taking longer than expected.';
+        if (progressContainer) progressContainer.style.display = 'none';
+        if (hint) hint.textContent = 'Don\'t worry! If your payment was successful, you\'ll receive an email confirmation.';
+        if (refreshBtn) refreshBtn.style.display = 'inline-flex';
+    }
+
+    /**
+     * Manual refresh handler
+     */
+    window.refreshPaymentStatus = async function(orderId) {
+        const refreshBtn = document.getElementById('paystack-refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.textContent = 'Checking...';
+            refreshBtn.disabled = true;
+        }
+        
+        await checkAndUpdateStatus(orderId);
+        
+        if (refreshBtn) {
+            refreshBtn.textContent = 'Check Again';
+            refreshBtn.disabled = false;
+        }
+    };
 
     /**
      * Show payment failed message
@@ -385,6 +598,35 @@
                 .paystack-modal-icon--error {
                     background: rgba(220, 38, 38, 0.1);
                     color: #dc2626;
+                }
+                
+                .paystack-modal-icon--success {
+                    background: rgba(34, 197, 94, 0.1);
+                    color: #22c55e;
+                    animation: paystack-success-pop 0.5s ease;
+                }
+                
+                @keyframes paystack-success-pop {
+                    0% { transform: scale(0.8); opacity: 0; }
+                    50% { transform: scale(1.1); }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                
+                .paystack-modal-progress {
+                    width: 100%;
+                    height: 3px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 2px;
+                    margin: 1.5rem 0;
+                    overflow: hidden;
+                }
+                
+                .paystack-modal-progress-bar {
+                    height: 100%;
+                    background: linear-gradient(90deg, #dc2626, #ef4444);
+                    border-radius: 2px;
+                    transition: width 0.3s ease;
+                    width: 0%;
                 }
                 
                 @keyframes paystack-pulse {
