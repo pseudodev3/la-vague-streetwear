@@ -705,6 +705,59 @@
             trackForm.dispatchEvent(new Event('submit'));
         }
     })();
+    
+    // Initialize locale selector for track order page
+    (function initTrackOrderLocale() {
+        const localeBtn = document.getElementById('localeBtn');
+        const localeDropdown = document.getElementById('localeDropdown');
+        
+        if (!localeBtn || !localeDropdown) return;
+        
+        const currentCurrency = CurrencyConfig.getCurrentCurrency();
+        const currentLang = localStorage.getItem('preferredLanguage') || 'en';
+        
+        // Update display
+        const localeCurrent = document.getElementById('localeCurrent');
+        if (localeCurrent) {
+            const symbols = { USD: '$', NGN: '₦', EUR: '€', GBP: '£' };
+            localeCurrent.textContent = `${symbols[currentCurrency]} · ${currentLang.toUpperCase()}`;
+        }
+        
+        // Currency options
+        document.querySelectorAll('#currencyOptions .locale-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.currency === currentCurrency);
+            btn.addEventListener('click', () => {
+                CurrencyConfig.setCurrency(btn.dataset.currency);
+                window.location.reload();
+            });
+        });
+        
+        // Language options
+        document.querySelectorAll('#languageOptions .locale-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === currentLang);
+            btn.addEventListener('click', () => {
+                localStorage.setItem('preferredLanguage', btn.dataset.lang);
+                document.documentElement.lang = btn.dataset.lang;
+                document.documentElement.dir = btn.dataset.lang === 'ar' ? 'rtl' : 'ltr';
+                window.location.reload();
+            });
+        });
+        
+        // Toggle dropdown
+        localeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            localeDropdown.classList.toggle('active');
+        });
+        
+        // Close on outside click
+        document.addEventListener('click', () => {
+            localeDropdown.classList.remove('active');
+        });
+        
+        localeDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    })();
     </script>
 </body>
 </html>
