@@ -361,7 +361,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         state.filteredProducts = filtered;
+        console.log('[SHOP] Set state.filteredProducts, length:', state.filteredProducts.length);
+        console.log('[SHOP] About to call renderProducts...');
         renderProducts();
+        console.log('[SHOP] After renderProducts, filteredProducts length:', state.filteredProducts.length);
     }
 
     function setCategory(category) {
