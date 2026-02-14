@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sale: false,
             new: false,
             bestseller: false,
-            maxPrice: 200
+            maxPrice: 500000
         },
         quickViewProduct: null,
         selectedColor: null,
@@ -770,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Price range
         elements.priceRange?.addEventListener('input', (e) => {
-            elements.priceValue.textContent = `$${e.target.value}`;
+            elements.priceValue.textContent = `₦${parseInt(e.target.value).toLocaleString()}`;
         });
         
         // Apply filters
@@ -778,7 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.filters.sale = document.getElementById('filterSale')?.checked || false;
             state.filters.new = document.getElementById('filterNew')?.checked || false;
             state.filters.bestseller = document.getElementById('filterBestseller')?.checked || false;
-            state.filters.maxPrice = parseInt(elements.priceRange?.value || 200);
+            state.filters.maxPrice = parseInt(elements.priceRange?.value || 500000);
             
             filterProducts();
             closeFilterSidebar();
@@ -789,13 +789,13 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('filterSale').checked = false;
             document.getElementById('filterNew').checked = false;
             document.getElementById('filterBestseller').checked = false;
-            elements.priceRange.value = 200;
-            elements.priceValue.textContent = '$200';
+            elements.priceRange.value = 500000;
+            elements.priceValue.textContent = '₦500,000';
         });
         
         elements.clearAllFilters?.addEventListener('click', () => {
             state.currentCategory = 'all';
-            state.filters = { sale: false, new: false, bestseller: false, maxPrice: 200 };
+            state.filters = { sale: false, new: false, bestseller: false, maxPrice: 500000 };
             state.sortBy = 'featured';
             
             document.querySelectorAll('.filter-btn').forEach(btn => {
