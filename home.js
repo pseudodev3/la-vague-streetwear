@@ -11,11 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
         wishlist: JSON.parse(localStorage.getItem('wishlist')) || [],
         currentLook: 0,
         lookbookImages: [
-            { src: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&q=80', title: 'Urban Nights', number: '01' },
-            { src: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=600&q=80', title: 'Daylight', number: '02' },
-            { src: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=600&q=80', title: 'Skate Park', number: '03' },
-            { src: 'https://images.unsplash.com/photo-1492447273231-0f8fecec1e3a?w=600&q=80', title: 'Downtown', number: '04' },
-            { src: 'https://images.unsplash.com/photo-1520975661595-6453be3f7070?w=1200&q=80', title: 'After Hours', number: '05' }
+            { src: './assets/urbannights.png', title: 'Urban Nights', number: '01' },
+            { src: './assets/daylight.jpg', title: 'Daylight', number: '02' },
+            { src: './assets/skatepark.jpg', title: 'Skate Park', number: '03' },
+            { src: './assets/downtown.jpg', title: 'Downtown', number: '04' },
+            { src: './assets/afterhours.jpg', title: 'After Hours', number: '05' }
         ]
     };
 
