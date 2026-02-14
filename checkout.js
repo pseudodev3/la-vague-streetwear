@@ -368,17 +368,102 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Initialize currency selector
+    // Initialize combined locale selector
+    function initLocaleSelector() {
+        const localeBtn = document.getElementById('localeBtn');
+        const localeDropdown = document.getElementById('localeDropdown');
+        
+        if (!localeBtn || !localeDropdown) return;
+        
+        const currentCurrency = CurrencyConfig.getCurrentCurrency();
+        const currentLang = localStorage.getItem('preferredLanguage') || 'en';
+        
+        // Update display
+        updateLocaleDisplay(currentCurrency, currentLang);
+        
+        // Currency options
+        document.querySelectorAll('#currencyOptions .locale-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.currency === currentCurrency);
+            btn.addEventListener('click', () => {
+                CurrencyConfig.setCurrency(btn.dataset.currency);
+                updateLocaleDisplay(btn.dataset.currency, currentLang);
+                // Update displayed prices
+                renderOrderSummary();
+                updateTotals();
+            });
+        });
+        
+        // Language options
+        document.querySelectorAll('#languageOptions .locale-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === currentLang);
+            btn.addEventListener('click', () => {
+                localStorage.setItem('preferredLanguage', btn.dataset.lang);
+                document.documentElement.lang = btn.dataset.lang;
+                document.documentElement.dir = btn.dataset.lang === 'ar' ? 'rtl' : 'ltr';
+                updateLocaleDisplay(currentCurrency, btn.dataset.lang);
+                if (typeof applyTranslations === 'function') {
+                    applyTranslations();
+                }
+            });
+        });
+        
+        // Toggle dropdown
+        localeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            localeDropdown.classList.toggle('active');
+        });
+        
+        // Close on outside click
+        document.addEventListener('click', () => {
+            localeDropdown.classList.remove('active');
+        });
+        
+        localeDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    }
+    
+    function updateLocaleDisplay(currency, lang) {
+        const localeCurrent = document.getElementById('localeCurrent');
+        if (localeCurrent) {
+            const symbols = { USD: '$', NGN: '₦', EUR: '€', GBP: '£' };
+            localeCurrent.textContent = `${symbols[currency]} · ${lang.toUpperCase()}`;
+        }
+    }
+    
+    // Initialize locale selector
+    initLocaleSelector();
+    
+    // Legacy selector support (fallback)
     const currencySelect = document.getElementById('currencySelect');
     if (currencySelect) {
         currencySelect.value = CurrencyConfig.getCurrentCurrency();
         currencySelect.addEventListener('change', (e) => {
             CurrencyConfig.setCurrency(e.target.value);
-            window.location.reload();
+            // Update displayed prices without page reload
+            renderOrderSummary();
+            updateTotals();
         });
     }
     
-    // Initialize language selector
+    // Listen for currency changes from other sources
+    window.addEventListener('currencyChanged', () => {
+        // Update locale display
+        const currentCurrency = CurrencyConfig.getCurrentCurrency();
+        const currentLang = localStorage.getItem('preferredLanguage') || 'en';
+        updateLocaleDisplay(currentCurrency, currentLang);
+        
+        // Update legacy selector if present
+        if (currencySelect) {
+            currencySelect.value = currentCurrency;
+        }
+        
+        // Re-render prices
+        renderOrderSummary();
+        updateTotals();
+    });
+    
+    // Initialize language selector (legacy fallback)
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         const savedLang = localStorage.getItem('preferredLanguage') || 'en';
@@ -395,7 +480,9 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('preferredLanguage', e.target.value);
             document.documentElement.lang = e.target.value;
             document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
-            window.location.reload();
+            if (typeof applyTranslations === 'function') {
+                applyTranslations();
+            }
         });
     }
 
