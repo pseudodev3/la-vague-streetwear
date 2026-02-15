@@ -2190,7 +2190,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 storeName: document.getElementById('settingStoreName')?.value,
                 supportEmail: document.getElementById('settingSupportEmail')?.value,
                 freeShippingThreshold: String(parseInt(document.getElementById('settingFreeShipping')?.value) || 0),
-                shippingRate: String(parseInt(document.getElementById('settingShippingRate')?.value) || 0)
+                standardShippingRate: String(parseInt(document.getElementById('settingStandardShippingRate')?.value) || 0),
+                expressShippingRate: String(parseInt(document.getElementById('settingExpressShippingRate')?.value) || 0)
             };
             
             try {
@@ -2203,6 +2204,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Failed to save settings', 'error');
             }
         });
+    }
+
+    async function loadAdminSettings() {
+        try {
+            const data = await fetchAPI('/admin/settings');
+            if (data.success && data.settings) {
+                document.getElementById('settingStoreName').value = data.settings.storeName || '';
+                document.getElementById('settingSupportEmail').value = data.settings.supportEmail || '';
+                document.getElementById('settingFreeShipping').value = data.settings.freeShippingThreshold || '0';
+                document.getElementById('settingStandardShippingRate').value = data.settings.standardShippingRate || '0';
+                document.getElementById('settingExpressShippingRate').value = data.settings.expressShippingRate || '0';
+            }
+        } catch (error) {
+            console.error('Failed to load settings:', error);
+            showToast('Failed to load settings', 'error');
+        }
+    }
+
+    if (document.getElementById('settingsSection')) {
+        loadAdminSettings();
     }
     
     // Currency rates management

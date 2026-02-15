@@ -1297,7 +1297,7 @@ app.get('/api/config/settings', asyncHandler(async (req, res) => {
     res.json({
         success: true,
         settings: {
-            shippingRate: parseInt(settings.shippingRate) || 10,
+            shippingRate: parseInt(settings.standardShippingRate) || 10,
             expressShippingRate: parseInt(settings.expressShippingRate) || 25,
             freeShippingThreshold: parseInt(settings.freeShippingThreshold) || 150,
             storeName: settings.storeName || 'LA VAGUE'
