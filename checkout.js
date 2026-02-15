@@ -18,7 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
         cart: JSON.parse(localStorage.getItem('cart')) || [],
         shipping: 10,
         discount: 0,
-        discountCode: null
+        discountCode: null,
+        settings: {
+            shippingRate: 10,
+            freeShippingThreshold: 150
+        }
     };
 
     // ==========================================
@@ -44,7 +48,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // INITIALIZATION
     // ==========================================
-    function init() {
+    async function loadSettings() {
+        try {
+            const response = await fetch(`${API_URL}/config/settings`);
+            const data = await response.json();
+            
+            if (data.success && data.settings) {
+                state.settings.shippingRate = data.settings.shippingRate || 10;
+                state.settings.freeShippingThreshold = data.settings.freeShippingThreshold || 150;
+                state.shipping = state.settings.shippingRate;
+                
+                // Update shipping display
+                document.getElementById('standardShipping').textContent = `₦${state.settings.shippingRate.toLocaleString()}.00`;
+                
+                console.log('[CHECKOUT] Settings loaded:', state.settings);
+            }
+        } catch (error) {
+            console.error('[CHECKOUT] Failed to load settings:', error);
+        }
+    }
+
+    async function init() {
         console.log('Cart items:', state.cart.length);
         if (state.cart.length === 0) {
             console.log('Cart is empty, redirecting to shop...');
@@ -53,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         console.log('Initializing checkout...');
+        await loadSettings();
         renderOrderSummary();
         updateTotals();
         bindEvents();
@@ -103,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Free shipping threshold
-        if (subtotal >= 150) {
+        if (subtotal >= state.settings.freeShippingThreshold) {
             state.shipping = 0;
             elements.summaryShipping.textContent = 'FREE';
             document.getElementById('standardShipping').textContent = 'FREE';
@@ -404,7 +429,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Shipping option change
         elements.shippingOptions.forEach(option => {
             option.addEventListener('change', (e) => {
-                state.shipping = e.target.value === 'express' ? 25 : (state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) >= 150 ? 0 : 10);
+                const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            if (e.target.value === 'express') {
+                state.shipping = 2500; // Fixed express shipping
+            } else if (subtotal >= state.settings.freeShippingThreshold) {
+                state.shipping = 0;
+            } else {
+                state.shipping = state.settings.shippingRate;
+            }
                 updateTotals();
             });
         });

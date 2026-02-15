@@ -2186,18 +2186,17 @@ document.addEventListener('DOMContentLoaded', () => {
         settingsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const formData = {
-                storeName: document.getElementById('storeName')?.value,
-                storeEmail: document.getElementById('storeEmail')?.value,
-                currency: document.getElementById('defaultCurrency')?.value,
-                shippingRate: parseInt(document.getElementById('shippingRate')?.value) || 0,
-                freeShippingThreshold: parseInt(document.getElementById('freeShippingThreshold')?.value) || 0
+            const settings = {
+                storeName: document.getElementById('settingStoreName')?.value,
+                supportEmail: document.getElementById('settingSupportEmail')?.value,
+                freeShippingThreshold: String(parseInt(document.getElementById('settingFreeShipping')?.value) || 0),
+                shippingRate: String(parseInt(document.getElementById('settingShippingRate')?.value) || 0)
             };
             
             try {
                 await fetchAPI('/admin/settings', {
                     method: 'POST',
-                    body: formData
+                    body: { settings }
                 });
                 showToast('Settings saved successfully', 'success');
             } catch (error) {

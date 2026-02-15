@@ -1278,6 +1278,32 @@ app.get('/api/config/paystack', (req, res) => {
     });
 });
 
+// Public settings endpoint (for checkout)
+app.get('/api/config/settings', asyncHandler(async (req, res) => {
+    let result;
+    if (USE_POSTGRES) {
+        result = await db.query('SELECT * FROM settings');
+        result = result.rows;
+    } else {
+        result = db.prepare('SELECT * FROM settings').all();
+    }
+    
+    const settings = {};
+    result.forEach(row => {
+        settings[row.key] = row.value;
+    });
+    
+    // Return only public-safe settings
+    res.json({
+        success: true,
+        settings: {
+            shippingRate: parseInt(settings.shippingRate) || 10,
+            freeShippingThreshold: parseInt(settings.freeShippingThreshold) || 150,
+            storeName: settings.storeName || 'LA VAGUE'
+        }
+    });
+}));
+
 /**
  * Test webhook endpoint (for debugging)
  * POST /api/payment/webhook-test
