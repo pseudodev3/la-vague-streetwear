@@ -55,6 +55,16 @@ async function initCheckout() {
     updateShippingState();
     render();
     bindEvents();
+
+    // Nav scroll effect
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+            elements.nav?.classList.add('scrolled');
+        } else {
+            elements.nav?.classList.remove('scrolled');
+        }
+    }, { passive: true });
+
     console.log('[CHECKOUT] Initialization complete.');
 }
 
