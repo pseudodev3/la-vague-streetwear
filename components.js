@@ -3,20 +3,20 @@
  * Centralizes Nav, Footer, and Sidebars to keep code DRY
  */
 
-window.Components = {
+const Components = {
     // Current templates extracted from index.html
     templates: {
         nav: `
         <div class="nav-container">
-            <a href="index.html" class="nav-logo">
+            <a href="/" class="nav-logo">
                 <span class="logo-text">LA VAGUE</span>
             </a>
             <ul class="nav-links" id="navLinks">
-                <li><a href="shop.html" class="nav-link">Shop</a></li>
-                <li><a href="index.html#collections" class="nav-link">Collections</a></li>
-                <li><a href="index.html#lookbook" class="nav-link">Lookbook</a></li>
-                <li><a href="index.html#about" class="nav-link">About</a></li>
-                <li><a href="contact.html" class="nav-link">Contact</a></li>
+                <li><a href="/shop" class="nav-link">Shop</a></li>
+                <li><a href="/#collections" class="nav-link">Collections</a></li>
+                <li><a href="/#lookbook" class="nav-link">Lookbook</a></li>
+                <li><a href="/#about" class="nav-link">About</a></li>
+                <li><a href="/contact" class="nav-link">Contact</a></li>
                 <li class="mobile-selectors">
                     <div class="mobile-currency-selector">
                         <select id="mobileCurrencySelect" aria-label="Currency">
@@ -122,29 +122,29 @@ window.Components = {
                 <div class="footer-links">
                     <h4>Shop</h4>
                     <ul>
-                        <li><a href="shop.html">All Products</a></li>
-                        <li><a href="shop.html?category=hoodies">Hoodies</a></li>
-                        <li><a href="shop.html?category=tees">T-Shirts</a></li>
-                        <li><a href="shop.html?category=bottoms">Bottoms</a></li>
-                        <li><a href="shop.html?category=accessories">Accessories</a></li>
+                        <li><a href="/shop">All Products</a></li>
+                        <li><a href="/shop?category=hoodies">Hoodies</a></li>
+                        <li><a href="/shop?category=tees">T-Shirts</a></li>
+                        <li><a href="/shop?category=bottoms">Bottoms</a></li>
+                        <li><a href="/shop?category=accessories">Accessories</a></li>
                     </ul>
                 </div>
                 <div class="footer-links">
                     <h4>Help</h4>
                     <ul>
-                        <li><a href="track-order.html">Track Order</a></li>
-                        <li><a href="shipping.html">Shipping</a></li>
-                        <li><a href="returns.html">Returns</a></li>
-                        <li><a href="faq.html">FAQ</a></li>
-                        <li><a href="contact.html">Contact</a></li>
+                        <li><a href="/track-order">Track Order</a></li>
+                        <li><a href="/shipping">Shipping</a></li>
+                        <li><a href="/returns">Returns</a></li>
+                        <li><a href="/faq">FAQ</a></li>
+                        <li><a href="/contact">Contact</a></li>
                     </ul>
                 </div>
                 <div class="footer-links">
                     <h4>Legal</h4>
                     <ul>
-                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
-                        <li><a href="terms-of-service.html">Terms of Service</a></li>
-                        <li><a href="refund-policy.html">Refund Policy</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
+                        <li><a href="/terms-of-service">Terms of Service</a></li>
+                        <li><a href="/refund-policy">Refund Policy</a></li>
                     </ul>
                 </div>
             </div>
@@ -167,7 +167,7 @@ window.Components = {
         <div class="cart-items" id="cartItems">
             <div class="cart-empty">
                 <p data-i18n="cart.empty">Your cart is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()" data-i18n="cart.continueShopping">Continue Shopping</a>
+                <a href="/shop" class="btn btn-secondary" onclick="window.closeCart()" data-i18n="cart.continueShopping">Continue Shopping</a>
             </div>
         </div>
         <div class="cart-footer" id="cartFooter">
@@ -175,7 +175,7 @@ window.Components = {
                 <span data-i18n="cart.subtotal">Subtotal</span>
                 <span id="cartSubtotal">$0</span>
             </div>
-            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()" data-i18n="cart.checkout">Checkout</a>
+            <a href="/checkout" class="btn btn-primary btn-full" onclick="window.closeCart()" data-i18n="cart.checkout">Checkout</a>
             <p class="cart-note" data-i18n="cart.note">Shipping & taxes calculated at checkout</p>
         </div>
         `,
@@ -190,7 +190,7 @@ window.Components = {
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                 </svg>
                 <p data-i18n="cart.wishlistEmpty">Your wishlist is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()" data-i18n="cart.startShopping">Start Shopping</a>
+                <a href="/shop" class="btn btn-secondary" onclick="window.closeWishlist()" data-i18n="cart.startShopping">Start Shopping</a>
             </div>
         </div>
         `,

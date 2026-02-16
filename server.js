@@ -252,10 +252,11 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static files with caching
-app.use(express.static('public', {
+// Static files with caching and clean URLs support
+app.use(express.static('.', {
     maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
-    etag: true
+    etag: true,
+    extensions: ['html']
 }));
 
 // ==========================================
