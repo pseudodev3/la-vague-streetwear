@@ -105,6 +105,18 @@ function createTransporter() {
         });
     }
     
+    // Brevo (Sendinblue) configuration
+    if (provider === 'brevo' || provider === 'sendinblue') {
+        return nodemailer.createTransport({
+            host: 'smtp-relay.brevo.com',
+            port: 587,
+            auth: {
+                user: process.env.BREVO_USER || process.env.SMTP_USER,
+                pass: process.env.BREVO_PASS || process.env.SMTP_PASS
+            }
+        });
+    }
+    
     // SendGrid configuration
     if (provider === 'sendgrid') {
         return nodemailer.createTransport({
@@ -256,6 +268,10 @@ export function isEmailConfigured() {
     
     if (provider === 'sendgrid') {
         return !!process.env.SENDGRID_API_KEY;
+    }
+    
+    if (provider === 'brevo' || provider === 'sendinblue') {
+        return !!((process.env.BREVO_USER || process.env.SMTP_USER) && (process.env.BREVO_PASS || process.env.SMTP_PASS));
     }
     
     return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
