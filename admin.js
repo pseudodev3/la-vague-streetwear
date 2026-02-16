@@ -1914,20 +1914,29 @@ function renderSalesChart(data) {
         orders: parseInt(d.orders) || 0
     }));
     
-    // Filter out days with 0 revenue for cleaner chart
-    const filteredData = parsedData.filter(d => d.revenue > 0 || d.orders > 0);
-    
-    // If no sales yet, show message
-    if (filteredData.length === 0) {
-        container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%;"><p class="text-muted">No sales data yet</p></div>';
-        return;
+    // Generate full 30-day sequence to ensure no gaps in chart
+    const displayData = [];
+    const now = new Date();
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        
+        // Find existing data for this date
+        const existingDay = parsedData.find(day => {
+            // Support various date formats (YYYY-MM-DD or full timestamp)
+            const dayDate = day.date.includes('T') ? day.date.split('T')[0] : day.date;
+            return dayDate === dateStr;
+        });
+        
+        displayData.push(existingDay || { date: dateStr, revenue: 0, orders: 0 });
     }
     
-    // Calculate statistics
-    const maxRevenue = Math.max(...filteredData.map(d => d.revenue));
-    const totalRevenue = filteredData.reduce((sum, d) => sum + d.revenue, 0);
-    const totalOrders = filteredData.reduce((sum, d) => sum + d.orders, 0);
-    const avgRevenue = Math.round(totalRevenue / filteredData.length);
+    // Calculate statistics based on the 30-day period
+    const maxRevenue = Math.max(...displayData.map(d => d.revenue), 1000); // Min max for empty charts
+    const totalRevenue = displayData.reduce((sum, d) => sum + d.revenue, 0);
+    const totalOrders = displayData.reduce((sum, d) => sum + d.orders, 0);
+    const avgRevenue = Math.round(totalRevenue / displayData.length);
     
     // Create professional chart container
     const chartContainer = createElement('div', {
@@ -1939,13 +1948,12 @@ function renderSalesChart(data) {
         style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);'
     });
     
-    const titleDiv = createElement('div');
     titleDiv.appendChild(createElement('h4', { 
         style: 'margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;' 
     }, 'Sales Performance'));
     titleDiv.appendChild(createElement('span', { 
         style: 'font-size: 0.85rem; color: var(--color-text-muted);' 
-    }, `${filteredData.length} days tracked`));
+    }, 'Last 30 Days trend'));
     headerDiv.appendChild(titleDiv);
     
     // Metrics summary
@@ -1954,8 +1962,8 @@ function renderSalesChart(data) {
     });
     
     const metrics = [
-        { label: 'Total Revenue', value: `₦${totalRevenue.toLocaleString()}` },
-        { label: 'Total Orders', value: totalOrders.toLocaleString() },
+        { label: 'Period Revenue', value: `₦${totalRevenue.toLocaleString()}` },
+        { label: 'Period Orders', value: totalOrders.toLocaleString() },
         { label: 'Daily Avg', value: `₦${avgRevenue.toLocaleString()}` }
     ];
     
@@ -2020,9 +2028,6 @@ function renderSalesChart(data) {
     const barsContainer = createElement('div', { 
         style: 'flex: 1; display: flex; align-items: flex-end; justify-content: space-around; gap: 4px; padding-top: 0.5rem; position: relative; z-index: 1; height: 100%;' 
     });
-    
-    // Show last 30 days or all if less
-    const displayData = filteredData.slice(-30);
     
     displayData.forEach((day, index) => {
         const revenue = day.revenue;
