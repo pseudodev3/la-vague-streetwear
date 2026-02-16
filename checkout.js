@@ -127,9 +127,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             
             if (data.success && data.settings) {
-                state.settings.shippingRate = data.settings.shippingRate || 10;
-                state.settings.expressShippingRate = data.settings.expressShippingRate || 25;
-                state.settings.freeShippingThreshold = data.settings.freeShippingThreshold || 150;
+                state.settings.shippingRate = data.settings.shippingRate || 10000;
+                state.settings.expressShippingRate = data.settings.expressShippingRate || 25000;
+                state.settings.freeShippingThreshold = data.settings.freeShippingThreshold || 150000;
                 console.log('[CHECKOUT] Settings loaded:', state.settings);
             }
         } catch (error) {
