@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         shipping: 10,
         discount: 0,
         discountCode: null,
+        isFreeShippingCoupon: false,
         settings: {
             shippingRate: 10,
             expressShippingRate: 25,
@@ -84,13 +85,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Render shipping options
-        const isStandardSelected = document.querySelector('input[name="shipping"]:checked').value === 'standard';
-        if (subtotal >= state.settings.freeShippingThreshold && isStandardSelected) {
+        if (state.isFreeShippingCoupon || subtotal >= state.settings.freeShippingThreshold) {
             elements.standardShippingPrice.textContent = 'FREE';
         } else {
-            elements.standardShippingPrice.textContent = `₦${state.settings.shippingRate.toLocaleString()}.00`;
+            elements.standardShippingPrice.textContent = CurrencyConfig.formatPrice(state.settings.shippingRate);
         }
-        elements.expressShippingPrice.textContent = `₦${state.settings.expressShippingRate.toLocaleString()}.00`;
+        
+        if (state.isFreeShippingCoupon) {
+            elements.expressShippingPrice.textContent = 'FREE';
+        } else {
+            elements.expressShippingPrice.textContent = CurrencyConfig.formatPrice(state.settings.expressShippingRate);
+        }
     }
 
     // ==========================================
@@ -99,6 +104,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateShippingState() {
         const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const selectedShipping = document.querySelector('input[name="shipping"]:checked').value;
+
+        if (state.isFreeShippingCoupon) {
+            state.shipping = 0;
+            return;
+        }
 
         if (selectedShipping === 'express') {
             state.shipping = state.settings.expressShippingRate;
@@ -226,18 +236,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (data.coupon.type === 'free_shipping') {
+                state.isFreeShippingCoupon = true;
                 state.shipping = 0;
                 state.discount = 0;
                 showToast('Free shipping applied!', 'success');
             } else if (data.coupon.type === 'percentage') {
+                state.isFreeShippingCoupon = false;
                 state.discount = Math.round((subtotal * data.coupon.discount) / 100);
                 showToast(`${data.coupon.discount}% discount applied!`, 'success');
             } else if (data.coupon.type === 'fixed') {
+                state.isFreeShippingCoupon = false;
                 state.discount = data.coupon.discount;
                 showToast(`₦${data.coupon.discount.toLocaleString()} discount applied!`, 'success');
             }
             
             state.discountCode = code;
+            updateShippingState();
             render();
             elements.discountCode.value = '';
             
