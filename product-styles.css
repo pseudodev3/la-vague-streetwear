@@ -1779,3 +1779,32 @@
         max-width: 100%;
     }
 }
+
+/* Stock Status */
+.product-stock-status {
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stock-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.stock-low { color: #f59e0b; }
+.stock-low .stock-dot { background-color: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+
+.stock-in { color: #22c55e; }
+.stock-in .stock-dot { background-color: #22c55e; }
+
+.stock-out { color: var(--color-text-muted); }
+.stock-out .stock-dot { background-color: var(--color-text-muted); }
+

@@ -288,6 +288,19 @@ const orderLimiter = rateLimit({
     }
 });
 
+// Stricter limiter for contact form (prevent spam)
+const contactLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        error: 'Too many messages, please try again later.',
+        code: 'RATE_LIMIT'
+    }
+});
+
 // Auth rate limiter (prevents brute force)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -2484,7 +2497,7 @@ app.get('/api/inventory/check/:productId', asyncHandler(async (req, res) => {
 // ==========================================
 // CONTACT FORM
 // ==========================================
-app.post('/api/contact', csrfProtection, validateContactForm, asyncHandler(async (req, res) => {
+app.post('/api/contact', contactLimiter, csrfProtection, validateContactForm, asyncHandler(async (req, res) => {
     const { name, email, subject, message } = req.body;
     
     // Create transporter

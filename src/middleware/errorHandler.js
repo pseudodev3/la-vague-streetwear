@@ -82,6 +82,12 @@ export const asyncHandler = (fn) => (req, res, next) => {
  * 404 handler for undefined routes
  */
 export const notFoundHandler = (req, res) => {
+    // If request accepts HTML, serve 404.html
+    if (req.accepts('html')) {
+        res.status(404).sendFile('404.html', { root: '.' });
+        return;
+    }
+
     res.status(404).json({
         success: false,
         error: `Route ${req.originalUrl} not found`,

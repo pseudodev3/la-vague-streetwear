@@ -134,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         productActions: document.querySelector('.product-actions'),
         sizeGuideBtn: document.getElementById('sizeGuideBtn'),
         relatedGrid: document.getElementById('relatedGrid'),
+        stockStatus: document.getElementById('stockStatus'),
         
         // Navigation
         nav: document.getElementById('nav'),
@@ -322,6 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (p.sizes.length === 1 && p.sizes[0] === 'OS') {
             elements.sizeGroup.style.display = 'none';
+            // Still update stock for OS
+            updateStockStatus();
             return;
         }
         
@@ -336,7 +339,34 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }).join('');
         
-        elements.selectedSize.textContent = state.selectedSize;
+        elements.selectedSize.textContent = state.selectedSize || (typeof I18n !== 'undefined' ? I18n.getTranslation('product.select') : 'Select');
+        updateStockStatus();
+    }
+
+    function updateStockStatus() {
+        if (!elements.stockStatus) return;
+        
+        const p = state.product;
+        const size = (p.sizes.length === 1 && p.sizes[0] === 'OS') ? 'OS' : state.selectedSize;
+        const variantKey = `${state.selectedColor}-${size}`;
+        const stock = p.inventory[variantKey] || 0;
+        
+        if (!state.selectedSize && !(p.sizes.length === 1 && p.sizes[0] === 'OS')) {
+            elements.stockStatus.innerHTML = '';
+            elements.addToCartBtn.disabled = true;
+            return;
+        }
+
+        if (stock <= 0) {
+            elements.stockStatus.innerHTML = `<span class="stock-out"><span class="stock-dot"></span> Out of Stock</span>`;
+            elements.addToCartBtn.disabled = true;
+        } else if (stock <= 5) {
+            elements.stockStatus.innerHTML = `<span class="stock-low"><span class="stock-dot"></span> Low Stock: Only ${stock} left</span>`;
+            elements.addToCartBtn.disabled = false;
+        } else {
+            elements.stockStatus.innerHTML = `<span class="stock-in"><span class="stock-dot"></span> In Stock</span>`;
+            elements.addToCartBtn.disabled = false;
+        }
     }
 
     async function renderRelatedProducts() {

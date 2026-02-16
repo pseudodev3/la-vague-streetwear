@@ -220,17 +220,27 @@ const I18n = {
     
     // Update announcement bar
     updateAnnouncementBar() {
+        const threshold = (window.GlobalSettings) ? 
+            window.GlobalSettings.settings.freeShippingThreshold : 150000;
+        const formattedThreshold = (window.CurrencyConfig) ? 
+            window.CurrencyConfig.formatPrice(threshold) : `₦${threshold.toLocaleString()}`;
+
         const announcementSpans = document.querySelectorAll('.announcement-content span:not(.announcement-divider)');
         if (announcementSpans.length >= 2) {
-            announcementSpans[0].textContent = this.getTranslation('announcement.freeShipping');
+            announcementSpans[0].textContent = this.t('announcement.freeShipping', { threshold: formattedThreshold });
             announcementSpans[1].textContent = this.getTranslation('announcement.newDrop');
         } else if (announcementSpans.length === 1) {
-            announcementSpans[0].textContent = this.getTranslation('announcement.freeShipping');
+            announcementSpans[0].textContent = this.t('announcement.freeShipping', { threshold: formattedThreshold });
         }
     },
     
     // Update product page elements
     updateProductPageElements() {
+        const threshold = (window.GlobalSettings) ? 
+            window.GlobalSettings.settings.freeShippingThreshold : 150000;
+        const formattedThreshold = (window.CurrencyConfig) ? 
+            window.CurrencyConfig.formatPrice(threshold) : `₦${threshold.toLocaleString()}`;
+
         // Color label
         const colorLabel = document.querySelector('#colorGroup .option-label');
         if (colorLabel) {
@@ -263,7 +273,7 @@ const I18n = {
         // Meta items
         const metaItems = document.querySelectorAll('.product-meta .meta-item span');
         if (metaItems.length >= 3) {
-            metaItems[0].textContent = this.getTranslation('product.freeShipping');
+            metaItems[0].textContent = this.t('product.freeShipping', { threshold: formattedThreshold });
             metaItems[1].textContent = this.getTranslation('product.shipsIn');
             metaItems[2].textContent = this.getTranslation('product.returns');
         }

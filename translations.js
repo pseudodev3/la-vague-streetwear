@@ -38,10 +38,14 @@ const TRANSLATIONS = {
             size: 'Size',
             select: 'Select',
             quantity: 'Quantity',
-            freeShipping: 'Free shipping over $150',
+            freeShipping: 'Free shipping over {{threshold}}',
             shipsIn: 'Ships within 24 hours',
             returns: '30-day returns',
             youMayAlsoLike: 'You May Also Like'
+        },
+        announcement: {
+            freeShipping: 'FREE SHIPPING ON ORDERS OVER {{threshold}}',
+            newDrop: 'NEW DROP AVAILABLE NOW'
         },
         cart: {
             title: 'Your Cart',
@@ -139,10 +143,14 @@ const TRANSLATIONS = {
             size: 'Taille',
             select: 'Sélectionner',
             quantity: 'Quantité',
-            freeShipping: 'Livraison gratuite dès 150€',
+            freeShipping: 'Livraison gratuite dès {{threshold}}',
             shipsIn: 'Expédié sous 24h',
             returns: 'Retours sous 30 jours',
             youMayAlsoLike: 'Vous Aimerez Aussi'
+        },
+        announcement: {
+            freeShipping: 'LIVRAISON GRATUITE DÈS {{threshold}}',
+            newDrop: 'NOUVELLE COLLECTION DISPONIBLE'
         },
         cart: {
             title: 'Votre Panier',
@@ -240,10 +248,14 @@ const TRANSLATIONS = {
             size: 'المقاس',
             select: 'اختيار',
             quantity: 'الكمية',
-            freeShipping: 'شحن مجاني للطلبات فوق 150$',
+            freeShipping: 'شحن مجاني للطلبات فوق {{threshold}}',
             shipsIn: 'الش خلال 24 ساعة',
             returns: 'إرجاع خلال 30 يوم',
             youMayAlsoLike: 'قد يعجبك أيضاً'
+        },
+        announcement: {
+            freeShipping: 'شحن مجاني للطلبات فوق {{threshold}}',
+            newDrop: 'تشكيلة جديدة متوفرة الآن'
         },
         cart: {
             title: 'سلة التسوق',
@@ -310,13 +322,13 @@ const TRANSLATIONS = {
 };
 
 // Translation helper function
-function t(key, lang = null) {
+function t(key, vars = {}, lang = null) {
     const currentLang = lang || localStorage.getItem('preferredLanguage') || 'en';
     const keys = key.split('.');
     let value = TRANSLATIONS[currentLang];
     
     for (const k of keys) {
-        if (value && value[k]) {
+        if (value && typeof value === 'object' && k in value) {
             value = value[k];
         } else {
             // Fallback to English
@@ -324,20 +336,35 @@ function t(key, lang = null) {
             for (const k2 of keys) {
                 value = value?.[k2] || key;
             }
-            return value;
+            break;
         }
     }
     
-    return value || key;
+    if (typeof value !== 'string') return key;
+
+    // Replace variables
+    Object.keys(vars).forEach(varKey => {
+        value = value.replace(new RegExp(`{{${varKey}}}`, 'g'), vars[varKey]);
+    });
+    
+    return value;
 }
 
 // Apply translations to elements with data-i18n attribute
 function applyTranslations() {
-    const lang = localStorage.getItem('preferredLanguage') || 'en';
+    const lang = localStorage.getItem('laVagueLanguage') || localStorage.getItem('preferredLanguage') || 'en';
     
+    // Get dynamic values for variables
+    const threshold = (window.GlobalSettings) ? 
+        window.GlobalSettings.settings.freeShippingThreshold : 150000;
+    const formattedThreshold = (window.CurrencyConfig) ? 
+        window.CurrencyConfig.formatPrice(threshold) : `₦${threshold.toLocaleString()}`;
+    
+    const vars = { threshold: formattedThreshold };
+
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        const translation = t(key, lang);
+        const translation = t(key, vars, lang);
         if (translation && translation !== key) {
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
                 if (el.hasAttribute('placeholder')) {
@@ -360,7 +387,7 @@ function applyTranslations() {
     // Also translate placeholders
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
         const key = el.getAttribute('data-i18n-placeholder');
-        const translation = t(key, lang);
+        const translation = t(key, vars, lang);
         if (translation) {
             el.placeholder = translation;
         }

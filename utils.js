@@ -234,6 +234,75 @@ const CSRFProtection = {
     }
 };
 
+// Global Settings & UI Dynamic Updates
+const GlobalSettings = {
+    settings: {
+        freeShippingThreshold: 150000,
+        shippingRate: 10000,
+        expressShippingRate: 25000,
+        storeName: 'LA VAGUE'
+    },
+
+    async init() {
+        try {
+            const API_BASE_URL = window.location.hostname === 'localhost' 
+                ? 'http://localhost:3000/api' 
+                : 'https://la-vague-api.onrender.com/api';
+                
+            const response = await fetch(`${API_BASE_URL}/config/settings`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.settings) {
+                    this.settings = {
+                        ...this.settings,
+                        ...data.settings
+                    };
+                    this.updateDynamicElements();
+                }
+            }
+        } catch (error) {
+            console.error('[SETTINGS] Failed to load global settings:', error);
+            // Fallback to defaults already in state
+            this.updateDynamicElements();
+        }
+    },
+
+    updateDynamicElements() {
+        const { freeShippingThreshold, shippingRate, expressShippingRate } = this.settings;
+        
+        const format = (val) => (window.CurrencyConfig) ? 
+            window.CurrencyConfig.formatPrice(val) : `₦${val.toLocaleString()}`;
+
+        // Update free shipping threshold
+        const thresholdElements = document.querySelectorAll('.dynamic-free-shipping');
+        thresholdElements.forEach(el => {
+            // Check if it's the product meta one which might have different casing
+            if (el.getAttribute('data-i18n') === 'product.freeShipping') {
+                el.textContent = `Free shipping over ${format(freeShippingThreshold)}`;
+            } else {
+                el.textContent = `FREE SHIPPING ON ORDERS OVER ${format(freeShippingThreshold)}`;
+            }
+        });
+
+        // Update standard shipping rate
+        const rateElements = document.querySelectorAll('.dynamic-shipping-rate');
+        rateElements.forEach(el => {
+            el.textContent = format(shippingRate);
+        });
+
+        // Update express shipping rate
+        const expressElements = document.querySelectorAll('.dynamic-express-rate');
+        expressElements.forEach(el => {
+            el.textContent = format(expressShippingRate);
+        });
+
+        // Also trigger i18n update if available
+        if (window.I18n) {
+            window.I18n.applyTranslations();
+        }
+    }
+};
+
 // WhatsApp Support Initialization
 const WhatsAppSupport = {
     init() {
@@ -273,6 +342,7 @@ const WhatsAppSupport = {
 document.addEventListener('DOMContentLoaded', () => {
     CSRFProtection.init();
     WhatsAppSupport.init();
+    GlobalSettings.init();
 });
 
 // Make CSRFProtection available globally
