@@ -3,7 +3,7 @@
  * Centralizes Nav, Footer, and Sidebars to keep code DRY
  */
 
-const Components = {
+window.Components = {
     // Current templates extracted from index.html
     templates: {
         nav: `
@@ -214,23 +214,33 @@ const Components = {
      * Called automatically by utils.js
      */
     async init() {
-        console.log('[COMPONENTS] Injecting shared UI elements...');
-        
-        const nav = document.getElementById('nav');
-        const footer = document.querySelector('footer.footer');
-        const cartSidebar = document.getElementById('cartSidebar');
-        const wishlistSidebar = document.getElementById('wishlistSidebar');
-        const searchOverlay = document.getElementById('searchOverlay');
+        return new Promise((resolve) => {
+            const inject = () => {
+                console.log('[COMPONENTS] Injecting shared UI elements...');
+                
+                        const nav = document.getElementById('nav');
+                        const footer = document.querySelector('footer');
+                        const cartSidebar = document.getElementById('cartSidebar');                const wishlistSidebar = document.getElementById('wishlistSidebar');
+                const searchOverlay = document.getElementById('searchOverlay');
 
-        if (nav) nav.innerHTML = this.templates.nav;
-        if (footer) footer.innerHTML = this.templates.footer;
-        if (cartSidebar) cartSidebar.innerHTML = this.templates.cartSidebar;
-        if (wishlistSidebar) wishlistSidebar.innerHTML = this.templates.wishlistSidebar;
-        if (searchOverlay) searchOverlay.innerHTML = this.templates.searchOverlay;
+                if (nav) nav.innerHTML = this.templates.nav;
+                if (footer) footer.innerHTML = this.templates.footer;
+                if (cartSidebar) cartSidebar.innerHTML = this.templates.cartSidebar;
+                if (wishlistSidebar) wishlistSidebar.innerHTML = this.templates.wishlistSidebar;
+                if (searchOverlay) searchOverlay.innerHTML = this.templates.searchOverlay;
 
-        console.log('[COMPONENTS] Injection complete.');
-        
-        // Dispatch event to signal that DOM is now ready for JS listeners
-        window.dispatchEvent(new CustomEvent('componentsLoaded'));
+                console.log('[COMPONENTS] Injection complete.');
+                
+                // Dispatch event to signal that DOM is now ready for JS listeners
+                window.dispatchEvent(new CustomEvent('componentsLoaded'));
+                resolve();
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', inject);
+            } else {
+                inject();
+            }
+        });
     }
 };

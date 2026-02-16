@@ -339,17 +339,28 @@ const WhatsAppSupport = {
 };
 
 // Auto-initialize on page load
-document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Inject Shared Components (Header, Footer, Sidebars)
-    if (window.Components) {
-        await window.Components.init();
-    }
+if (!window.utilsInitialized) {
+    window.utilsInitialized = true;
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('[UTILS] DOM fully loaded, starting initialization...');
+        
+        // 1. Inject Shared Components (Header, Footer, Sidebars)
+        if (window.Components) {
+            try {
+                await window.Components.init();
+            } catch (e) {
+                console.error('[UTILS] Component injection failed:', e);
+            }
+        } else {
+            console.warn('[UTILS] window.Components not found!');
+        }
 
-    // 2. Initialize other core systems
-    CSRFProtection.init();
-    WhatsAppSupport.init();
-    GlobalSettings.init();
-});
+        // 2. Initialize other core systems
+        CSRFProtection.init();
+        WhatsAppSupport.init();
+        GlobalSettings.init();
+    });
+}
 
 // Make CSRFProtection available globally
 window.CSRFProtection = CSRFProtection;
