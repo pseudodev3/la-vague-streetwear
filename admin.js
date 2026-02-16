@@ -1948,6 +1948,7 @@ function renderSalesChart(data) {
         style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);'
     });
     
+    const titleDiv = createElement('div');
     titleDiv.appendChild(createElement('h4', { 
         style: 'margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;' 
     }, 'Sales Performance'));
