@@ -32,20 +32,24 @@ function getTransporter() {
             }
         };
     } 
-    // Brevo (Sendinblue) configuration - Optimized for Render
+    // Brevo (Sendinblue) configuration - Hardened for Render compatibility
     else if (provider === 'brevo' || provider === 'sendinblue') {
         config = {
             host: 'smtp-relay.brevo.com',
-            port: 465,
-            secure: true, // Use Implicit TLS for port 465 (more stable on Render)
+            port: 587,
+            secure: false, // STARTTLS
             auth: {
                 user: process.env.BREVO_USER || process.env.SMTP_USER,
                 pass: process.env.BREVO_PASS || process.env.SMTP_PASS
             },
-            pool: true, // Use a connection pool for efficiency
-            maxConnections: 5,
-            connectionTimeout: 10000,
-            socketTimeout: 15000
+            tls: {
+                // Essential for many cloud environments to prevent handshake hangs
+                rejectUnauthorized: false,
+                minVersion: 'TLSv1.2'
+            },
+            connectionTimeout: 20000, // 20 seconds
+            greetingTimeout: 20000,
+            socketTimeout: 30000
         };
     }
     // SendGrid configuration
@@ -162,7 +166,8 @@ const emailQueue = new EmailQueue();
  */
 async function sendEmail({ to, subject, html, text, from, replyTo }) {
     // Professional sender logic: 
-    // Prioritize EMAIL_FROM (authorized sender) over login credentials
+    // Brevo REQUIRES the 'from' email to be a verified sender in your dashboard.
+    // If you verified official@lavague.store, you MUST use that here.
     const senderEmail = process.env.EMAIL_FROM || process.env.BREVO_USER || process.env.SMTP_USER;
     const senderName = process.env.SMTP_FROM_NAME || 'LA VAGUE';
 
@@ -174,6 +179,8 @@ async function sendEmail({ to, subject, html, text, from, replyTo }) {
         text: text || '',
         replyTo: replyTo || senderEmail
     };
+
+    console.log(`[EMAIL QUEUE] Queueing email to ${to} from ${senderEmail}`);
 
     // Add to queue for reliability
     emailQueue.add({
