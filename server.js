@@ -2297,12 +2297,12 @@ app.get('/api/admin/stats', verifyAdminToken, asyncHandler(async (req, res) => {
     if (USE_POSTGRES) {
         totalOrders = await db.query('SELECT COUNT(*) FROM orders');
         pendingOrders = await db.query("SELECT COUNT(*) FROM orders WHERE order_status = 'pending'");
-        totalRevenue = await db.query("SELECT COALESCE(SUM(total), 0) FROM orders WHERE order_status != 'cancelled'");
+        totalRevenue = await db.query("SELECT COALESCE(SUM(total), 0) FROM orders WHERE payment_status = 'paid'");
         recentOrdersResult = await db.query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 5');
     } else {
         totalOrders = { rows: [{ count: db.prepare('SELECT COUNT(*) as count FROM orders').get().count }] };
         pendingOrders = { rows: [{ count: db.prepare("SELECT COUNT(*) as count FROM orders WHERE order_status = 'pending'").get().count }] };
-        totalRevenue = { rows: [{ sum: db.prepare("SELECT COALESCE(SUM(total), 0) as sum FROM orders WHERE order_status != 'cancelled'").get().sum }] };
+        totalRevenue = { rows: [{ sum: db.prepare("SELECT COALESCE(SUM(total), 0) as sum FROM orders WHERE payment_status = 'paid'").get().sum }] };
         recentOrdersResult = { rows: db.prepare('SELECT * FROM orders ORDER BY created_at DESC LIMIT 5').all() };
     }
     
@@ -2713,7 +2713,7 @@ app.get('/api/admin/analytics/sales', verifyAdminToken, asyncHandler(async (req,
                 COALESCE(SUM(shipping_cost), 0) as shipping
             FROM orders
             WHERE created_at > NOW() - INTERVAL '${days} days'
-            AND order_status != 'cancelled'
+            AND payment_status = 'paid'
             GROUP BY DATE(created_at)
             ORDER BY date DESC
         `);
@@ -2727,7 +2727,7 @@ app.get('/api/admin/analytics/sales', verifyAdminToken, asyncHandler(async (req,
                 COALESCE(SUM(shipping_cost), 0) as shipping
             FROM orders
             WHERE created_at > datetime('now', '-${days} days')
-            AND order_status != 'cancelled'
+            AND payment_status = 'paid'
             GROUP BY date(created_at)
             ORDER BY date DESC
         `).all();

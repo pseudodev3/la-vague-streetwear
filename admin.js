@@ -1811,11 +1811,16 @@ function updatePendingReviewsCount() {
 // ANALYTICS
 // ==========================================
 
+let currentAnalyticsPeriod = 30;
+
 async function loadAnalytics() {
     showLoading(true);
     try {
+        const period = document.getElementById('analyticsPeriod')?.value || 30;
+        currentAnalyticsPeriod = parseInt(period);
+        
         // Load sales data
-        const salesData = await fetchAPI('/admin/analytics/sales?period=30');
+        const salesData = await fetchAPI(`/admin/analytics/sales?period=${period}`);
         const customerStats = await fetchAPI('/admin/analytics/customers');
         const topProducts = await fetchAPI('/admin/analytics/top-products?limit=10');
         
@@ -1837,6 +1842,10 @@ async function loadAnalytics() {
             ordersEl.textContent = totalOrders.toLocaleString('en-US');
         }
         
+        const labelEl = document.querySelectorAll('#analyticsSection .stat-label');
+        if (labelEl[0]) labelEl[0].textContent = `${period}-Day Revenue`;
+        if (labelEl[1]) labelEl[1].textContent = `${period}-Day Orders`;
+
         const customersEl = document.getElementById('analyticsCustomers');
         const aovEl = document.getElementById('analyticsAOV');
         
@@ -1847,7 +1856,7 @@ async function loadAnalytics() {
             aovEl.textContent = '₦' + aov.toLocaleString('en-US');
         }
         
-        // Render sales chart (simple bar chart using DOM)
+        // Render sales chart (interactive and scrollable)
         renderSalesChart(salesData.data);
         
         // Render top products
@@ -1859,6 +1868,9 @@ async function loadAnalytics() {
         showLoading(false);
     }
 }
+
+// Add event listener for period change
+document.getElementById('analyticsPeriod')?.addEventListener('change', loadAnalytics);
 
 function renderTopProducts(products) {
     const tableBody = document.getElementById('topProductsTable');
@@ -1900,7 +1912,8 @@ function renderSalesChart(data) {
     if (!container) return;
     
     container.innerHTML = '';
-    container.style.cssText = 'height: 400px; padding: 0; position: relative;';
+    // Make the chart container scrollable horizontally for large data sets
+    container.style.cssText = 'height: 400px; padding: 0; position: relative; overflow-x: auto; overflow-y: hidden;';
     
     if (!data || data.length === 0) {
         container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%;"><p class="text-muted">No sales data available</p></div>';
@@ -1914,17 +1927,18 @@ function renderSalesChart(data) {
         orders: parseInt(d.orders) || 0
     }));
     
-    // Generate full 30-day sequence to ensure no gaps in chart
+    // Generate sequence to ensure no gaps in chart
     const displayData = [];
     const now = new Date();
-    for (let i = 29; i >= 0; i--) {
+    const daysToDisplay = currentAnalyticsPeriod;
+    
+    for (let i = daysToDisplay - 1; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
         
         // Find existing data for this date
         const existingDay = parsedData.find(day => {
-            // Support various date formats (YYYY-MM-DD or full timestamp)
             const dayDate = day.date.includes('T') ? day.date.split('T')[0] : day.date;
             return dayDate === dateStr;
         });
@@ -1932,72 +1946,88 @@ function renderSalesChart(data) {
         displayData.push(existingDay || { date: dateStr, revenue: 0, orders: 0 });
     }
     
-    // Calculate statistics based on the 30-day period
-    const maxRevenue = Math.max(...displayData.map(d => d.revenue), 1000); // Min max for empty charts
+    const maxRevenue = Math.max(...displayData.map(d => d.revenue), 1000);
     const totalRevenue = displayData.reduce((sum, d) => sum + d.revenue, 0);
-    const totalOrders = displayData.reduce((sum, d) => sum + d.orders, 0);
-    const avgRevenue = Math.round(totalRevenue / displayData.length);
     
-    // Create professional chart container
-    const chartContainer = createElement('div', {
-        style: 'height: 100%; display: flex; flex-direction: column; padding: 1.5rem 1.5rem 3rem 1.5rem;'
+    // Calculate width based on data length to make it "movable" (scrollable)
+    const minBarWidth = 40;
+    const chartWidth = Math.max(container.clientWidth - 40, displayData.length * minBarWidth);
+    
+    const chartWrapper = createElement('div', {
+        style: `width: ${chartWidth}px; min-width: 100%; height: 100%; display: flex; flex-direction: column; padding: 1.5rem;`
     });
     
-    // Header with key metrics
+    // Header
     const headerDiv = createElement('div', {
-        style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);'
+        style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;'
+    });
+    headerDiv.appendChild(createElement('h4', { style: 'margin: 0; font-size: 1rem;' }, `Sales Trend - Last ${daysToDisplay} Days`));
+    chartWrapper.appendChild(headerDiv);
+    
+    // Chart Plot Area
+    const plotArea = createElement('div', {
+        style: 'flex: 1; display: flex; align-items: flex-end; gap: 8px; position: relative; border-bottom: 1px solid var(--color-border); padding-bottom: 5px;'
     });
     
-    const titleDiv = createElement('div');
-    titleDiv.appendChild(createElement('h4', { 
-        style: 'margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;' 
-    }, 'Sales Performance'));
-    titleDiv.appendChild(createElement('span', { 
-        style: 'font-size: 0.85rem; color: var(--color-text-muted);' 
-    }, 'Last 30 Days trend'));
-    headerDiv.appendChild(titleDiv);
-    
-    // Metrics summary
-    const metricsDiv = createElement('div', { 
-        style: 'display: flex; gap: 2rem;' 
+    displayData.forEach(day => {
+        const height = maxRevenue > 0 ? (day.revenue / maxRevenue) * 100 : 0;
+        const barContainer = createElement('div', {
+            style: 'flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; group;'
+        });
+        
+        const bar = createElement('div', {
+            className: 'chart-bar',
+            style: `width: 100%; height: ${Math.max(height, 2)}%; background: var(--color-accent); transition: height 0.3s ease; border-radius: 2px 2px 0 0; cursor: pointer;`,
+            title: `${day.date}: ₦${day.revenue.toLocaleString()} (${day.orders} orders)`
+        });
+        
+        // Tooltip on hover
+        bar.addEventListener('mouseenter', (e) => {
+            bar.style.background = 'var(--color-accent-hover)';
+            showChartTooltip(e, `<strong>${day.date}</strong><br>Revenue: ₦${day.revenue.toLocaleString()}<br>Orders: ${day.orders}`);
+        });
+        bar.addEventListener('mouseleave', () => {
+            bar.style.background = 'var(--color-accent)';
+            hideChartTooltip();
+        });
+        
+        const label = createElement('span', {
+            style: 'font-size: 0.65rem; color: var(--color-text-muted); margin-top: 8px; white-space: nowrap; transform: rotate(-45deg); transform-origin: top left;'
+        }, day.date.substring(5)); // Show MM-DD
+        
+        barContainer.appendChild(bar);
+        barContainer.appendChild(label);
+        plotArea.appendChild(barContainer);
     });
     
-    const metrics = [
-        { label: 'Period Revenue', value: `₦${totalRevenue.toLocaleString()}` },
-        { label: 'Period Orders', value: totalOrders.toLocaleString() },
-        { label: 'Daily Avg', value: `₦${avgRevenue.toLocaleString()}` }
-    ];
+    chartWrapper.appendChild(plotArea);
+    container.appendChild(chartWrapper);
     
-    metrics.forEach(metric => {
-        const metricDiv = createElement('div', { style: 'text-align: right;' });
-        metricDiv.appendChild(createElement('div', { 
-            style: 'font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px;' 
-        }, metric.label));
-        metricDiv.appendChild(createElement('div', { 
-            style: 'font-size: 1.1rem; font-weight: 700; color: var(--color-text);' 
-        }, metric.value));
-        metricsDiv.appendChild(metricDiv);
-    });
-    headerDiv.appendChild(metricsDiv);
-    chartContainer.appendChild(headerDiv);
-    
-    // Chart area
-    const chartArea = createElement('div', { 
-        style: 'flex: 1; display: flex; position: relative; min-height: 250px;' 
-    });
-    
-    // Y-axis labels
-    const yAxisDiv = createElement('div', { 
-        style: 'display: flex; flex-direction: column; justify-content: space-between; padding-right: 1.5rem; min-width: 80px; text-align: right;' 
-    });
-    
-    const yAxisSteps = 5;
-    for (let i = yAxisSteps; i >= 0; i--) {
-        const value = Math.round((maxRevenue / yAxisSteps) * i);
-        let labelText;
-        if (value >= 1000000) {
-            labelText = `₦${(value / 1000000).toFixed(1)}M`;
-        } else if (value >= 1000) {
+    // Scroll to the end (latest data)
+    setTimeout(() => {
+        container.scrollLeft = container.scrollWidth;
+    }, 100);
+}
+
+function showChartTooltip(e, html) {
+    let tooltip = document.getElementById('chartTooltip');
+    if (!tooltip) {
+        tooltip = createElement('div', {
+            id: 'chartTooltip',
+            style: 'position: fixed; background: rgba(0,0,0,0.9); color: white; padding: 8px 12px; border-radius: 4px; font-size: 0.75rem; pointer-events: none; z-index: 10000; border: 1px solid var(--color-border);'
+        });
+        document.body.appendChild(tooltip);
+    }
+    tooltip.innerHTML = html;
+    tooltip.style.display = 'block';
+    tooltip.style.left = `${e.clientX + 10}px`;
+    tooltip.style.top = `${e.clientY - 40}px`;
+}
+
+function hideChartTooltip() {
+    const tooltip = document.getElementById('chartTooltip');
+    if (tooltip) tooltip.style.display = 'none';
+}
             labelText = `₦${(value / 1000).toFixed(0)}k`;
         } else {
             labelText = `₦${value}`;
