@@ -10,6 +10,75 @@ import {
     generateTestEmail 
 } from './order-email-template.js';
 
+// Transporter instance (Singleton for reuse)
+let globalTransporter = null;
+
+/**
+ * Get or create the nodemailer transporter
+ */
+function getTransporter() {
+    if (globalTransporter) return globalTransporter;
+
+    const provider = process.env.EMAIL_PROVIDER || 'smtp';
+    let config = {};
+    
+    // Gmail configuration
+    if (provider === 'gmail') {
+        config = {
+            service: 'gmail',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        };
+    } 
+    // Brevo (Sendinblue) configuration - Optimized for Render
+    else if (provider === 'brevo' || provider === 'sendinblue') {
+        config = {
+            host: 'smtp-relay.brevo.com',
+            port: 465,
+            secure: true, // Use Implicit TLS for port 465 (more stable on Render)
+            auth: {
+                user: process.env.BREVO_USER || process.env.SMTP_USER,
+                pass: process.env.BREVO_PASS || process.env.SMTP_PASS
+            },
+            pool: true, // Use a connection pool for efficiency
+            maxConnections: 5,
+            connectionTimeout: 10000,
+            socketTimeout: 15000
+        };
+    }
+    // SendGrid configuration
+    else if (provider === 'sendgrid') {
+        config = {
+            host: 'smtp.sendgrid.net',
+            port: 587,
+            auth: {
+                user: 'apikey',
+                pass: process.env.SENDGRID_API_KEY
+            }
+        };
+    }
+    // Generic SMTP (default)
+    else {
+        config = {
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            },
+            tls: {
+                rejectUnauthorized: process.env.NODE_ENV === 'production'
+            }
+        };
+    }
+
+    globalTransporter = nodemailer.createTransport(config);
+    return globalTransporter;
+}
+
 // Email queue for reliability
 class EmailQueue {
     constructor() {
@@ -59,7 +128,7 @@ class EmailQueue {
     }
 
     async executeJob(job) {
-        const transporter = createTransporter();
+        const transporter = getTransporter();
         await transporter.sendMail(job.mailOptions);
         console.log(`[EMAIL] Sent to ${job.to} - ${job.subject}`);
     }
@@ -89,76 +158,21 @@ class EmailQueue {
 const emailQueue = new EmailQueue();
 
 /**
- * Create nodemailer transporter based on environment configuration
- */
-function createTransporter() {
-    const provider = process.env.EMAIL_PROVIDER || 'smtp';
-    
-    // Gmail configuration
-    if (provider === 'gmail') {
-        return nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS
-            }
-        });
-    }
-    
-    // Brevo (Sendinblue) configuration
-    if (provider === 'brevo' || provider === 'sendinblue') {
-        return nodemailer.createTransport({
-            host: 'smtp-relay.brevo.com',
-            port: 587,
-            secure: false, // TLS requires secure: false for port 587
-            auth: {
-                user: process.env.BREVO_USER || process.env.SMTP_USER,
-                pass: process.env.BREVO_PASS || process.env.SMTP_PASS
-            },
-            connectionTimeout: 10000, // 10 seconds
-            greetingTimeout: 10000,
-            socketTimeout: 15000
-        });
-    }
-    
-    // SendGrid configuration
-    if (provider === 'sendgrid') {
-        return nodemailer.createTransport({
-            host: 'smtp.sendgrid.net',
-            port: 587,
-            auth: {
-                user: 'apikey',
-                pass: process.env.SENDGRID_API_KEY
-            }
-        });
-    }
-    
-    // Generic SMTP (default)
-    return nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-        },
-        tls: {
-            rejectUnauthorized: process.env.NODE_ENV === 'production'
-        }
-    });
-}
-
-/**
  * Send email with queue support
  */
 async function sendEmail({ to, subject, html, text, from, replyTo }) {
+    // Professional sender logic: 
+    // Prioritize EMAIL_FROM (authorized sender) over login credentials
+    const senderEmail = process.env.EMAIL_FROM || process.env.BREVO_USER || process.env.SMTP_USER;
+    const senderName = process.env.SMTP_FROM_NAME || 'LA VAGUE';
+
     const mailOptions = {
-        from: from || `"${process.env.SMTP_FROM_NAME || 'LA VAGUE'}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        from: from || `"${senderName}" <${senderEmail}>`,
         to,
         subject,
         html,
         text: text || '',
-        replyTo: replyTo || process.env.SMTP_FROM || process.env.SMTP_USER
+        replyTo: replyTo || senderEmail
     };
 
     // Add to queue for reliability
@@ -222,7 +236,7 @@ export async function sendOrderStatusUpdate(order, newStatus) {
  */
 export async function testEmailConfig() {
     try {
-        const transporter = createTransporter();
+        const transporter = getTransporter();
         await transporter.verify();
         return { success: true, message: 'Email configuration is valid' };
     } catch (error) {
@@ -287,9 +301,9 @@ export function isEmailConfigured() {
 export function getEmailConfig() {
     return {
         provider: process.env.EMAIL_PROVIDER || 'smtp',
-        host: process.env.SMTP_HOST,
-        user: process.env.SMTP_USER ? `${process.env.SMTP_USER.substring(0, 3)}...` : null,
-        from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+        host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+        user: process.env.SMTP_USER || process.env.BREVO_USER ? 'Configured' : null,
+        from: process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_USER,
         configured: isEmailConfigured()
     };
 }
