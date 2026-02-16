@@ -395,12 +395,21 @@ function displayReviews(reviews, summary) {
     elements.reviewsList.innerHTML = reviews.map(r => `
         <div class="review-card">
             <div class="review-header">
-                <div class="review-meta"><span class="review-author">${escapeHtml(r.customer_name)}</span></div>
+                <div class="review-meta">
+                    <span class="review-author">${escapeHtml(r.customer_name)}</span>
+                    ${r.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
+                </div>
                 <span class="review-date">${new Date(r.created_at).toLocaleDateString()}</span>
             </div>
             <div class="stars">${renderStars(r.rating)}</div>
             <h4 class="review-title">${escapeHtml(r.title)}</h4>
             <p class="review-text">${escapeHtml(r.review_text)}</p>
+            ${r.admin_response ? `
+                <div class="admin-response">
+                    <div class="admin-response-label">Response from LA VAGUE</div>
+                    <p>${escapeHtml(r.admin_response)}</p>
+                </div>
+            ` : ''}
         </div>
     `).join('');
 }
