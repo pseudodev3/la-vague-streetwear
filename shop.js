@@ -1,10 +1,5 @@
 /**
  * LA VAGUE - Shop Page JavaScript
- * Complete e-commerce functionality
- */
-
-/**
- * LA VAGUE - Shop Page JavaScript
  * Connected to Backend API
  */
 
@@ -83,36 +78,38 @@ function getSizeGuideForCategory(category) {
     return guides[category] || 'regular';
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // ==========================================
-    // STATE
-    // ==========================================
-    const state = {
-        products: [],
-        filteredProducts: [],
-        currentCategory: 'all',
-        sortBy: 'featured',
-        filters: {
-            sale: false,
-            new: false,
-            bestseller: false,
-            maxPrice: 500000
-        },
-        quickViewProduct: null,
-        selectedColor: null,
-        selectedSize: null,
-        selectedQuantity: 1,
-        usingStaticData: false
-    };
-    
-    // Use shared CartState for cart and wishlist
-    const getCart = () => typeof CartState !== 'undefined' ? CartState.cart : [];
-    const getWishlist = () => typeof CartState !== 'undefined' ? CartState.wishlist : [];
+// ==========================================
+// STATE
+// ==========================================
+const state = {
+    products: [],
+    filteredProducts: [],
+    currentCategory: 'all',
+    sortBy: 'featured',
+    filters: {
+        sale: false,
+        new: false,
+        bestseller: false,
+        maxPrice: 500000
+    },
+    quickViewProduct: null,
+    selectedColor: null,
+    selectedSize: null,
+    selectedQuantity: 1,
+    usingStaticData: false
+};
 
+let elements = {};
+
+const getCart = () => typeof CartState !== 'undefined' ? CartState.cart : [];
+const getWishlist = () => typeof CartState !== 'undefined' ? CartState.wishlist : [];
+
+async function initShop() {
+    console.log('[SHOP] Initializing shop logic...');
     // ==========================================
-    // DOM ELEMENTS
+    // DOM ELEMENTS (RE-QUERY AFTER INJECTION)
     // ==========================================
-    const elements = {
+    elements = {
         productsGrid: document.getElementById('productsGrid'),
         loadingState: document.getElementById('loadingState'),
         emptyState: document.getElementById('emptyState'),
@@ -161,956 +158,600 @@ document.addEventListener('DOMContentLoaded', () => {
         navLinks: document.getElementById('navLinks')
     };
 
-    // ==========================================
-    // INITIALIZATION
-    // ==========================================
-    async function init() {
-        // Initialize UI
-        showLoading();
-        
-        // Try to load from API first
-        const apiProducts = await ShopAPI.getProducts();
-        
-        if (apiProducts && apiProducts.length > 0) {
-            // Use API data (from admin/database)
-            state.products = apiProducts.map(transformProduct);
-            state.usingStaticData = false;
-        } else {
-            // Fallback to static data (for demo/offline)
-            state.products = ProductAPI.getAll();
-            state.usingStaticData = true;
-        }
-        
-        state.filteredProducts = [...state.products];
-        
-        // Initialize UI
-        hideLoading();
-        renderProducts();
+    // Initialize UI
+    showLoading();
+    
+    // Try to load from API first
+    const apiProducts = await ShopAPI.getProducts();
+    
+    if (apiProducts && apiProducts.length > 0) {
+        state.products = apiProducts.map(transformProduct);
+        state.usingStaticData = false;
+    } else {
+        state.products = ProductAPI.getAll();
+        state.usingStaticData = true;
+    }
+    
+    state.filteredProducts = [...state.products];
+    
+    hideLoading();
+    renderProducts();
+    if (typeof CartState !== 'undefined') {
         CartState.updateCartCount();
         CartState.updateWishlistCount();
-        
-        // Bind events
-        bindEvents();
-        
-        // Check URL params for category
-        const urlParams = new URLSearchParams(window.location.search);
-        const category = urlParams.get('category');
-        if (category && CATEGORIES.find(c => c.id === category)) {
-            setCategory(category);
+    }
+    
+    bindEvents();
+    initLocaleSelector();
+    initLegacySelectors();
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const category = urlParams.get('category');
+    if (category && CATEGORIES.find(c => c.id === category)) {
+        setCategory(category);
+    }
+    console.log('[SHOP] Initialization complete.');
+}
+
+// ==========================================
+// PRODUCT RENDERING
+// ==========================================
+function renderStarRating(rating) {
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+        if (i <= Math.round(rating)) {
+            html += '★';
+        } else {
+            html += '<span class="empty">★</span>';
         }
     }
+    return html;
+}
 
-    // ==========================================
-    // PRODUCT RENDERING
-    // ==========================================
-    // Render star rating for product cards
-    function renderStarRating(rating) {
-        let html = '';
-        for (let i = 1; i <= 5; i++) {
-            if (i <= Math.round(rating)) {
-                html += '★';
-            } else {
-                html += '<span class="empty">★</span>';
-            }
-        }
-        return html;
-    }
-
-    function renderProducts() {
-        console.log('[SHOP] renderProducts called. Filtered count:', state.filteredProducts.length);
-        
-        if (state.filteredProducts.length === 0) {
-            console.log('[SHOP] No products to show, displaying empty state');
-            elements.productsGrid.style.display = 'none';
-            elements.emptyState.style.display = 'block';
-            elements.resultsCount.textContent = '0 products';
-            return;
-        }
-        
-        console.log('[SHOP] Rendering', state.filteredProducts.length, 'products');
-        elements.productsGrid.style.display = 'grid';
-        elements.emptyState.style.display = 'none';
-        elements.resultsCount.textContent = `${state.filteredProducts.length} product${state.filteredProducts.length !== 1 ? 's' : ''}`;
-        
-        elements.productsGrid.innerHTML = state.filteredProducts.map(product => {
-            // Safely get first image with fallback
-            const firstImage = product.images && product.images[0] ? product.images[0] : {
-                src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
-                alt: product.name
-            };
-            const secondImage = product.images && product.images[1] ? product.images[1] : null;
-            
-            return `
-            <article class="product-card reveal-up" data-product-id="${product.id}">
-                <div class="product-image-wrapper" onclick="window.openProductPage('${product.slug}')">
-                    ${product.badge && product.badge.toLowerCase() !== 'null' ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : ''}
-                    <img src="${firstImage.src}" alt="${firstImage.alt}" class="product-image" loading="lazy">
-                    ${secondImage ? `<img src="${secondImage.src}" alt="${secondImage.alt}" class="product-image-hover" loading="lazy">` : ''}
-                    <div class="product-actions">
-                        <button class="product-btn" onclick="event.stopPropagation(); window.addToCartFromCard('${product.id}')">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M6 6h15l-1.5 9h-12z"></path>
-                                <circle cx="9" cy="20" r="1"></circle>
-                                <circle cx="18" cy="20" r="1"></circle>
-                                <path d="M6 6L5 3H2"></path>
-                            </svg>
-                            ${t('product.addToCart')}
-                        </button>
-                        <button class="product-btn" onclick="event.stopPropagation(); window.quickView('${product.id}')">${t('product.quickView')}</button>
-                        <button class="product-btn wishlist ${getWishlist().includes(product.id) ? 'active' : ''}" 
-                                onclick="event.stopPropagation(); window.toggleWishlist('${product.id}')">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="${getWishlist().includes(product.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="product-info">
-                    <p class="product-category">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
-                    <h3 class="product-name" onclick="window.openProductPage('${product.slug}')">${product.name}</h3>
-                    <div class="product-price">
-                        <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
-                        ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
-                    </div>
-                    ${product.average_rating ? `
-                        <div class="product-rating">
-                            <span class="star-rating-small">${renderStarRating(product.average_rating)}</span>
-                            <span class="rating-text">(${product.review_count || 0})</span>
-                        </div>
-                    ` : ''}
-                    ${product.colors && product.colors.length > 1 ? `
-                        <div class="product-colors">
-                            ${product.colors.map((color, i) => `
-                                <span class="color-dot ${i === 0 ? 'active' : ''}" style="background-color: ${color.value}" title="${color.name}"></span>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                </div>
-            </article>
-        `}).join('');
-        
-        console.log('[SHOP] Generated HTML length:', elements.productsGrid.innerHTML.length);
-        console.log('[SHOP] First product HTML preview:', elements.productsGrid.innerHTML.substring(0, 200));
-        
-        // Re-initialize reveal animations
-        initRevealAnimations();
-    }
-
-    function showLoading() {
-        elements.loadingState.classList.add('active');
+function renderProducts() {
+    if (!elements.productsGrid) return;
+    
+    if (state.filteredProducts.length === 0) {
         elements.productsGrid.style.display = 'none';
-        elements.emptyState.style.display = 'none';
+        elements.emptyState.style.display = 'block';
+        elements.resultsCount.textContent = '0 products';
+        return;
     }
-
-    function hideLoading() {
-        elements.loadingState.classList.remove('active');
-    }
-
-    // ==========================================
-    // FILTERING & SORTING
-    // ==========================================
-    function filterProducts() {
-        console.log('[SHOP] filterProducts called. Current category:', state.currentCategory);
-        console.log('[SHOP] Total products:', state.products.length);
-        
-        let filtered = [...state.products];
-        
-        // Category filter
-        if (state.currentCategory !== 'all') {
-            console.log('[SHOP] Filtering by category:', state.currentCategory);
-            console.log('[SHOP] Product categories:', state.products.map(p => ({ name: p.name, category: p.category })));
-            filtered = filtered.filter(p => {
-                const matches = p.category === state.currentCategory;
-                console.log(`[SHOP] ${p.name}: category=${p.category}, matches=${matches}`);
-                return matches;
-            });
-            console.log('[SHOP] Filtered count:', filtered.length);
-        }
-        
-        console.log('[SHOP] Before tag filters, count:', filtered.length);
-        
-        // Tag filters
-        if (state.filters.sale) {
-            filtered = filtered.filter(p => p.compareAtPrice !== null);
-            console.log('[SHOP] After sale filter, count:', filtered.length);
-        }
-        if (state.filters.new) {
-            filtered = filtered.filter(p => p.tags.includes('new'));
-            console.log('[SHOP] After new filter, count:', filtered.length);
-        }
-        if (state.filters.bestseller) {
-            filtered = filtered.filter(p => p.tags.includes('bestseller'));
-            console.log('[SHOP] After bestseller filter, count:', filtered.length);
-        }
-        
-        console.log('[SHOP] Before price filter, count:', filtered.length);
-        console.log('[SHOP] Price filter - maxPrice:', state.filters.maxPrice);
-        
-        // Price filter
-        filtered = filtered.filter(p => {
-            const matches = p.price <= state.filters.maxPrice;
-            if (!matches) {
-                console.log(`[SHOP] ${p.name}: price=${p.price}, maxPrice=${state.filters.maxPrice}, excluded`);
-            }
-            return matches;
-        });
-        console.log('[SHOP] After price filter, count:', filtered.length);
-        
-        // Sort
-        switch (state.sortBy) {
-            case 'price-low':
-                filtered.sort((a, b) => a.price - b.price);
-                break;
-            case 'price-high':
-                filtered.sort((a, b) => b.price - a.price);
-                break;
-            case 'name':
-                filtered.sort((a, b) => a.name.localeCompare(b.name));
-                break;
-            case 'newest':
-                filtered.sort((a, b) => (b.tags.includes('new') ? 1 : 0) - (a.tags.includes('new') ? 1 : 0));
-                break;
-            default:
-                // Featured - keep default order
-                break;
-        }
-        
-        state.filteredProducts = filtered;
-        console.log('[SHOP] Set state.filteredProducts, length:', state.filteredProducts.length);
-        console.log('[SHOP] About to call renderProducts...');
-        renderProducts();
-        console.log('[SHOP] After renderProducts, filteredProducts length:', state.filteredProducts.length);
-    }
-
-    function setCategory(category) {
-        console.log('[SHOP] setCategory called:', category);
-        state.currentCategory = category;
-        
-        // Update UI
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.category === category);
-        });
-        
-        document.querySelectorAll('input[name="mobile-category"]').forEach(input => {
-            input.checked = input.value === category;
-        });
-        
-        filterProducts();
-    }
-
-    function setSort(sortBy) {
-        state.sortBy = sortBy;
-        filterProducts();
-    }
-
-    // ==========================================
-    // QUICK VIEW
-    // ==========================================
-    window.quickView = function(productId) {
-        // Use state.products (from API) instead of ProductAPI (static)
-        const product = state.products.find(p => p.id === productId);
-        if (!product) {
-            console.error(`[QuickView] Product ${productId} not found in state.products`);
-            return;
-        }
-        
-        state.quickViewProduct = product;
-        state.selectedColor = product.colors?.[0]?.name || 'Default';
-        state.selectedSize = product.sizes?.[0] || 'OS';
-        state.selectedQuantity = 1;
-        
-        renderQuickView();
-        openQuickView();
-    };
-
-    function renderQuickView() {
-        const product = state.quickViewProduct;
-        
-        // Safely get first image
-        const firstImage = product.images?.[0] || {
+    
+    elements.productsGrid.style.display = 'grid';
+    elements.emptyState.style.display = 'none';
+    elements.resultsCount.textContent = `${state.filteredProducts.length} product${state.filteredProducts.length !== 1 ? 's' : ''}`;
+    
+    elements.productsGrid.innerHTML = state.filteredProducts.map(product => {
+        const firstImage = product.images && product.images[0] ? product.images[0] : {
             src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
             alt: product.name
         };
+        const secondImage = product.images && product.images[1] ? product.images[1] : null;
         
-        elements.quickViewContent.innerHTML = `
-            <div class="quick-view-gallery">
-                <img src="${firstImage.src}" alt="${firstImage.alt || product.name}" id="quickViewImage">
-            </div>
-            <div class="quick-view-details">
-                <p class="quick-view-category">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
-                <h2 class="quick-view-title">${product.name}</h2>
-                <div class="quick-view-price">
-                    <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
-                    ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
-                </div>
-                <p class="quick-view-description">${product.description || ''}</p>
-                
-                <div class="quick-view-options">
-                    ${product.colors && product.colors.length > 1 ? `
-                        <div class="option-section">
-                            <span class="option-label">Color: <strong>${state.selectedColor}</strong></span>
-                            <div class="color-options">
-                                ${product.colors.map(color => `
-                                    <button class="color-option ${state.selectedColor === color.name ? 'active' : ''}" 
-                                            style="background-color: ${color.value}"
-                                            onclick="window.selectColor('${color.name}')"
-                                            title="${color.name}"></button>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                    
-                    <div class="option-section">
-                        <span class="option-label">
-                            Size: <strong>${state.selectedSize}</strong>
-                            ${product.sizeGuide ? `<span class="size-guide-link" onclick="window.openSizeGuide('${product.sizeGuide}')">Size Guide</span>` : ''}
-                        </span>
-                        <div class="size-options">
-                            ${product.sizes?.map(size => {
-                                const inStock = product.inventory?.[`${state.selectedColor}-${size}`] > 0;
-                                return `
-                                    <button class="size-option ${state.selectedSize === size ? 'active' : ''} ${!inStock ? 'disabled' : ''}"
-                                            onclick="${inStock ? `window.selectSize('${size}')` : ''}"
-                                            ${!inStock ? 'disabled' : ''}>
-                                        ${size}
-                                    </button>
-                                `;
-                            }).join('') || ''}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="quick-view-actions">
-                    <div class="quantity-selector">
-                        <button class="qty-btn" onclick="window.updateQuantity(-1)" ${state.selectedQuantity <= 1 ? 'disabled' : ''}>−</button>
-                        <span>${state.selectedQuantity}</span>
-                        <button class="qty-btn" onclick="window.updateQuantity(1)">+</button>
-                    </div>
-                    <button class="add-to-cart-btn" onclick="window.addToCartFromQuickView()">
+        return `
+        <article class="product-card reveal-up" data-product-id="${product.id}">
+            <div class="product-image-wrapper" onclick="window.openProductPage('${product.slug}')">
+                ${product.badge && product.badge.toLowerCase() !== 'null' ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : ''}
+                <img src="${firstImage.src}" alt="${firstImage.alt}" class="product-image" loading="lazy">
+                ${secondImage ? `<img src="${secondImage.src}" alt="${secondImage.alt}" class="product-image-hover" loading="lazy">` : ''}
+                <div class="product-actions">
+                    <button class="product-btn" onclick="event.stopPropagation(); window.addToCartFromCard('${product.id}')">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M6 6h15l-1.5 9h-12z"></path>
                             <circle cx="9" cy="20" r="1"></circle>
                             <circle cx="18" cy="20" r="1"></circle>
                             <path d="M6 6L5 3H2"></path>
                         </svg>
-                        Add to Cart
+                        ${typeof t === 'function' ? t('product.addToCart') : 'Add to Cart'}
+                    </button>
+                    <button class="product-btn" onclick="event.stopPropagation(); window.quickView('${product.id}')">${typeof t === 'function' ? t('product.quickView') : 'Quick View'}</button>
+                    <button class="product-btn wishlist ${getWishlist().includes(product.id) ? 'active' : ''}" 
+                            onclick="event.stopPropagation(); window.toggleWishlist('${product.id}')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="${getWishlist().includes(product.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
                     </button>
                 </div>
             </div>
-        `;
-    }
-
-    window.selectColor = function(colorName) {
-        state.selectedColor = colorName;
-        renderQuickView();
-    };
-
-    window.selectSize = function(size) {
-        state.selectedSize = size;
-        renderQuickView();
-    };
-
-    window.updateQuantity = function(delta) {
-        state.selectedQuantity = Math.max(1, state.selectedQuantity + delta);
-        renderQuickView();
-    };
-
-    window.addToCartFromQuickView = async function() {
-        const product = state.quickViewProduct;
-        
-        // Check inventory if using API
-        if (!state.usingStaticData) {
-            const stockCheck = await ShopAPI.checkStock(product.id, state.selectedColor, state.selectedSize);
-            if (!stockCheck.inStock || stockCheck.available < state.selectedQuantity) {
-                showToast(`Only ${stockCheck.available} items available in this variant`, 'error');
-                return;
-            }
-        }
-        
-        CartState.addToCart({
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            image: product.images?.[0]?.src || '',
-            color: state.selectedColor,
-            size: state.selectedSize,
-            quantity: state.selectedQuantity
-        });
-        showToast(`${product.name} added to cart`, 'success');
-        closeQuickView();
-    };
-
-    function openQuickView() {
-        elements.quickViewModal.classList.add('active');
-        elements.quickViewOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeQuickView() {
-        elements.quickViewModal.classList.remove('active');
-        elements.quickViewOverlay.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-
-    // ==========================================
-    // SIZE GUIDE
-    // ==========================================
-    window.openSizeGuide = function(type) {
-        const guide = ProductAPI.getSizeGuide(type);
-        if (!guide) return;
-        
-        elements.sizeGuideContent.innerHTML = `
-            <h4>${guide.name}</h4>
-            <p style="color: var(--color-text-muted); margin-bottom: 1rem;">All measurements are in ${guide.unit}</p>
-            <table class="size-table">
-                <thead>
-                    <tr>
-                        <th>Size</th>
-                        ${Object.keys(guide.measurements[0]).filter(k => k !== 'size').map(k => `<th>${k.charAt(0).toUpperCase() + k.slice(1)}</th>`).join('')}
-                    </tr>
-                </thead>
-                <tbody>
-                    ${guide.measurements.map(m => `
-                        <tr>
-                            <td><strong>${m.size}</strong></td>
-                            ${Object.entries(m).filter(([k]) => k !== 'size').map(([_, v]) => `<td>${v}</td>`).join('')}
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            <div class="size-note">
-                <strong>Note:</strong> Measurements may vary slightly. For the best fit, measure a similar garment you own and compare.
-            </div>
-        `;
-        
-        elements.sizeGuideModal.classList.add('active');
-        elements.sizeGuideOverlay.classList.add('active');
-    };
-
-    function closeSizeGuide() {
-        elements.sizeGuideModal.classList.remove('active');
-        elements.sizeGuideOverlay.classList.remove('active');
-    }
-
-    // ==========================================
-    // CART & WISHLIST HELPERS
-    // ==========================================
-    
-    window.addToCartFromCard = async function(productId) {
-        // Find product in state (from API)
-        const product = state.products.find(p => p.id === productId);
-        if (!product) {
-            console.error(`[AddToCart] Product ${productId} not found`);
-            return;
-        }
-        
-        const color = product.colors?.[0]?.name || 'Default';
-        const size = product.sizes?.[0] || 'OS';
-        const image = product.images?.[0]?.src || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23333" width="100" height="100"/></svg>';
-        
-        // Check inventory if using API
-        if (!state.usingStaticData) {
-            const stockCheck = await ShopAPI.checkStock(product.id, color, size);
-            if (!stockCheck.inStock) {
-                showToast('Sorry, this item is out of stock', 'error');
-                return;
-            }
-        }
-        
-        const item = {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            image: image,
-            color: color,
-            size: size,
-            quantity: 1
-        };
-        
-        CartState.addToCart(item);
-    };
-    
-    window.toggleWishlist = function(productId) {
-        CartState.addToWishlist(productId);
-        renderProducts(); // Re-render to update heart icons
-    };
-
-    // ==========================================
-    // SEARCH
-    // ==========================================
-    function openSearch() {
-        elements.searchOverlay.classList.add('active');
-        elements.searchInput.focus();
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeSearch() {
-        elements.searchOverlay.classList.remove('active');
-        elements.searchInput.value = '';
-        elements.searchResults.innerHTML = '';
-        document.body.style.overflow = '';
-    }
-
-    function handleSearch(query) {
-        if (!query.trim()) {
-            elements.searchResults.innerHTML = '';
-            return;
-        }
-        
-        // Search in state.products (from API) instead of ProductAPI (static)
-        const searchTerm = query.toLowerCase();
-        const results = state.products.filter(p => 
-            p.name?.toLowerCase().includes(searchTerm) ||
-            p.description?.toLowerCase().includes(searchTerm) ||
-            p.category?.toLowerCase().includes(searchTerm)
-        );
-        
-        if (results.length === 0) {
-            elements.searchResults.innerHTML = `
-                <div style="text-align: center; padding: 3rem; color: var(--color-text-muted);">
-                    No products found for "${query}"
+            <div class="product-info">
+                <p class="product-category">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
+                <h3 class="product-name" onclick="window.openProductPage('${product.slug}')">${product.name}</h3>
+                <div class="product-price">
+                    <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
+                    ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
                 </div>
-            `;
-            return;
-        }
-        
-        elements.searchResults.innerHTML = results.map(product => {
-            const image = product.images?.[0]?.src || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50"><rect fill="%23333" width="50" height="50"/></svg>';
-            return `
-            <div class="search-result-item" onclick="window.openProductPage('${product.slug}')">
-                <img src="${image}" alt="${product.name}">
-                <div class="search-result-info">
-                    <h4>${product.name}</h4>
-                    <p>${CATEGORIES.find(c => c.id === product.category)?.name}</p>
-                </div>
-                <span class="search-result-price">${CurrencyConfig.formatPrice(product.price)}</span>
-            </div>
-        `;
-        }).join('');
-    }
-
-    // ==========================================
-    // TOAST NOTIFICATIONS
-    // ==========================================
-    function showToast(message, type = 'success', action = null) {
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.innerHTML = `
-            <span class="toast-message">${message}</span>
-            ${action ? `<span class="toast-action">${action}</span>` : ''}
-        `;
-        
-        elements.toastContainer.appendChild(toast);
-        
-        if (action) {
-            toast.querySelector('.toast-action').addEventListener('click', () => {
-                // Could open cart sidebar here
-                toast.remove();
-            });
-        }
-        
-        setTimeout(() => {
-            toast.style.animation = 'toast-in 0.3s ease reverse';
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    }
-
-    // ==========================================
-    // NAVIGATION
-    // ==========================================
-    window.openProductPage = function(slug) {
-        // Show skeleton loading
-        const skeleton = document.getElementById('pageSkeleton');
-        if (skeleton) {
-            skeleton.style.display = 'flex';
-        }
-        
-        // Navigate after brief delay to show skeleton
-        setTimeout(() => {
-            window.location.href = `product.html?slug=${slug}`;
-        }, 100);
-    };
-
-    function bindEvents() {
-        // Category filters
-        elements.categoryFilters?.addEventListener('click', (e) => {
-            console.log('[SHOP] Category filter clicked:', e.target);
-            if (e.target.classList.contains('filter-btn')) {
-                const category = e.target.dataset.category;
-                console.log('[SHOP] Setting category:', category);
-                setCategory(category);
-            }
-        });
-        
-        // Mobile category filters
-        elements.mobileCategoryFilters?.addEventListener('change', (e) => {
-            if (e.target.name === 'mobile-category') {
-                setCategory(e.target.value);
-            }
-        });
-        
-        // Sort
-        elements.sortSelect?.addEventListener('change', (e) => {
-            setSort(e.target.value);
-        });
-        
-        // Filter sidebar
-        elements.filterToggle?.addEventListener('click', () => {
-            elements.filterSidebar.classList.add('active');
-            elements.filterOverlay.classList.add('active');
-        });
-        
-        elements.filterClose?.addEventListener('click', closeFilterSidebar);
-        elements.filterOverlay?.addEventListener('click', closeFilterSidebar);
-        
-        function closeFilterSidebar() {
-            elements.filterSidebar.classList.remove('active');
-            elements.filterOverlay.classList.remove('active');
-        }
-        
-        // Price range
-        elements.priceRange?.addEventListener('input', (e) => {
-            elements.priceValue.textContent = `₦${parseInt(e.target.value).toLocaleString()}`;
-        });
-        
-        // Apply filters
-        elements.applyFilters?.addEventListener('click', () => {
-            state.filters.sale = document.getElementById('filterSale')?.checked || false;
-            state.filters.new = document.getElementById('filterNew')?.checked || false;
-            state.filters.bestseller = document.getElementById('filterBestseller')?.checked || false;
-            state.filters.maxPrice = parseInt(elements.priceRange?.value || 500000);
-            
-            filterProducts();
-            closeFilterSidebar();
-        });
-        
-        // Clear filters
-        elements.clearFilters?.addEventListener('click', () => {
-            document.getElementById('filterSale').checked = false;
-            document.getElementById('filterNew').checked = false;
-            document.getElementById('filterBestseller').checked = false;
-            elements.priceRange.value = 500000;
-            elements.priceValue.textContent = '₦500,000';
-        });
-        
-        elements.clearAllFilters?.addEventListener('click', () => {
-            state.currentCategory = 'all';
-            state.filters = { sale: false, new: false, bestseller: false, maxPrice: 500000 };
-            state.sortBy = 'featured';
-            
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.category === 'all');
-            });
-            elements.sortSelect.value = 'featured';
-            
-            filterProducts();
-        });
-        
-        // Quick view
-        elements.quickViewClose?.addEventListener('click', closeQuickView);
-        elements.quickViewOverlay?.addEventListener('click', closeQuickView);
-        
-        // Size guide
-        elements.sizeGuideClose?.addEventListener('click', closeSizeGuide);
-        elements.sizeGuideOverlay?.addEventListener('click', closeSizeGuide);
-        
-        // Search
-        elements.searchBtn?.addEventListener('click', openSearch);
-        elements.searchClose?.addEventListener('click', closeSearch);
-        
-        let searchTimeout;
-        elements.searchInput?.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => handleSearch(e.target.value), 300);
-        });
-        
-        // Navigation scroll effect
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) {
-                elements.nav?.classList.add('scrolled');
-            } else {
-                elements.nav?.classList.remove('scrolled');
-            }
-        }, { passive: true });
-        
-        // Mobile menu
-        elements.mobileMenuBtn?.addEventListener('click', () => {
-            elements.mobileMenuBtn.classList.toggle('active');
-            elements.navLinks?.classList.toggle('active');
-        });
-        
-        // Cart - use CartState functions
-        elements.cartBtn?.addEventListener('click', window.openCart);
-        elements.cartClose?.addEventListener('click', window.closeCart);
-        elements.cartOverlay?.addEventListener('click', window.closeCart);
-        
-        // Wishlist - use CartState functions
-        elements.wishlistBtn?.addEventListener('click', window.openWishlist);
-        elements.wishlistClose?.addEventListener('click', window.closeWishlist);
-        elements.wishlistOverlay?.addEventListener('click', window.closeWishlist);
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeQuickView();
-                closeSearch();
-                closeSizeGuide();
-                closeFilterSidebar();
-            }
-            
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                openSearch();
-            }
-        });
-    }
-
-    // ==========================================
-    // REVEAL ANIMATIONS
-    // ==========================================
-    function initRevealAnimations() {
-        const revealElements = document.querySelectorAll('.reveal-up:not(.visible)');
-        
-        const revealObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    revealObserver.unobserve(entry.target);
-                }
-            });
-        }, {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        });
-        
-        revealElements.forEach(el => revealObserver.observe(el));
-    }
-
-    // ==========================================
-    // CART & WISHLIST (Using CartState)
-    // ==========================================
-    
-    // Override CartState render functions for this page's UI
-    const originalRenderCart = CartState.renderCart;
-    CartState.renderCart = function() {
-        const cart = getCart();
-        if (cart.length === 0) {
-            elements.cartItems.innerHTML = `
-                <div class="cart-empty">
-                    <p>Your cart is empty</p>
-                    <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()">Continue Shopping</a>
-                </div>
-            `;
-        } else {
-            elements.cartItems.innerHTML = cart.map((item, index) => `
-                <div class="cart-item">
-                    <div class="cart-item-image">
-                        <img src="${item.image}" alt="${item.name}">
+                ${product.average_rating ? `
+                    <div class="product-rating">
+                        <span class="star-rating-small">${renderStarRating(product.average_rating)}</span>
+                        <span class="rating-text">(${product.review_count || 0})</span>
                     </div>
-                    <div class="cart-item-details">
-                        <h4>${item.name}</h4>
-                        <p class="cart-item-variant">${item.color} / ${item.size}</p>
-                        <div class="cart-item-actions">
-                            <div class="cart-item-qty">
-                                <button onclick="window.shopUpdateCartQty(${index}, -1)">−</button>
-                                <span>${item.quantity}</span>
-                                <button onclick="window.shopUpdateCartQty(${index}, 1)">+</button>
-                            </div>
-                            <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
+                ` : ''}
+                ${product.colors && product.colors.length > 1 ? `
+                    <div class="product-colors">
+                        ${product.colors.map((color, i) => `
+                            <span class="color-dot ${i === 0 ? 'active' : ''}" style="background-color: ${color.value}" title="${color.name}"></span>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        </article>
+    `}).join('');
+    
+    initRevealAnimations();
+}
+
+function showLoading() {
+    if (elements.loadingState) elements.loadingState.classList.add('active');
+    if (elements.productsGrid) elements.productsGrid.style.display = 'none';
+    if (elements.emptyState) elements.emptyState.style.display = 'none';
+}
+
+function hideLoading() {
+    if (elements.loadingState) elements.loadingState.classList.remove('active');
+}
+
+// ==========================================
+// FILTERING & SORTING
+// ==========================================
+function filterProducts() {
+    let filtered = [...state.products];
+    
+    if (state.currentCategory !== 'all') {
+        filtered = filtered.filter(p => p.category === state.currentCategory);
+    }
+    
+    if (state.filters.sale) {
+        filtered = filtered.filter(p => p.compareAtPrice !== null);
+    }
+    if (state.filters.new) {
+        filtered = filtered.filter(p => p.tags.includes('new'));
+    }
+    if (state.filters.bestseller) {
+        filtered = filtered.filter(p => p.tags.includes('bestseller'));
+    }
+    
+    filtered = filtered.filter(p => p.price <= state.filters.maxPrice);
+    
+    switch (state.sortBy) {
+        case 'price-low': filtered.sort((a, b) => a.price - b.price); break;
+        case 'price-high': filtered.sort((a, b) => b.price - a.price); break;
+        case 'name': filtered.sort((a, b) => a.name.localeCompare(b.name)); break;
+        case 'newest': filtered.sort((a, b) => (b.tags.includes('new') ? 1 : 0) - (a.tags.includes('new') ? 1 : 0)); break;
+    }
+    
+    state.filteredProducts = filtered;
+    renderProducts();
+}
+
+function setCategory(category) {
+    state.currentCategory = category;
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.category === category);
+    });
+    document.querySelectorAll('input[name="mobile-category"]').forEach(input => {
+        input.checked = input.value === category;
+    });
+    filterProducts();
+}
+
+function setSort(sortBy) {
+    state.sortBy = sortBy;
+    filterProducts();
+}
+
+// ==========================================
+// QUICK VIEW
+// ==========================================
+window.quickView = function(productId) {
+    const product = state.products.find(p => p.id === productId);
+    if (!product) return;
+    
+    state.quickViewProduct = product;
+    state.selectedColor = product.colors?.[0]?.name || 'Default';
+    state.selectedSize = product.sizes?.[0] || 'OS';
+    state.selectedQuantity = 1;
+    
+    renderQuickView();
+    openQuickView();
+};
+
+function renderQuickView() {
+    const product = state.quickViewProduct;
+    const firstImage = product.images?.[0] || {
+        src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
+        alt: product.name
+    };
+    
+    elements.quickViewContent.innerHTML = `
+        <div class="quick-view-gallery">
+            <img src="${firstImage.src}" alt="${firstImage.alt || product.name}" id="quickViewImage">
+        </div>
+        <div class="quick-view-details">
+            <p class="quick-view-category">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
+            <h2 class="quick-view-title">${product.name}</h2>
+            <div class="quick-view-price">
+                <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
+                ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
+            </div>
+            <p class="quick-view-description">${product.description || ''}</p>
+            
+            <div class="quick-view-options">
+                ${product.colors && product.colors.length > 1 ? `
+                    <div class="option-section">
+                        <span class="option-label">Color: <strong>${state.selectedColor}</strong></span>
+                        <div class="color-options">
+                            ${product.colors.map(color => `
+                                <button class="color-option ${state.selectedColor === color.name ? 'active' : ''}" 
+                                        style="background-color: ${color.value}"
+                                        onclick="window.selectColor('${color.name}')"
+                                        title="${color.name}"></button>
+                            `).join('')}
                         </div>
                     </div>
-                    <button class="cart-item-remove" onclick="window.shopRemoveFromCart(${index})">×</button>
-                </div>
-            `).join('');
-        }
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        elements.cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
-    };
-    
-    window.shopUpdateCartQty = function(index, delta) {
-        CartState.updateCartItemQuantity(index, delta);
-        CartState.renderCart();
-    };
-    
-    window.shopRemoveFromCart = function(index) {
-        CartState.removeFromCart(index);
-        showToast('Item removed from cart', 'success');
-    };
-    
-    // Override wishlist render for this page
-    const originalRenderWishlist = CartState.renderWishlist;
-    CartState.renderWishlist = function() {
-        const wishlist = getWishlist();
-        if (wishlist.length === 0) {
-            elements.wishlistItems.innerHTML = `
-                <div class="wishlist-empty">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                    </svg>
-                    <p>Your wishlist is empty</p>
-                    <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Start Shopping</a>
-                </div>
-            `;
-            return;
-        }
-        // Use state.products (from API) instead of ProductAPI (static)
-        const wishlistProducts = wishlist.map(id => state.products.find(p => p.id === id)).filter(p => p);
-        elements.wishlistItems.innerHTML = wishlistProducts.map(product => {
-            const image = product.images?.[0]?.src || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="100"><rect fill="%23333" width="80" height="100"/></svg>';
-            return `
-            <div class="wishlist-item">
-                <div class="wishlist-item-image">
-                    <img src="${image}" alt="${product.name}">
-                </div>
-                <div class="wishlist-item-details">
-                    <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
-                    <p class="wishlist-item-price">${CurrencyConfig.formatPrice(product.price)}</p>
-                    <div class="wishlist-item-actions">
-                        <button class="btn-add-cart-sm" onclick="window.shopAddToCartFromWishlist('${product.id}')">${t('product.addToCart')}</button>
-                        <button class="btn-remove-sm" onclick="window.shopRemoveFromWishlist('${product.id}')">Remove</button>
+                ` : ''}
+                
+                <div class="option-section">
+                    <span class="option-label">
+                        Size: <strong>${state.selectedSize}</strong>
+                        ${product.sizeGuide ? `<span class="size-guide-link" onclick="window.openSizeGuide('${product.sizeGuide}')">Size Guide</span>` : ''}
+                    </span>
+                    <div class="size-options">
+                        ${product.sizes?.map(size => {
+                            const inStock = product.inventory?.[`${state.selectedColor}-${size}`] > 0;
+                            return `
+                                <button class="size-option ${state.selectedSize === size ? 'active' : ''} ${!inStock ? 'disabled' : ''}"
+                                        onclick="${inStock ? `window.selectSize('${size}')` : ''}"
+                                        ${!inStock ? 'disabled' : ''}>
+                                    ${size}
+                                </button>
+                            `;
+                        }).join('') || ''}
                     </div>
                 </div>
             </div>
-        `}).join('');
-    };
-    
-    window.shopAddToCartFromWishlist = function(productId) {
-        const product = state.products.find(p => p.id === productId);
-        if (!product) {
-            console.error(`[Wishlist] Product ${productId} not found`);
+            
+            <div class="quick-view-actions">
+                <div class="quantity-selector">
+                    <button class="qty-btn" onclick="window.updateQuantity(-1)" ${state.selectedQuantity <= 1 ? 'disabled' : ''}>−</button>
+                    <span>${state.selectedQuantity}</span>
+                    <button class="qty-btn" onclick="window.updateQuantity(1)">+</button>
+                </div>
+                <button class="add-to-cart-btn" onclick="window.addToCartFromQuickView()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 6h15l-1.5 9h-12z"></path>
+                        <circle cx="9" cy="20" r="1"></circle>
+                        <circle cx="18" cy="20" r="1"></circle>
+                        <path d="M6 6L5 3H2"></path>
+                    </svg>
+                    Add to Cart
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+window.selectColor = function(colorName) {
+    state.selectedColor = colorName;
+    renderQuickView();
+};
+
+window.selectSize = function(size) {
+    state.selectedSize = size;
+    renderQuickView();
+};
+
+window.updateQuantity = function(delta) {
+    state.selectedQuantity = Math.max(1, state.selectedQuantity + delta);
+    renderQuickView();
+};
+
+window.addToCartFromQuickView = async function() {
+    const product = state.quickViewProduct;
+    if (!state.usingStaticData) {
+        const stockCheck = await ShopAPI.checkStock(product.id, state.selectedColor, state.selectedSize);
+        if (!stockCheck.inStock || stockCheck.available < state.selectedQuantity) {
+            showToast(`Only ${stockCheck.available} items available in this variant`, 'error');
             return;
         }
-        const image = product.images?.[0]?.src || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23333" width="100" height="100"/></svg>';
-        const item = {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            image: image,
-            color: product.colors?.[0]?.name || 'Default',
-            size: product.sizes?.[0] || 'OS',
-            quantity: 1
-        };
-        CartState.addToCart(item);
-        showToast(`${product.name} added to cart`, 'success');
-    };
-    
-    window.shopRemoveFromWishlist = function(productId) {
-        const index = getWishlist().indexOf(productId);
-        if (index > -1) {
-            CartState.removeFromWishlist(index);
-            showToast('Removed from wishlist', 'success');
+    }
+    CartState.addToCart({
+        id: product.id, name: product.name, price: product.price,
+        image: product.images?.[0]?.src || '', color: state.selectedColor,
+        size: state.selectedSize, quantity: state.selectedQuantity
+    });
+    showToast(`${product.name} added to cart`, 'success');
+    closeQuickView();
+};
+
+function openQuickView() {
+    elements.quickViewModal?.classList.add('active');
+    elements.quickViewOverlay?.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeQuickView() {
+    elements.quickViewModal?.classList.remove('active');
+    elements.quickViewOverlay?.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// ==========================================
+// SIZE GUIDE
+// ==========================================
+window.openSizeGuide = function(type) {
+    const guide = ProductAPI.getSizeGuide(type);
+    if (!guide) return;
+    elements.sizeGuideContent.innerHTML = `
+        <h4>${guide.name}</h4>
+        <p style="color: var(--color-text-muted); margin-bottom: 1rem;">All measurements are in ${guide.unit}</p>
+        <table class="size-table">
+            <thead>
+                <tr><th>Size</th>${Object.keys(guide.measurements[0]).filter(k => k !== 'size').map(k => `<th>${k.charAt(0).toUpperCase() + k.slice(1)}</th>`).join('')}</tr>
+            </thead>
+            <tbody>
+                ${guide.measurements.map(m => `<tr><td><strong>${m.size}</strong></td>${Object.entries(m).filter(([k]) => k !== 'size').map(([_, v]) => `<td>${v}</td>`).join('')}</tr>`).join('')}
+            </tbody>
+        </table>
+    `;
+    elements.sizeGuideModal?.classList.add('active');
+    elements.sizeGuideOverlay?.classList.add('active');
+};
+
+function closeSizeGuide() {
+    elements.sizeGuideModal?.classList.remove('active');
+    elements.sizeGuideOverlay?.classList.remove('active');
+}
+
+// ==========================================
+// CART & WISHLIST HELPERS
+// ==========================================
+window.addToCartFromCard = async function(productId) {
+    const product = state.products.find(p => p.id === productId);
+    if (!product) return;
+    const color = product.colors?.[0]?.name || 'Default';
+    const size = product.sizes?.[0] || 'OS';
+    if (!state.usingStaticData) {
+        const stockCheck = await ShopAPI.checkStock(product.id, color, size);
+        if (!stockCheck.inStock) {
+            showToast('Sorry, this item is out of stock', 'error');
+            return;
         }
+    }
+    CartState.addToCart({
+        id: product.id, name: product.name, price: product.price,
+        image: product.images?.[0]?.src || '', color: color, size: size, quantity: 1
+    });
+};
+
+window.toggleWishlist = function(productId) {
+    CartState.addToWishlist(productId);
+    renderProducts();
+};
+
+// ==========================================
+// SEARCH
+// ==========================================
+function openSearch() {
+    elements.searchOverlay?.classList.add('active');
+    elements.searchInput?.focus();
+    document.body.style.overflow = 'hidden';
+}
+
+function closeSearch() {
+    elements.searchOverlay?.classList.remove('active');
+    if (elements.searchInput) elements.searchInput.value = '';
+    if (elements.searchResults) elements.searchResults.innerHTML = '';
+    document.body.style.overflow = '';
+}
+
+function handleSearch(query) {
+    if (!query.trim()) {
+        if (elements.searchResults) elements.searchResults.innerHTML = '';
+        return;
+    }
+    const searchTerm = query.toLowerCase();
+    const results = state.products.filter(p => 
+        p.name?.toLowerCase().includes(searchTerm) ||
+        p.category?.toLowerCase().includes(searchTerm)
+    );
+    if (results.length === 0) {
+        elements.searchResults.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--color-text-muted);">No products found for "${query}"</div>`;
+        return;
+    }
+    elements.searchResults.innerHTML = results.map(product => `
+        <div class="search-result-item" onclick="window.openProductPage('${product.slug}')">
+            <img src="${product.images?.[0]?.src || ''}" alt="${product.name}">
+            <div class="search-result-info"><h4>${product.name}</h4><p>${product.category}</p></div>
+            <span class="search-result-price">${CurrencyConfig.formatPrice(product.price)}</span>
+        </div>
+    `).join('');
+}
+
+function showToast(message, type = 'success', action = null) {
+    if (!elements.toastContainer) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span class="toast-message">${message}</span>`;
+    elements.toastContainer.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'toast-in 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+window.openProductPage = function(slug) {
+    const skeleton = document.getElementById('pageSkeleton');
+    if (skeleton) skeleton.style.display = 'flex';
+    setTimeout(() => { window.location.href = `product.html?slug=${slug}`; }, 100);
+};
+
+function bindEvents() {
+    elements.categoryFilters?.addEventListener('click', (e) => {
+        if (e.target.classList.contains('filter-btn')) setCategory(e.target.dataset.category);
+    });
+    elements.mobileCategoryFilters?.addEventListener('change', (e) => {
+        if (e.target.name === 'mobile-category') setCategory(e.target.value);
+    });
+    elements.sortSelect?.addEventListener('change', (e) => setSort(e.target.value));
+    elements.filterToggle?.addEventListener('click', () => {
+        elements.filterSidebar?.classList.add('active');
+        elements.filterOverlay?.classList.add('active');
+    });
+    const closeFilter = () => {
+        elements.filterSidebar?.classList.remove('active');
+        elements.filterOverlay?.classList.remove('active');
     };
+    elements.filterClose?.addEventListener('click', closeFilter);
+    elements.filterOverlay?.addEventListener('click', closeFilter);
+    elements.priceRange?.addEventListener('input', (e) => {
+        if (elements.priceValue) elements.priceValue.textContent = `₦${parseInt(e.target.value).toLocaleString()}`;
+    });
+    elements.applyFilters?.addEventListener('click', () => {
+        state.filters.sale = document.getElementById('filterSale')?.checked || false;
+        state.filters.new = document.getElementById('filterNew')?.checked || false;
+        state.filters.bestseller = document.getElementById('filterBestseller')?.checked || false;
+        state.filters.maxPrice = parseInt(elements.priceRange?.value || 500000);
+        filterProducts();
+        closeFilter();
+    });
+    elements.clearFilters?.addEventListener('click', () => {
+        const s = document.getElementById('filterSale'), n = document.getElementById('filterNew'), b = document.getElementById('filterBestseller');
+        if (s) s.checked = false; if (n) n.checked = false; if (b) b.checked = false;
+        if (elements.priceRange) elements.priceRange.value = 500000;
+        if (elements.priceValue) elements.priceValue.textContent = '₦500,000';
+    });
+    elements.clearAllFilters?.addEventListener('click', () => {
+        state.currentCategory = 'all';
+        state.filters = { sale: false, new: false, bestseller: false, maxPrice: 500000 };
+        state.sortBy = 'featured';
+        setCategory('all');
+    });
+    elements.quickViewClose?.addEventListener('click', closeQuickView);
+    elements.quickViewOverlay?.addEventListener('click', closeQuickView);
+    elements.sizeGuideClose?.addEventListener('click', closeSizeGuide);
+    elements.sizeGuideOverlay?.addEventListener('click', closeSizeGuide);
+    elements.searchBtn?.addEventListener('click', openSearch);
+    elements.searchClose?.addEventListener('click', closeSearch);
+    
+    if (typeof SearchHelper !== 'undefined') {
+        SearchHelper.init(elements.searchInput, handleSearch, { delay: 300 });
+    }
 
-    // Combined Locale Selector
-    initLocaleSelector();
-    
-    // Legacy selectors (mobile menu)
-    initLegacySelectors();
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) elements.nav?.classList.add('scrolled');
+        else elements.nav?.classList.remove('scrolled');
+    }, { passive: true });
 
-    // Start
-    init();
-});
+    elements.mobileMenuBtn?.addEventListener('click', () => {
+        elements.mobileMenuBtn.classList.toggle('active');
+        elements.navLinks?.classList.toggle('active');
+    });
 
-// Combined Locale Selector
-function initLocaleSelector() {
-    const localeBtn = document.getElementById('localeBtn');
-    const localeDropdown = document.getElementById('localeDropdown');
-    
-    if (!localeBtn || !localeDropdown) return;
-    
-    const currentCurrency = CurrencyConfig.getCurrentCurrency();
-    const currentLang = localStorage.getItem('preferredLanguage') || 'en';
-    
-    updateLocaleDisplay(currentCurrency, currentLang);
-    
-    document.querySelectorAll('#currencyOptions .locale-option').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.currency === currentCurrency);
-        btn.addEventListener('click', () => {
-            CurrencyConfig.setCurrency(btn.dataset.currency);
-            window.location.reload();
-        });
-    });
-    
-    document.querySelectorAll('#languageOptions .locale-option').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.lang === currentLang);
-        btn.addEventListener('click', () => {
-            localStorage.setItem('preferredLanguage', btn.dataset.lang);
-            document.documentElement.lang = btn.dataset.lang;
-            document.documentElement.dir = btn.dataset.lang === 'ar' ? 'rtl' : 'ltr';
-            window.location.reload();
-        });
-    });
-    
-    localeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        localeDropdown.classList.toggle('active');
-    });
-    
-    document.addEventListener('click', () => {
-        localeDropdown.classList.remove('active');
-    });
-    
-    localeDropdown.addEventListener('click', (e) => {
-        e.stopPropagation();
+    elements.cartBtn?.addEventListener('click', window.openCart);
+    elements.cartClose?.addEventListener('click', window.closeCart);
+    elements.cartOverlay?.addEventListener('click', window.closeCart);
+    elements.wishlistBtn?.addEventListener('click', window.openWishlist);
+    elements.wishlistClose?.addEventListener('click', window.closeWishlist);
+    elements.wishlistOverlay?.addEventListener('click', window.closeWishlist);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeQuickView(); closeSearch(); closeSizeGuide(); closeFilter();
+            window.closeCart(); window.closeWishlist();
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
     });
 }
 
+function initLocaleSelector() {
+    const btn = document.getElementById('localeBtn'), drop = document.getElementById('localeDropdown');
+    if (!btn || !drop) return;
+    const curr = CurrencyConfig.getCurrentCurrency(), lang = localStorage.getItem('preferredLanguage') || 'en';
+    updateLocaleDisplay(curr, lang);
+    btn.addEventListener('click', (e) => { e.stopPropagation(); drop.classList.toggle('active'); });
+    document.addEventListener('click', () => drop.classList.remove('active'));
+    drop.addEventListener('click', (e) => e.stopPropagation());
+}
+
 function updateLocaleDisplay(currency, lang) {
-    const localeCurrent = document.getElementById('localeCurrent');
-    if (localeCurrent) {
+    const el = document.getElementById('localeCurrent');
+    if (el) {
         const symbols = { USD: '$', NGN: '₦', EUR: '€', GBP: '£' };
-        localeCurrent.textContent = `${symbols[currency]} · ${lang.toUpperCase()}`;
+        el.textContent = `${symbols[currency]} · ${lang.toUpperCase()}`;
     }
 }
 
 function initLegacySelectors() {
-    const currencySelect = document.getElementById('currencySelect');
-    if (currencySelect) {
-        currencySelect.value = CurrencyConfig.getCurrentCurrency();
-        currencySelect.addEventListener('change', (e) => {
-            CurrencyConfig.setCurrency(e.target.value);
-            window.location.reload();
-        });
-    }
-    
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-        languageSelect.value = savedLang;
-        languageSelect.addEventListener('change', (e) => {
-            localStorage.setItem('preferredLanguage', e.target.value);
-            document.documentElement.lang = e.target.value;
-            document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
-            window.location.reload();
-        });
-    }
-    
-    const mobileCurrencySelect = document.getElementById('mobileCurrencySelect');
-    if (mobileCurrencySelect) {
-        mobileCurrencySelect.value = CurrencyConfig.getCurrentCurrency();
-        mobileCurrencySelect.addEventListener('change', (e) => {
-            CurrencyConfig.setCurrency(e.target.value);
-            window.location.reload();
-        });
-    }
-    
-    const mobileLanguageSelect = document.getElementById('mobileLanguageSelect');
-    if (mobileLanguageSelect) {
-        const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-        mobileLanguageSelect.value = savedLang;
-        mobileLanguageSelect.addEventListener('change', (e) => {
-            localStorage.setItem('preferredLanguage', e.target.value);
-            document.documentElement.lang = e.target.value;
-            document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
-            window.location.reload();
-        });
-    }
-    
     const savedLang = localStorage.getItem('preferredLanguage') || 'en';
     document.documentElement.lang = savedLang;
     document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
-    if (typeof applyTranslations === 'function') {
-        applyTranslations();
+    if (typeof applyTranslations === 'function') applyTranslations();
+}
+
+// Overrides for CartState
+window.addEventListener('componentsLoaded', () => {
+    // Custom renderers for shop page
+    if (typeof CartState !== 'undefined') {
+        CartState.renderCart = function() {
+            const cart = getCart();
+            if (!elements.cartItems) return;
+            if (cart.length === 0) {
+                elements.cartItems.innerHTML = `<div class="cart-empty"><p data-i18n="cart.empty">Your cart is empty</p><a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()" data-i18n="cart.continueShopping">Continue Shopping</a></div>`;
+            } else {
+                elements.cartItems.innerHTML = cart.map((item, index) => `
+                    <div class="cart-item">
+                        <div class="cart-item-image"><img src="${item.image}" alt="${item.name}"></div>
+                        <div class="cart-item-details">
+                            <h4>${item.name}</h4><p>${item.color} / ${item.size}</p>
+                            <div class="cart-item-actions">
+                                <div class="cart-item-qty"><button onclick="window.shopUpdateCartQty(${index}, -1)">−</button><span>${item.quantity}</span><button onclick="window.shopUpdateCartQty(${index}, 1)">+</button></div>
+                                <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
+                            </div>
+                        </div>
+                        <button class="cart-item-remove" onclick="window.shopRemoveFromCart(${index})">×</button>
+                    </div>
+                `).join('');
+            }
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            if (elements.cartSubtotal) elements.cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
+        };
+
+        CartState.renderWishlist = function() {
+            const wishlist = getWishlist();
+            if (!elements.wishlistItems) return;
+            if (wishlist.length === 0) {
+                elements.wishlistItems.innerHTML = `<div class="wishlist-empty"><p data-i18n="cart.wishlistEmpty">Your wishlist is empty</p></div>`;
+                return;
+            }
+            const wishlistProducts = wishlist.map(id => state.products.find(p => p.id === id)).filter(p => p);
+            elements.wishlistItems.innerHTML = wishlistProducts.map(product => `
+                <div class="wishlist-item">
+                    <div class="wishlist-item-image"><img src="${product.images?.[0]?.src || ''}" alt="${product.name}"></div>
+                    <div class="wishlist-item-details">
+                        <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
+                        <p>${CurrencyConfig.formatPrice(product.price)}</p>
+                        <div class="wishlist-item-actions">
+                            <button class="btn-add-cart-sm" onclick="window.shopAddToCartFromWishlist('${product.id}')">Add to Cart</button>
+                            <button class="btn-remove-sm" onclick="window.shopRemoveFromWishlist('${product.id}')">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
     }
+
+    initShop();
+});
+
+window.shopUpdateCartQty = (index, delta) => { CartState.updateCartItemQuantity(index, delta); CartState.renderCart(); };
+window.shopRemoveFromCart = (index) => { CartState.removeFromCart(index); CartState.renderCart(); };
+window.shopAddToCartFromWishlist = (id) => { 
+    const p = state.products.find(x => x.id === id);
+    if (p) CartState.addToCart({ id: p.id, name: p.name, price: p.price, image: p.images?.[0]?.src || '', color: 'Default', size: 'OS', quantity: 1 });
+};
+window.shopRemoveFromWishlist = (id) => { const idx = getWishlist().indexOf(id); if (idx > -1) CartState.removeFromWishlist(idx); };
+
+if (document.readyState === 'complete') {
+    if (window.Components && document.getElementById('nav')?.innerHTML) initShop();
 }

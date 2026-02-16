@@ -339,7 +339,13 @@ const WhatsAppSupport = {
 };
 
 // Auto-initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Inject Shared Components (Header, Footer, Sidebars)
+    if (window.Components) {
+        await window.Components.init();
+    }
+
+    // 2. Initialize other core systems
     CSRFProtection.init();
     WhatsAppSupport.init();
     GlobalSettings.init();

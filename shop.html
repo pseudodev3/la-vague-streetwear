@@ -36,97 +36,7 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="nav" id="nav">
-        <div class="nav-container">
-            <a href="index.html" class="nav-logo">
-                <span class="logo-text">LA VAGUE</span>
-            </a>
-            <ul class="nav-links" id="navLinks">
-                <li><a href="shop.html" class="nav-link active">Shop</a></li>
-                <li><a href="index.html#collections" class="nav-link">Collections</a></li>
-                <li><a href="index.html#lookbook" class="nav-link">Lookbook</a></li>
-                <li><a href="index.html#about" class="nav-link">About</a></li>
-                <li class="mobile-selectors">
-                    <div class="mobile-currency-selector">
-                        <select id="mobileCurrencySelect" aria-label="Currency">
-                            <option value="USD">$ USD</option>
-                            <option value="NGN">₦ NGN</option>
-                            <option value="EUR">€ EUR</option>
-                            <option value="GBP">£ GBP</option>
-                        </select>
-                    </div>
-                    <div class="mobile-language-selector">
-                        <select id="mobileLanguageSelect" aria-label="Language">
-                            <option value="en">EN</option>
-                            <option value="fr">FR</option>
-                            <option value="ar">AR</option>
-                        </select>
-                    </div>
-                </li>
-            </ul>
-            <div class="nav-actions">
-                <div class="locale-selector">
-                    <button class="locale-btn" id="localeBtn" aria-label="Select currency and language">
-                        <span class="locale-current" id="localeCurrent">$ · EN</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="locale-dropdown" id="localeDropdown">
-                        <div class="locale-section">
-                            <span class="locale-label">Language</span>
-                            <div class="locale-options" id="languageOptions">
-                                <button class="locale-option" data-lang="en">English</button>
-                                <button class="locale-option" data-lang="fr">Français</button>
-                                <button class="locale-option" data-lang="ar">العربية</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Hidden selectors for mobile menu -->
-                <div class="currency-selector desktop-hidden">
-                    <select id="currencySelect" aria-label="Currency">
-                        <option value="USD">$ USD</option>
-                        <option value="NGN">₦ NGN</option>
-                        <option value="EUR">€ EUR</option>
-                        <option value="GBP">£ GBP</option>
-                    </select>
-                </div>
-                <div class="language-selector desktop-hidden">
-                    <select id="languageSelect" aria-label="Language">
-                        <option value="en">EN</option>
-                        <option value="fr">FR</option>
-                        <option value="ar">AR</option>
-                    </select>
-                </div>
-                <button class="nav-btn" id="searchBtn" aria-label="Search">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <path d="m21 21-4.35-4.35"></path>
-                    </svg>
-                </button>
-                <button class="nav-btn" id="wishlistBtn" aria-label="Wishlist">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                    </svg>
-                    <span class="wishlist-count" id="wishlistCount">0</span>
-                </button>
-                <button class="nav-btn cart-btn" id="cartBtn" aria-label="Cart">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M6 6h15l-1.5 9h-12z"></path>
-                        <circle cx="9" cy="20" r="1"></circle>
-                        <circle cx="18" cy="20" r="1"></circle>
-                        <path d="M6 6L5 3H2"></path>
-                    </svg>
-                    <span class="cart-count" id="cartCount">0</span>
-                </button>
-                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
-                    <span></span>
-                    <span></span>
-                </button>
-            </div>
-        </div>
-    </nav>
+    <nav class="nav" id="nav"></nav>
 
     <!-- Shop Header -->
     <header class="shop-header">
@@ -323,60 +233,18 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- Footer -->
-    <footer class="footer footer-compact">
-        <div class="container">
-            <div class="footer-bottom">
-                <p>&copy; 2024 LA VAGUE. All rights reserved.</p>
-                <div class="payment-methods">
-                    <span class="payment-icon">VISA</span>
-                    <span class="payment-icon">MC</span>
-                    <span class="payment-icon">AMEX</span>
-                    <span class="payment-icon">PP</span>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <footer class="footer footer-compact"></footer>
 
     <!-- Cart Overlay & Sidebar -->
     <div class="cart-overlay" id="cartOverlay"></div>
-    <div class="cart-sidebar" id="cartSidebar">
-        <div class="cart-header">
-            <h3>Your Cart</h3>
-            <button class="cart-close" id="cartClose">×</button>
-        </div>
-        <div class="cart-items" id="cartItems">
-            <div class="cart-empty">
-                <p>Your cart is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()">Continue Shopping</a>
-            </div>
-        </div>
-        <div class="cart-footer" id="cartFooter">
-            <div class="cart-subtotal">
-                <span>Subtotal</span>
-                <span id="cartSubtotal">$0</span>
-            </div>
-            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()">Checkout</a>
-            <p class="cart-note">Shipping & taxes calculated at checkout</p>
-        </div>
-    </div>
+    <div class="cart-sidebar" id="cartSidebar"></div>
 
     <!-- Wishlist Sidebar -->
     <div class="wishlist-overlay" id="wishlistOverlay"></div>
-    <div class="wishlist-sidebar" id="wishlistSidebar">
-        <div class="wishlist-header">
-            <h3>Your Wishlist</h3>
-            <button class="wishlist-close" id="wishlistClose">×</button>
-        </div>
-        <div class="wishlist-items" id="wishlistItems">
-            <div class="wishlist-empty">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
-                <p>Your wishlist is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Start Shopping</a>
-            </div>
-        </div>
-    </div>
+    <div class="wishlist-sidebar" id="wishlistSidebar"></div>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay"></div>
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
@@ -384,6 +252,7 @@
     <!-- Scripts -->
     <script src="products.js?v=2"></script>
     <script src="cart.js?v=2"></script>
+    <script src="components.js"></script>
     <script src="utils.js"></script>
     <script src="translations.js"></script>
     <script src="shop.js?v=2"></script>

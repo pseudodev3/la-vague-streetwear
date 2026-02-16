@@ -88,13 +88,7 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="nav" id="nav">
-        <div class="nav-container">
-            <a href="index.html" class="nav-logo">
-                <span class="logo-text">LA VAGUE</span>
-            </a>
-        </div>
-    </nav>
+    <nav class="nav" id="nav"></nav>
 
     <!-- Confirmation -->
     <main class="confirmation">
@@ -121,49 +115,20 @@
 
     <!-- Cart Overlay & Sidebar -->
     <div class="cart-overlay" id="cartOverlay"></div>
-    <div class="cart-sidebar" id="cartSidebar">
-        <div class="cart-header">
-            <h3>Your Cart</h3>
-            <button class="cart-close" id="cartClose">×</button>
-        </div>
-        <div class="cart-items" id="cartItems">
-            <div class="cart-empty">
-                <p>Your cart is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()">Continue Shopping</a>
-            </div>
-        </div>
-        <div class="cart-footer" id="cartFooter">
-            <div class="cart-subtotal">
-                <span>Subtotal</span>
-                <span id="cartSubtotal">$0</span>
-            </div>
-            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()">Checkout</a>
-            <p class="cart-note">Shipping & taxes calculated at checkout</p>
-        </div>
-    </div>
+    <div class="cart-sidebar" id="cartSidebar"></div>
 
     <!-- Wishlist Sidebar -->
     <div class="wishlist-overlay" id="wishlistOverlay"></div>
-    <div class="wishlist-sidebar" id="wishlistSidebar">
-        <div class="wishlist-header">
-            <h3>Your Wishlist</h3>
-            <button class="wishlist-close" id="wishlistClose">×</button>
-        </div>
-        <div class="wishlist-items" id="wishlistItems">
-            <div class="wishlist-empty">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
-                <p>Your wishlist is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Start Shopping</a>
-            </div>
-        </div>
-    </div>
+    <div class="wishlist-sidebar" id="wishlistSidebar"></div>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay"></div>
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
     <script src="cart.js"></script>
+    <script src="components.js"></script>
     <script src="utils.js"></script>
     <script>
         // Get order details from URL

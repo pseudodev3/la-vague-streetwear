@@ -372,93 +372,18 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-brand">
-                    <img src="la-vague-red-wordmark.png" alt="LA VAGUE" class="footer-logo-img">
-                    <p class="footer-tagline">Ride the wave. Timeless streetwear for the modern individual.</p>
-                </div>
-                <div class="footer-links">
-                    <h4>Shop</h4>
-                    <ul>
-                        <li><a href="shop.html">All Products</a></li>
-                        <li><a href="shop.html?category=hoodies">Hoodies</a></li>
-                        <li><a href="shop.html?category=tees">T-Shirts</a></li>
-                        <li><a href="shop.html?category=bottoms">Bottoms</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h4>Help</h4>
-                    <ul>
-                        <li><a href="track-order.html">Track Order</a></li>
-                        <li><a href="shipping.html">Shipping</a></li>
-                        <li><a href="returns.html">Returns</a></li>
-                        <li><a href="faq.html">FAQ</a></li>
-                        <li><a href="contact.html">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h4>Legal</h4>
-                    <ul>
-                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
-                        <li><a href="terms-of-service.html">Terms of Service</a></li>
-                        <li><a href="refund-policy.html">Refund Policy</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 LA VAGUE. All rights reserved.</p>
-                <div class="payment-methods">
-                    <span class="payment-icon">VISA</span>
-                    <span class="payment-icon">MC</span>
-                    <span class="payment-icon">AMEX</span>
-                    <span class="payment-icon">PP</span>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <footer class="footer"></footer>
 
     <!-- Cart Overlay & Sidebar -->
     <div class="cart-overlay" id="cartOverlay"></div>
-    <div class="cart-sidebar" id="cartSidebar">
-        <div class="cart-header">
-            <h3>Your Cart</h3>
-            <button class="cart-close" id="cartClose">×</button>
-        </div>
-        <div class="cart-items" id="cartItems">
-            <div class="cart-empty">
-                <p>Your cart is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()">Continue Shopping</a>
-            </div>
-        </div>
-        <div class="cart-footer" id="cartFooter">
-            <div class="cart-subtotal">
-                <span>Subtotal</span>
-                <span id="cartSubtotal">$0</span>
-            </div>
-            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()">Checkout</a>
-            <p class="cart-note">Shipping & taxes calculated at checkout</p>
-        </div>
-    </div>
+    <div class="cart-sidebar" id="cartSidebar"></div>
 
     <!-- Wishlist Sidebar -->
     <div class="wishlist-overlay" id="wishlistOverlay"></div>
-    <div class="wishlist-sidebar" id="wishlistSidebar">
-        <div class="wishlist-header">
-            <h3>Your Wishlist</h3>
-            <button class="wishlist-close" id="wishlistClose">×</button>
-        </div>
-        <div class="wishlist-items" id="wishlistItems">
-            <div class="wishlist-empty">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
-                <p>Your wishlist is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Start Shopping</a>
-            </div>
-        </div>
-    </div>
+    <div class="wishlist-sidebar" id="wishlistSidebar"></div>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay"></div>
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
@@ -466,6 +391,7 @@
     <!-- Scripts -->
     <script src="products.js?v=2"></script>
     <script src="cart.js?v=2"></script>
+    <script src="components.js"></script>
     <script src="utils.js"></script>
     <script src="translations.js"></script>
     <script src="product.js?v=2"></script>
