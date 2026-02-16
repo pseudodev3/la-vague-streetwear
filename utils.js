@@ -303,6 +303,27 @@ const GlobalSettings = {
     }
 };
 
+// Reveal Animations Utility
+window.initRevealAnimations = function() {
+    const revealElements = document.querySelectorAll('.reveal-up:not(.visible), .reveal-scale:not(.visible), .reveal-left:not(.visible), .reveal-right:not(.visible)');
+    
+    if (revealElements.length === 0) return;
+
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                revealObserver.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    });
+    
+    revealElements.forEach(el => revealObserver.observe(el));
+};
+
 // WhatsApp Support Initialization
 const WhatsAppSupport = {
     init() {
