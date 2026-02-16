@@ -492,6 +492,9 @@ async function initDatabase() {
     
     // Initialize audit tables
     await initAuditTables();
+
+    // Seed default settings
+    await seedSettings();
     
     // Initialize services
     inventoryService = new InventoryService(db, USE_POSTGRES);
@@ -857,6 +860,40 @@ async function logInventoryMovement(productId, variantKey, movementType, quantit
         }
     } catch (error) {
         console.error('[INVENTORY] Failed to log movement:', error.message);
+    }
+}
+
+// Seed default settings
+async function seedSettings() {
+    const defaultSettings = [
+        { key: 'storeName', value: 'LA VAGUE' },
+        { key: 'supportEmail', value: 'support@la-vague.store' },
+        { key: 'freeShippingThreshold', value: '150000' },
+        { key: 'standardShippingRate', value: '10000' },
+        { key: 'expressShippingRate', value: '25000' },
+        { key: 'currency_rates', value: JSON.stringify({ USD: 1, NGN: 1550, EUR: 0.94, GBP: 0.80 }) }
+    ];
+
+    if (USE_POSTGRES) {
+        const result = await db.query('SELECT COUNT(*) FROM settings');
+        if (parseInt(result.rows[0].count) === 0) {
+            for (const s of defaultSettings) {
+                await db.query(
+                    'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
+                    [s.key, s.value]
+                );
+            }
+            console.log('✅ Default settings seeded');
+        }
+    } else {
+        const count = db.prepare('SELECT COUNT(*) as count FROM settings').get();
+        if (count.count === 0) {
+            const insert = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
+            for (const s of defaultSettings) {
+                insert.run(s.key, s.value);
+            }
+            console.log('✅ Default settings seeded');
+        }
     }
 }
 
@@ -1297,9 +1334,9 @@ app.get('/api/config/settings', asyncHandler(async (req, res) => {
     res.json({
         success: true,
         settings: {
-            shippingRate: parseInt(settings.standardShippingRate) || 10,
-            expressShippingRate: parseInt(settings.expressShippingRate) || 25,
-            freeShippingThreshold: parseInt(settings.freeShippingThreshold) || 150,
+            shippingRate: parseInt(settings.standardShippingRate) || 10000,
+            expressShippingRate: parseInt(settings.expressShippingRate) || 25000,
+            freeShippingThreshold: parseInt(settings.freeShippingThreshold) || 150000,
             storeName: settings.storeName || 'LA VAGUE'
         }
     });

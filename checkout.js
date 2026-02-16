@@ -16,14 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     const state = {
         cart: JSON.parse(localStorage.getItem('cart')) || [],
-        shipping: 10,
+        shipping: 10000,
         discount: 0,
         discountCode: null,
         isFreeShippingCoupon: false,
         settings: {
-            shippingRate: 10,
-            expressShippingRate: 25,
-            freeShippingThreshold: 150
+            shippingRate: 10000,
+            expressShippingRate: 25000,
+            freeShippingThreshold: 150000
         }
     };
 
