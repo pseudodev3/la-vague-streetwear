@@ -1912,8 +1912,8 @@ function renderSalesChart(data) {
     if (!container) return;
     
     container.innerHTML = '';
-    // Make the chart container scrollable horizontally for large data sets
-    container.style.cssText = 'height: 400px; padding: 0; position: relative; overflow-x: auto; overflow-y: hidden;';
+    // Make the outer container overflow-x scrollable
+    container.style.cssText = 'height: 400px; padding: 0; position: relative; overflow-x: auto; background: var(--color-bg);';
     
     if (!data || data.length === 0) {
         container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%;"><p class="text-muted">No sales data available</p></div>';
@@ -1927,7 +1927,7 @@ function renderSalesChart(data) {
         orders: parseInt(d.orders) || 0
     }));
     
-    // Generate sequence to ensure no gaps in chart
+    // Generate sequence to ensure no gaps
     const displayData = [];
     const now = new Date();
     const daysToDisplay = currentAnalyticsPeriod;
@@ -1936,77 +1936,106 @@ function renderSalesChart(data) {
         const d = new Date(now);
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
-        
-        // Find existing data for this date
         const existingDay = parsedData.find(day => {
             const dayDate = day.date.includes('T') ? day.date.split('T')[0] : day.date;
             return dayDate === dateStr;
         });
-        
         displayData.push(existingDay || { date: dateStr, revenue: 0, orders: 0 });
     }
     
     const maxRevenue = Math.max(...displayData.map(d => d.revenue), 1000);
-    const totalRevenue = displayData.reduce((sum, d) => sum + d.revenue, 0);
+    const minBarWidth = 45;
+    const innerWidth = Math.max(container.clientWidth, displayData.length * minBarWidth + 100);
     
-    // Calculate width based on data length to make it "movable" (scrollable)
-    const minBarWidth = 40;
-    const chartWidth = Math.max(container.clientWidth - 40, displayData.length * minBarWidth);
-    
+    // Create inner wrapper with explicit width
     const chartWrapper = createElement('div', {
-        style: `width: ${chartWidth}px; min-width: 100%; height: 100%; display: flex; flex-direction: column; padding: 1.5rem;`
+        style: `width: ${innerWidth}px; height: 100%; display: flex; flex-direction: column; padding: 2rem 1.5rem 3.5rem 1.5rem;`
     });
     
     // Header
     const headerDiv = createElement('div', {
-        style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;'
+        style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--color-border); padding-bottom: 1rem;'
     });
-    headerDiv.appendChild(createElement('h4', { style: 'margin: 0; font-size: 1rem;' }, `Sales Trend - Last ${daysToDisplay} Days`));
+    headerDiv.appendChild(createElement('h4', { style: 'margin: 0; font-weight: 600; letter-spacing: 0.5px;' }, `SALES TREND - LAST ${daysToDisplay} DAYS`));
     chartWrapper.appendChild(headerDiv);
     
-    // Chart Plot Area
-    const plotArea = createElement('div', {
-        style: 'flex: 1; display: flex; align-items: flex-end; gap: 8px; position: relative; border-bottom: 1px solid var(--color-border); padding-bottom: 5px;'
+    // Chart Area (Y-Axis + Plot)
+    const chartArea = createElement('div', {
+        style: 'flex: 1; display: flex; position: relative;'
+    });
+    
+    // Y-Axis Labels
+    const yAxisSteps = 5;
+    const yAxisDiv = createElement('div', {
+        style: 'width: 80px; display: flex; flex-direction: column; justify-content: space-between; padding-right: 1.5rem; text-align: right; border-right: 1px solid var(--color-border); margin-bottom: 20px;'
+    });
+    
+    for (let i = yAxisSteps; i >= 0; i--) {
+        const val = (maxRevenue / yAxisSteps) * i;
+        let label = `₦${Math.round(val).toLocaleString()}`;
+        if (val >= 1000000) label = `₦${(val/1000000).toFixed(1)}M`;
+        else if (val >= 1000) label = `₦${(val/1000).toFixed(0)}k`;
+        
+        yAxisDiv.appendChild(createElement('span', { style: 'font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500;' }, label));
+    }
+    chartArea.appendChild(yAxisDiv);
+    
+    // Plot Container
+    const plotContainer = createElement('div', {
+        style: 'flex: 1; position: relative; margin-bottom: 20px;'
+    });
+    
+    // Grid Lines
+    const gridDiv = createElement('div', {
+        style: 'position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;'
+    });
+    for (let i = 0; i <= yAxisSteps; i++) {
+        gridDiv.appendChild(createElement('div', { style: 'width: 100%; border-top: 1px dashed var(--color-border); height: 0;' }));
+    }
+    plotContainer.appendChild(gridDiv);
+    
+    // Bars Area
+    const barsArea = createElement('div', {
+        style: 'position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: space-around; padding: 0 10px; z-index: 1;'
     });
     
     displayData.forEach(day => {
-        const height = maxRevenue > 0 ? (day.revenue / maxRevenue) * 100 : 0;
-        const barContainer = createElement('div', {
-            style: 'flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; group;'
+        const heightPercent = maxRevenue > 0 ? (day.revenue / maxRevenue) * 100 : 0;
+        
+        const barCol = createElement('div', {
+            style: 'flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; height: 100%; justify-content: flex-end; max-width: 35px;'
         });
         
         const bar = createElement('div', {
-            className: 'chart-bar',
-            style: `width: 100%; height: ${Math.max(height, 2)}%; background: var(--color-accent); transition: height 0.3s ease; border-radius: 2px 2px 0 0; cursor: pointer;`,
-            title: `${day.date}: ₦${day.revenue.toLocaleString()} (${day.orders} orders)`
+            style: `width: 80%; height: ${Math.max(heightPercent, 1)}%; background: var(--color-accent); border-radius: 2px 2px 0 0; transition: all 0.3s ease; cursor: pointer;`,
+            onmouseenter: (e) => {
+                bar.style.background = 'var(--color-accent-hover)';
+                bar.style.boxShadow = '0 0 15px rgba(220, 38, 38, 0.4)';
+                showChartTooltip(e, `<strong>${day.date}</strong><br>Revenue: ₦${day.revenue.toLocaleString()}<br>Orders: ${day.orders}`);
+            },
+            onmouseleave: () => {
+                bar.style.background = 'var(--color-accent)';
+                bar.style.boxShadow = 'none';
+                hideChartTooltip();
+            }
         });
         
-        // Tooltip on hover
-        bar.addEventListener('mouseenter', (e) => {
-            bar.style.background = 'var(--color-accent-hover)';
-            showChartTooltip(e, `<strong>${day.date}</strong><br>Revenue: ₦${day.revenue.toLocaleString()}<br>Orders: ${day.orders}`);
-        });
-        bar.addEventListener('mouseleave', () => {
-            bar.style.background = 'var(--color-accent)';
-            hideChartTooltip();
-        });
+        const dateLabel = createElement('span', {
+            style: 'position: absolute; bottom: -25px; font-size: 0.65rem; color: var(--color-text-muted); white-space: nowrap; transform: rotate(-45deg); transform-origin: top left;'
+        }, day.date.substring(5)); // MM-DD
         
-        const label = createElement('span', {
-            style: 'font-size: 0.65rem; color: var(--color-text-muted); margin-top: 8px; white-space: nowrap; transform: rotate(-45deg); transform-origin: top left;'
-        }, day.date.substring(5)); // Show MM-DD
-        
-        barContainer.appendChild(bar);
-        barContainer.appendChild(label);
-        plotArea.appendChild(barContainer);
+        barCol.appendChild(bar);
+        barCol.appendChild(dateLabel);
+        barsArea.appendChild(barCol);
     });
     
-    chartWrapper.appendChild(plotArea);
+    plotContainer.appendChild(barsArea);
+    chartArea.appendChild(plotContainer);
+    chartWrapper.appendChild(chartArea);
     container.appendChild(chartWrapper);
     
-    // Scroll to the end (latest data)
-    setTimeout(() => {
-        container.scrollLeft = container.scrollWidth;
-    }, 100);
+    // Scroll to latest
+    setTimeout(() => { container.scrollLeft = container.scrollWidth; }, 100);
 }
 
 function showChartTooltip(e, html) {
