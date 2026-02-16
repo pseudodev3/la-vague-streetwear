@@ -132,9 +132,44 @@ class EmailQueue {
     }
 
     async executeJob(job) {
+        // Priority 1: Brevo API (Most reliable on Render/Cloud)
+        if (process.env.BREVO_API_KEY && (process.env.EMAIL_PROVIDER === 'brevo' || process.env.EMAIL_PROVIDER === 'sendinblue')) {
+            await this.sendViaBrevoAPI(job);
+            return;
+        }
+
+        // Priority 2: SMTP (Standard fallback)
         const transporter = getTransporter();
         await transporter.sendMail(job.mailOptions);
-        console.log(`[EMAIL] Sent to ${job.to} - ${job.subject}`);
+        console.log(`[EMAIL] Sent via SMTP to ${job.to} - ${job.subject}`);
+    }
+
+    async sendViaBrevoAPI(job) {
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'content-type': 'application/json',
+                'api-key': process.env.BREVO_API_KEY
+            },
+            body: JSON.stringify({
+                sender: {
+                    name: process.env.SMTP_FROM_NAME || 'LA VAGUE',
+                    email: process.env.EMAIL_FROM || process.env.BREVO_USER || process.env.SMTP_USER
+                },
+                to: [{ email: job.to }],
+                subject: job.subject,
+                htmlContent: job.mailOptions.html,
+                textContent: job.mailOptions.text
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Brevo API Error: ${error.message || response.statusText}`);
+        }
+
+        console.log(`[EMAIL] Sent via Brevo API to ${job.to} - ${job.subject}`);
     }
 
     delay(ms) {
@@ -291,6 +326,8 @@ export function getEmailQueueStats() {
 export function isEmailConfigured() {
     const provider = process.env.EMAIL_PROVIDER || 'smtp';
     
+    if (process.env.BREVO_API_KEY) return true;
+
     if (provider === 'sendgrid') {
         return !!process.env.SENDGRID_API_KEY;
     }
@@ -308,6 +345,7 @@ export function isEmailConfigured() {
 export function getEmailConfig() {
     return {
         provider: process.env.EMAIL_PROVIDER || 'smtp',
+        method: process.env.BREVO_API_KEY ? 'API' : 'SMTP',
         host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
         user: process.env.SMTP_USER || process.env.BREVO_USER ? 'Configured' : null,
         from: process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.BREVO_USER,
