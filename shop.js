@@ -229,21 +229,24 @@ function renderProducts() {
         };
         const secondImage = product.images && product.images[1] ? product.images[1] : null;
         
+        const totalStock = Object.values(product.inventory || {}).reduce((a, b) => a + b, 0);
+        const isSoldOut = totalStock === 0;
+
         return `
-        <article class="product-card reveal-up" data-product-id="${product.id}">
+        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-product-id="${product.id}">
             <div class="product-image-wrapper" onclick="window.openProductPage('${product.slug}')">
-                ${product.badge && product.badge.toLowerCase() !== 'null' ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : ''}
+                ${isSoldOut ? '<span class="product-badge soldout">Sold Out</span>' : (product.badge && product.badge.toLowerCase() !== 'null' ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : '')}
                 <img src="${firstImage.src}" alt="${firstImage.alt}" class="product-image" loading="lazy">
                 ${secondImage ? `<img src="${secondImage.src}" alt="${secondImage.alt}" class="product-image-hover" loading="lazy">` : ''}
                 <div class="product-actions">
-                    <button class="product-btn" onclick="event.stopPropagation(); window.addToCartFromCard('${product.id}')">
+                    <button class="product-btn" onclick="event.stopPropagation(); window.addToCartFromCard('${product.id}')" ${isSoldOut ? 'disabled' : ''}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M6 6h15l-1.5 9h-12z"></path>
                             <circle cx="9" cy="20" r="1"></circle>
                             <circle cx="18" cy="20" r="1"></circle>
                             <path d="M6 6L5 3H2"></path>
                         </svg>
-                        ${typeof t === 'function' ? t('product.addToCart') : 'Add to Cart'}
+                        ${isSoldOut ? 'Sold Out' : (typeof t === 'function' ? t('product.addToCart') : 'Add to Cart')}
                     </button>
                     <button class="product-btn" onclick="event.stopPropagation(); window.quickView('${product.id}')">${typeof t === 'function' ? t('product.quickView') : 'Quick View'}</button>
                     <button class="product-btn wishlist ${getWishlist().includes(product.id) ? 'active' : ''}" 
@@ -363,6 +366,16 @@ function renderQuickView() {
         alt: product.name
     };
     
+    const variantKey = `${state.selectedColor}-${state.selectedSize}`;
+    const stock = product.inventory?.[variantKey] || 0;
+
+    // Adjust quantity if it exceeds stock
+    if (stock > 0 && state.selectedQuantity > stock) {
+        state.selectedQuantity = stock;
+    } else if (stock === 0) {
+        state.selectedQuantity = 1;
+    }
+    
     elements.quickViewContent.innerHTML = `
         <div class="quick-view-gallery">
             <img src="${firstImage.src}" alt="${firstImage.alt || product.name}" id="quickViewImage">
@@ -415,18 +428,19 @@ function renderQuickView() {
                 <div class="quantity-selector">
                     <button class="qty-btn" onclick="window.updateQuantity(-1)" ${state.selectedQuantity <= 1 ? 'disabled' : ''}>−</button>
                     <span>${state.selectedQuantity}</span>
-                    <button class="qty-btn" onclick="window.updateQuantity(1)">+</button>
+                    <button class="qty-btn" onclick="window.updateQuantity(1)" ${state.selectedQuantity >= stock ? 'disabled' : ''}>+</button>
                 </div>
-                <button class="add-to-cart-btn" onclick="window.addToCartFromQuickView()">
+                <button class="add-to-cart-btn" onclick="window.addToCartFromQuickView()" ${stock <= 0 ? 'disabled' : ''}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M6 6h15l-1.5 9h-12z"></path>
                         <circle cx="9" cy="20" r="1"></circle>
                         <circle cx="18" cy="20" r="1"></circle>
                         <path d="M6 6L5 3H2"></path>
                     </svg>
-                    Add to Cart
+                    ${stock <= 0 ? 'Sold Out' : 'Add to Cart'}
                 </button>
             </div>
+            ${stock > 0 && stock <= 5 ? `<p class="stock-warning">Only ${stock} left in stock!</p>` : ''}
         </div>
     `;
 }
@@ -442,8 +456,17 @@ window.selectSize = function(size) {
 };
 
 window.updateQuantity = function(delta) {
-    state.selectedQuantity = Math.max(1, state.selectedQuantity + delta);
-    renderQuickView();
+    const product = state.quickViewProduct;
+    const variantKey = `${state.selectedColor}-${state.selectedSize}`;
+    const stock = product.inventory?.[variantKey] || 0;
+    
+    const newQty = state.selectedQuantity + delta;
+    if (newQty >= 1 && newQty <= stock) {
+        state.selectedQuantity = newQty;
+        renderQuickView();
+    } else if (newQty > stock) {
+        showToast(`Only ${stock} items available in stock`, 'error');
+    }
 };
 
 window.addToCartFromQuickView = async function() {
@@ -452,6 +475,13 @@ window.addToCartFromQuickView = async function() {
         const stockCheck = await ShopAPI.checkStock(product.id, state.selectedColor, state.selectedSize);
         if (!stockCheck.inStock || stockCheck.available < state.selectedQuantity) {
             showToast(`Only ${stockCheck.available} items available in this variant`, 'error');
+            return;
+        }
+    } else {
+        const variantKey = `${state.selectedColor}-${state.selectedSize}`;
+        const stock = product.inventory?.[variantKey] || 0;
+        if (state.selectedQuantity > stock) {
+            showToast(`Only ${stock} items available in stock`, 'error');
             return;
         }
     }
@@ -511,13 +541,22 @@ window.addToCartFromCard = async function(productId) {
     if (!product) return;
     const color = product.colors?.[0]?.name || 'Default';
     const size = product.sizes?.[0] || 'OS';
+    
     if (!state.usingStaticData) {
         const stockCheck = await ShopAPI.checkStock(product.id, color, size);
         if (!stockCheck.inStock) {
             showToast('Sorry, this item is out of stock', 'error');
             return;
         }
+    } else {
+        const variantKey = `${color}-${size}`;
+        const stock = product.inventory?.[variantKey] || 0;
+        if (stock <= 0) {
+            showToast('Sorry, this item is out of stock', 'error');
+            return;
+        }
     }
+    
     CartState.addToCart({
         id: product.id, name: product.name, price: product.price,
         image: product.images?.[0]?.src || '', color: color, size: size, quantity: 1

@@ -170,8 +170,24 @@ const CartState = {
             i.id === item.id && i.color === item.color && i.size === item.size
         );
         
+        const currentQty = existingItem ? existingItem.quantity : 0;
+        const newTotalQty = currentQty + item.quantity;
+
+        // Check stock against static data if available
+        if (typeof ProductAPI !== 'undefined') {
+            const product = ProductAPI.getById(item.id);
+            if (product) {
+                const variantKey = `${item.color}-${item.size}`;
+                const stock = product.inventory[variantKey] || 0;
+                if (newTotalQty > stock) {
+                    this.showToast(`Only ${stock} items available in stock`, 'error');
+                    return;
+                }
+            }
+        }
+        
         if (existingItem) {
-            existingItem.quantity += item.quantity;
+            existingItem.quantity = newTotalQty;
         } else {
             this.cart.push(item);
         }
@@ -209,7 +225,29 @@ const CartState = {
     },
     
     updateCartItemQuantity(index, delta) {
-        this.cart[index].quantity = Math.max(1, this.cart[index].quantity + delta);
+        const item = this.cart[index];
+        if (!item) return;
+        
+        const newQty = item.quantity + delta;
+        if (newQty < 1) {
+            this.removeFromCart(index);
+            return;
+        }
+        
+        // Check stock against static data if available
+        if (typeof ProductAPI !== 'undefined') {
+            const product = ProductAPI.getById(item.id);
+            if (product) {
+                const variantKey = `${item.color}-${item.size}`;
+                const stock = product.inventory[variantKey] || 0;
+                if (newQty > stock) {
+                    this.showToast(`Only ${stock} items available in stock`, 'error');
+                    return;
+                }
+            }
+        }
+
+        item.quantity = newQty;
         this.saveCart();
         this.renderCart();
     },

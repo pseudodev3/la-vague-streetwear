@@ -1879,3 +1879,54 @@ button {
         display: none;
     }
 }
+
+/* ============================================
+   SOLD OUT STATES
+   ============================================ */
+
+.product-badge.soldout {
+    background: #6b7280;
+    color: white;
+}
+
+.product-card.sold-out {
+    opacity: 0.85;
+}
+
+.product-card.sold-out .product-image {
+    filter: grayscale(0.4);
+}
+
+.stock-low {
+    color: #f59e0b;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.stock-out {
+    color: #ef4444;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.stock-in {
+    color: #22c55e;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.stock-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    background: currentColor;
+}
+
+.stock-warning {
+    color: #f59e0b;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    font-weight: 500;
+}

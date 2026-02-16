@@ -102,10 +102,14 @@ function renderFeaturedProducts() {
     if (!elements.featuredProducts) return;
     const featured = ProductAPI.getFeatured().slice(0, 4);
     
-    elements.featuredProducts.innerHTML = featured.map(product => `
-        <article class="product-card reveal-up" onclick="window.location.href='product.html?slug=${product.slug}'">
+    elements.featuredProducts.innerHTML = featured.map(product => {
+        const totalStock = Object.values(product.inventory || {}).reduce((a, b) => a + b, 0);
+        const isSoldOut = totalStock === 0;
+
+        return `
+        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" onclick="window.location.href='product.html?slug=${product.slug}'">
             <div class="product-image-wrapper">
-                ${product.badge && product.badge.toLowerCase() !== 'null' ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : ''}
+                ${isSoldOut ? '<span class="product-badge soldout">Sold Out</span>' : (product.badge && product.badge.toLowerCase() !== 'null' ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : '')}
                 <img src="${product.images[0].src}" alt="${product.images[0].alt}" class="product-image" loading="lazy">
                 ${product.images[1] ? `<img src="${product.images[1].src}" alt="${product.images[1].alt}" class="product-image-hover" loading="lazy">` : ''}
             </div>
@@ -124,7 +128,7 @@ function renderFeaturedProducts() {
                 ` : ''}
             </div>
         </article>
-    `).join('');
+    `}).join('');
 }
 
 // ==========================================
@@ -132,7 +136,8 @@ function renderFeaturedProducts() {
 // ==========================================
 function renderCart() {
     if (!elements.cartItems) return;
-    if (state.cart.length === 0) {
+    const cart = (typeof CartState !== 'undefined') ? CartState.cart : state.cart;
+    if (cart.length === 0) {
         elements.cartItems.innerHTML = `
             <div class="cart-empty">
                 <p data-i18n="cart.empty">Your cart is empty</p>
@@ -140,7 +145,7 @@ function renderCart() {
             </div>
         `;
     } else {
-        elements.cartItems.innerHTML = state.cart.map((item, index) => `
+        elements.cartItems.innerHTML = cart.map((item, index) => `
             <div class="cart-item">
                 <div class="cart-item-image">
                     <img src="${item.image}" alt="${item.name}">
@@ -161,7 +166,7 @@ function renderCart() {
             </div>
         `).join('');
     }
-    const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     if (elements.cartSubtotal) elements.cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
 }
 
@@ -179,6 +184,13 @@ window.closeCart = function() {
 };
 
 window.updateCartQty = function(index, delta) {
+    if (typeof CartState !== 'undefined') {
+        CartState.updateCartItemQuantity(index, delta);
+        renderCart();
+        updateCartCount();
+        return;
+    }
+    
     const item = state.cart[index];
     const newQty = item.quantity + delta;
     if (newQty < 1) {
@@ -192,6 +204,14 @@ window.updateCartQty = function(index, delta) {
 };
 
 window.removeFromCart = function(index) {
+    if (typeof CartState !== 'undefined') {
+        CartState.removeFromCart(index);
+        renderCart();
+        updateCartCount();
+        showToast('Item removed from cart', 'success');
+        return;
+    }
+    
     state.cart.splice(index, 1);
     saveCart();
     renderCart();
@@ -205,7 +225,8 @@ function saveCart() {
 
 function updateCartCount() {
     if (!elements.cartCount) return;
-    const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+    const cart = (typeof CartState !== 'undefined') ? CartState.cart : state.cart;
+    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
     elements.cartCount.textContent = count;
     elements.cartCount.style.display = count > 0 ? 'flex' : 'none';
 }
@@ -215,7 +236,8 @@ function updateCartCount() {
 // ==========================================
 function renderWishlist() {
     if (!elements.wishlistItems) return;
-    if (state.wishlist.length === 0) {
+    const wishlist = (typeof CartState !== 'undefined') ? CartState.wishlist : state.wishlist;
+    if (wishlist.length === 0) {
         elements.wishlistItems.innerHTML = `
             <div class="wishlist-empty">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
@@ -227,7 +249,7 @@ function renderWishlist() {
         `;
         return;
     }
-    const wishlistProducts = state.wishlist.map(id => ProductAPI.getById(id)).filter(p => p);
+    const wishlistProducts = wishlist.map(id => ProductAPI.getById(id)).filter(p => p);
     elements.wishlistItems.innerHTML = wishlistProducts.map(product => `
         <div class="wishlist-item">
             <div class="wishlist-item-image">
@@ -261,15 +283,26 @@ window.closeWishlist = function() {
 window.addToCartFromWishlist = function(productId) {
     const product = ProductAPI.getById(productId);
     if (!product) return;
+    
+    const color = product.colors[0]?.name || 'Default';
+    const size = product.sizes[0];
+    
     const item = {
         id: product.id,
         name: product.name,
         price: product.price,
         image: product.images[0].src,
-        color: product.colors[0]?.name || 'One Size',
-        size: product.sizes[0],
+        color: color,
+        size: size,
         quantity: 1
     };
+    
+    if (typeof CartState !== 'undefined') {
+        CartState.addToCart(item);
+        updateCartCount();
+        return;
+    }
+
     const existingItem = state.cart.find(i => i.id === item.id && i.color === item.color && i.size === item.size);
     if (existingItem) {
         existingItem.quantity++;

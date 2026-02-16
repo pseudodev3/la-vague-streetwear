@@ -239,20 +239,34 @@ function updateStockStatus() {
     const size = (p.sizes.length === 1 && p.sizes[0] === 'OS') ? 'OS' : state.selectedSize;
     const variantKey = `${state.selectedColor}-${size}`;
     const stock = p.inventory[variantKey] || 0;
+
+    // Reset quantity if it exceeds stock
+    if (stock > 0 && state.quantity > stock) {
+        state.quantity = stock;
+        if (elements.quantity) elements.quantity.textContent = state.quantity;
+    }
+
     if (!state.selectedSize && !(p.sizes.length === 1 && p.sizes[0] === 'OS')) {
         elements.stockStatus.innerHTML = '';
         elements.addToCartBtn.disabled = true;
+        elements.addToCartBtn.innerHTML = `<span>Add to Cart</span>`;
         return;
     }
+
     if (stock <= 0) {
         elements.stockStatus.innerHTML = `<span class="stock-out"><span class="stock-dot"></span> Out of Stock</span>`;
         elements.addToCartBtn.disabled = true;
+        elements.addToCartBtn.innerHTML = `<span>Sold Out</span>`;
+        state.quantity = 1;
+        if (elements.quantity) elements.quantity.textContent = state.quantity;
     } else if (stock <= 5) {
         elements.stockStatus.innerHTML = `<span class="stock-low"><span class="stock-dot"></span> Low Stock: Only ${stock} left</span>`;
         elements.addToCartBtn.disabled = false;
+        elements.addToCartBtn.innerHTML = `<span>Add to Cart</span>`;
     } else {
         elements.stockStatus.innerHTML = `<span class="stock-in"><span class="stock-dot"></span> In Stock</span>`;
         elements.addToCartBtn.disabled = false;
+        elements.addToCartBtn.innerHTML = `<span>Add to Cart</span>`;
     }
 }
 
@@ -283,8 +297,33 @@ window.selectSize = (size) => { state.selectedSize = size; renderSizes(); };
 window.setImage = (idx) => { state.currentImageIndex = idx; renderGallery(); };
 
 function bindEvents() {
-    elements.qtyMinus?.addEventListener('click', () => { if (state.quantity > 1) { state.quantity--; elements.quantity.textContent = state.quantity; }});
-    elements.qtyPlus?.addEventListener('click', () => { state.quantity++; elements.quantity.textContent = state.quantity; });
+    elements.qtyMinus?.addEventListener('click', () => { 
+        if (state.quantity > 1) { 
+            state.quantity--; 
+            elements.quantity.textContent = state.quantity; 
+        }
+    });
+    
+    elements.qtyPlus?.addEventListener('click', () => { 
+        const p = state.product;
+        const size = (p.sizes.length === 1 && p.sizes[0] === 'OS') ? 'OS' : state.selectedSize;
+        
+        if (!size && !(p.sizes.length === 1 && p.sizes[0] === 'OS')) {
+            showToast('Please select a size first', 'error');
+            return;
+        }
+        
+        const variantKey = `${state.selectedColor}-${size}`;
+        const stock = p.inventory[variantKey] || 0;
+        
+        if (state.quantity < stock) { 
+            state.quantity++; 
+            elements.quantity.textContent = state.quantity; 
+        } else {
+            showToast(`Only ${stock} items available in stock`, 'error');
+        }
+    });
+
     elements.addToCartBtn?.addEventListener('click', () => {
         CartState.addToCart({
             id: state.product.id, name: state.product.name, price: state.product.price,
