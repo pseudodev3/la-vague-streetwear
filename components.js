@@ -3,7 +3,7 @@
  * Centralizes Nav, Footer, and Sidebars to keep code DRY
  */
 
-const Components = {
+window.Components = {
     // Current templates extracted from index.html
     templates: {
         nav: `
@@ -218,9 +218,10 @@ const Components = {
             const inject = () => {
                 console.log('[COMPONENTS] Injecting shared UI elements...');
                 
-                        const nav = document.getElementById('nav');
-                        const footer = document.querySelector('footer');
-                        const cartSidebar = document.getElementById('cartSidebar');                const wishlistSidebar = document.getElementById('wishlistSidebar');
+                const nav = document.getElementById('nav');
+                const footer = document.querySelector('footer');
+                const cartSidebar = document.getElementById('cartSidebar');
+                const wishlistSidebar = document.getElementById('wishlistSidebar');
                 const searchOverlay = document.getElementById('searchOverlay');
 
                 if (nav) nav.innerHTML = this.templates.nav;
