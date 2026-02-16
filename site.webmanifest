@@ -1,0 +1,17 @@
+{
+    "name": "LA VAGUE Streetwear",
+    "short_name": "LA VAGUE",
+    "description": "Premium streetwear crafted in Nigeria. Timeless designs for those who set the trend.",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "theme_color": "#0a0a0a",
+    "background_color": "#0a0a0a",
+    "display": "standalone",
+    "start_url": "/index.html"
+}
