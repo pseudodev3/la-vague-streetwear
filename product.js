@@ -80,7 +80,8 @@ const state = {
     selectedColor: null,
     selectedSize: null,
     quantity: 1,
-    usingStaticData: false
+    usingStaticData: false,
+    selectedRating: 0
 };
 
 let elements = {};
@@ -132,7 +133,18 @@ async function initProduct() {
         wishlistOverlay: document.getElementById('wishlistOverlay'),
         wishlistClose: document.getElementById('wishlistClose'),
         wishlistItems: document.getElementById('wishlistItems'),
-        toastContainer: document.getElementById('toastContainer')
+        toastContainer: document.getElementById('toastContainer'),
+        
+        // Reviews elements
+        reviewsList: document.getElementById('reviewsList'),
+        averageRating: document.getElementById('averageRating'),
+        averageStars: document.getElementById('averageStars'),
+        ratingCount: document.getElementById('ratingCount'),
+        reviewModal: document.getElementById('reviewModal'),
+        writeReviewBtn: document.getElementById('writeReviewBtn'),
+        reviewModalCloseX: document.getElementById('reviewModalCloseX'),
+        reviewForm: document.getElementById('reviewForm'),
+        starRatingInput: document.getElementById('starRatingInput')
     };
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -155,6 +167,8 @@ async function initProduct() {
     renderProduct();
     renderGallery();
     renderRelatedProducts();
+    loadReviews(state.product.id);
+
     if (typeof CartState !== 'undefined') {
         CartState.updateCartCount();
         CartState.updateWishlistCount();
@@ -163,6 +177,15 @@ async function initProduct() {
     bindEvents();
     initLocaleSelector();
     initLegacySelectors();
+
+    // Nav scroll effect
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+            elements.nav?.classList.add('scrolled');
+        } else {
+            elements.nav?.classList.remove('scrolled');
+        }
+    }, { passive: true });
     
     elements.productLoading.style.display = 'none';
     elements.productContent.style.display = 'block';
@@ -171,6 +194,8 @@ async function initProduct() {
 
 function renderProduct() {
     const p = state.product;
+    if (!elements.productTitle) return;
+    elements.breadcrumbProduct.textContent = p.name;
     elements.productCategory.textContent = CATEGORIES.find(c => c.id === p.category)?.name || p.category;
     elements.productTitle.textContent = p.name;
     elements.productPrice.textContent = CurrencyConfig.formatPrice(p.price);
@@ -280,6 +305,125 @@ function bindEvents() {
     elements.cartBtn?.addEventListener('click', window.openCart);
     elements.cartClose?.addEventListener('click', window.closeCart);
     elements.cartOverlay?.addEventListener('click', window.closeCart);
+
+    // Reviews events
+    elements.writeReviewBtn?.addEventListener('click', () => {
+        elements.reviewModal.classList.add('active');
+    });
+    elements.reviewModalCloseX?.addEventListener('click', () => {
+        elements.reviewModal.classList.remove('active');
+    });
+    
+    if (elements.starRatingInput) {
+        const stars = elements.starRatingInput.querySelectorAll('span');
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                const rating = parseInt(star.dataset.rating);
+                state.selectedRating = rating;
+                stars.forEach(s => {
+                    s.classList.toggle('active', parseInt(s.dataset.rating) <= rating);
+                });
+            });
+        });
+    }
+
+    elements.reviewForm?.addEventListener('submit', handleReviewSubmit);
+
+    // Accordions
+    document.querySelectorAll('.accordion-header').forEach(header => {
+        header.addEventListener('click', () => {
+            header.parentElement.classList.toggle('active');
+        });
+    });
+}
+
+async function handleReviewSubmit(e) {
+    e.preventDefault();
+    if (state.selectedRating === 0) { showToast('Please select a rating', 'error'); return; }
+    
+    const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+    const formData = {
+        productId: state.product.id,
+        rating: state.selectedRating,
+        title: document.getElementById('reviewTitle').value,
+        reviewText: document.getElementById('reviewText').value,
+        customerName: document.getElementById('reviewerName').value,
+        customerEmail: document.getElementById('reviewerEmail').value
+    };
+
+    try {
+        const response = await fetch(`${API_URL}/products/${state.product.id}/reviews`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        const result = await response.json();
+        if (result.success) {
+            showToast('Review submitted for approval!', 'success');
+            elements.reviewModal.classList.remove('active');
+            elements.reviewForm.reset();
+        } else {
+            showToast(result.error || 'Failed to submit review', 'error');
+        }
+    } catch (error) {
+        showToast('Error submitting review', 'error');
+    }
+}
+
+// REVIEWS LOADING
+async function loadReviews(productId) {
+    try {
+        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+        const response = await fetch(`${API_URL}/products/${productId}/reviews?status=approved`);
+        if (!response.ok) { displayReviews([], { total: 0, average: 0 }); return; }
+        const data = await response.json();
+        if (data.success) displayReviews(data.reviews, data.summary);
+    } catch (e) { displayReviews([], { total: 0, average: 0 }); }
+}
+
+function displayReviews(reviews, summary) {
+    if (!elements.reviewsList) return;
+    if (elements.averageRating) elements.averageRating.textContent = summary?.average ? parseFloat(summary.average).toFixed(1) : '0.0';
+    if (elements.ratingCount) elements.ratingCount.textContent = `${summary?.total || 0} reviews`;
+    if (elements.averageStars) elements.averageStars.innerHTML = renderStars(parseFloat(summary?.average) || 0);
+
+    if (reviews.length === 0) {
+        elements.reviewsList.innerHTML = '<p class="text-center" style="color: var(--color-text-muted); padding: 2rem;">No reviews yet. Be the first to review!</p>';
+        return;
+    }
+
+    elements.reviewsList.innerHTML = reviews.map(r => `
+        <div class="review-card">
+            <div class="review-header">
+                <div class="review-meta"><span class="review-author">${escapeHtml(r.customer_name)}</span></div>
+                <span class="review-date">${new Date(r.created_at).toLocaleDateString()}</span>
+            </div>
+            <div class="stars">${renderStars(r.rating)}</div>
+            <h4 class="review-title">${escapeHtml(r.title)}</h4>
+            <p class="review-text">${escapeHtml(r.review_text)}</p>
+        </div>
+    `).join('');
+}
+
+function renderStars(rating) {
+    let html = '';
+    for (let i = 1; i <= 5; i++) html += i <= rating ? '★' : '<span class="empty">★</span>';
+    return html;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showToast(message, type = 'success') {
+    if (!elements.toastContainer) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span class="toast-message">${message}</span>`;
+    elements.toastContainer.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 3000);
 }
 
 function initLocaleSelector() {
