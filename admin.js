@@ -1912,129 +1912,125 @@ function renderSalesChart(data) {
     if (!container) return;
     
     container.innerHTML = '';
-    // Make the outer container overflow-x scrollable
-    container.style.cssText = 'height: 400px; padding: 0; position: relative; overflow-x: auto; background: var(--color-bg);';
+    // Professional styling for the scrollable container
+    container.style.cssText = 'height: 400px; padding: 0; position: relative; overflow-x: auto; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 8px;';
     
     if (!data || data.length === 0) {
-        container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%;"><p class="text-muted">No sales data available</p></div>';
+        container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%;"><p style="color: #666;">No sales data available</p></div>';
         return;
     }
     
-    // Parse all revenue values as integers
+    // Process data
     const parsedData = data.map(d => ({
-        ...d,
+        date: d.date,
         revenue: parseInt(d.revenue) || 0,
         orders: parseInt(d.orders) || 0
     }));
     
-    // Generate sequence to ensure no gaps
+    // Fill gaps
     const displayData = [];
     const now = new Date();
-    const daysToDisplay = currentAnalyticsPeriod;
-    
+    const daysToDisplay = currentAnalyticsPeriod || 30;
     for (let i = daysToDisplay - 1; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
-        const existingDay = parsedData.find(day => {
-            const dayDate = day.date.includes('T') ? day.date.split('T')[0] : day.date;
-            return dayDate === dateStr;
-        });
-        displayData.push(existingDay || { date: dateStr, revenue: 0, orders: 0 });
+        const existing = parsedData.find(day => (day.date.includes('T') ? day.date.split('T')[0] : day.date) === dateStr);
+        displayData.push(existing || { date: dateStr, revenue: 0, orders: 0 });
     }
     
     const maxRevenue = Math.max(...displayData.map(d => d.revenue), 1000);
-    const minBarWidth = 45;
-    const innerWidth = Math.max(container.clientWidth, displayData.length * minBarWidth + 100);
+    const chartHeight = 280; // Explicit height for the plot area
     
-    // Create inner wrapper with explicit width
+    // Width calculation
+    const minBarWidth = 50;
+    const innerWidth = Math.max(container.clientWidth - 2, displayData.length * minBarWidth + 100);
+    
     const chartWrapper = createElement('div', {
-        style: `width: ${innerWidth}px; height: 100%; display: flex; flex-direction: column; padding: 2rem 1.5rem 3.5rem 1.5rem;`
+        style: `width: ${innerWidth}px; min-height: 100%; display: flex; flex-direction: column; padding: 20px;`
     });
     
     // Header
-    const headerDiv = createElement('div', {
-        style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--color-border); padding-bottom: 1rem;'
+    const header = createElement('div', {
+        style: 'margin-bottom: 25px; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px;'
     });
-    headerDiv.appendChild(createElement('h4', { style: 'margin: 0; font-weight: 600; letter-spacing: 0.5px;' }, `SALES TREND - LAST ${daysToDisplay} DAYS`));
-    chartWrapper.appendChild(headerDiv);
+    header.innerHTML = `<h4 style="margin: 0; color: #fff; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Sales Trend - Last ${daysToDisplay} Days</h4>`;
+    chartWrapper.appendChild(header);
     
-    // Chart Area (Y-Axis + Plot)
-    const chartArea = createElement('div', {
-        style: 'flex: 1; display: flex; position: relative;'
-    });
-    
-    // Y-Axis Labels
-    const yAxisSteps = 5;
-    const yAxisDiv = createElement('div', {
-        style: 'width: 80px; display: flex; flex-direction: column; justify-content: space-between; padding-right: 1.5rem; text-align: right; border-right: 1px solid var(--color-border); margin-bottom: 20px;'
+    // Main Display Area
+    const mainArea = createElement('div', {
+        style: 'display: flex; height: 300px; position: relative;'
     });
     
-    for (let i = yAxisSteps; i >= 0; i--) {
-        const val = (maxRevenue / yAxisSteps) * i;
-        let label = `₦${Math.round(val).toLocaleString()}`;
+    // Y-Axis (Fixed on left if we weren't scrolling the whole thing, but here it scrolls with it)
+    const yAxis = createElement('div', {
+        style: 'width: 70px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #2a2a2a; padding-right: 10px; margin-bottom: 30px;'
+    });
+    for (let i = 5; i >= 0; i--) {
+        const val = (maxRevenue / 5) * i;
+        let label = `₦${Math.round(val/1000)}k`;
         if (val >= 1000000) label = `₦${(val/1000000).toFixed(1)}M`;
-        else if (val >= 1000) label = `₦${(val/1000).toFixed(0)}k`;
-        
-        yAxisDiv.appendChild(createElement('span', { style: 'font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500;' }, label));
+        else if (val < 1000) label = `₦${val}`;
+        yAxis.appendChild(createElement('span', { style: 'font-size: 10px; color: #666; text-align: right;' }, label));
     }
-    chartArea.appendChild(yAxisDiv);
+    mainArea.appendChild(yAxis);
     
-    // Plot Container
-    const plotContainer = createElement('div', {
-        style: 'flex: 1; position: relative; margin-bottom: 20px;'
+    // Plot Area
+    const plotArea = createElement('div', {
+        style: 'flex: 1; position: relative; margin-bottom: 30px;'
     });
     
-    // Grid Lines
-    const gridDiv = createElement('div', {
+    // Grid
+    const grid = createElement('div', {
         style: 'position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;'
     });
-    for (let i = 0; i <= yAxisSteps; i++) {
-        gridDiv.appendChild(createElement('div', { style: 'width: 100%; border-top: 1px dashed var(--color-border); height: 0;' }));
+    for (let i = 0; i <= 5; i++) {
+        grid.appendChild(createElement('div', { style: 'width: 100%; border-top: 1px solid #1a1a1a; height: 0;' }));
     }
-    plotContainer.appendChild(gridDiv);
+    plotArea.appendChild(grid);
     
-    // Bars Area
-    const barsArea = createElement('div', {
-        style: 'position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: space-around; padding: 0 10px; z-index: 1;'
+    // Bars Container
+    const barsContainer = createElement('div', {
+        style: 'position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: space-around; padding: 0 5px;'
     });
     
     displayData.forEach(day => {
-        const heightPercent = maxRevenue > 0 ? (day.revenue / maxRevenue) * 100 : 0;
-        
-        const barCol = createElement('div', {
-            style: 'flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; height: 100%; justify-content: flex-end; max-width: 35px;'
+        const barHeight = (day.revenue / maxRevenue) * 100;
+        const barWrapper = createElement('div', {
+            style: 'flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; height: 100%; justify-content: flex-end; max-width: 40px;'
         });
         
+        // The actual bar
         const bar = createElement('div', {
-            style: `width: 80%; height: ${Math.max(heightPercent, 1)}%; background: var(--color-accent); border-radius: 2px 2px 0 0; transition: all 0.3s ease; cursor: pointer;`,
+            style: `width: 70%; height: ${Math.max(barHeight, 2)}%; background: #dc2626; border-radius: 2px 2px 0 0; transition: all 0.3s ease; cursor: pointer; z-index: 2;`,
             onmouseenter: (e) => {
-                bar.style.background = 'var(--color-accent-hover)';
-                bar.style.boxShadow = '0 0 15px rgba(220, 38, 38, 0.4)';
+                bar.style.background = '#ef4444';
+                bar.style.boxShadow = '0 0 15px rgba(220, 38, 38, 0.5)';
                 showChartTooltip(e, `<strong>${day.date}</strong><br>Revenue: ₦${day.revenue.toLocaleString()}<br>Orders: ${day.orders}`);
             },
             onmouseleave: () => {
-                bar.style.background = 'var(--color-accent)';
+                bar.style.background = '#dc2626';
                 bar.style.boxShadow = 'none';
                 hideChartTooltip();
             }
         });
         
-        const dateLabel = createElement('span', {
-            style: 'position: absolute; bottom: -25px; font-size: 0.65rem; color: var(--color-text-muted); white-space: nowrap; transform: rotate(-45deg); transform-origin: top left;'
-        }, day.date.substring(5)); // MM-DD
+        // Date label
+        const label = createElement('span', {
+            style: 'position: absolute; bottom: -25px; font-size: 9px; color: #666; white-space: nowrap; transform: rotate(-45deg); transform-origin: top left;'
+        }, day.date.substring(5));
         
-        barCol.appendChild(bar);
-        barCol.appendChild(dateLabel);
-        barsArea.appendChild(barCol);
+        barWrapper.appendChild(bar);
+        barWrapper.appendChild(label);
+        barsContainer.appendChild(barWrapper);
     });
     
-    plotContainer.appendChild(barsArea);
-    chartArea.appendChild(plotContainer);
-    chartWrapper.appendChild(chartArea);
+    plotArea.appendChild(barsContainer);
+    mainArea.appendChild(plotArea);
+    chartWrapper.appendChild(mainArea);
     container.appendChild(chartWrapper);
     
-    // Scroll to latest
+    // Scroll to end
     setTimeout(() => { container.scrollLeft = container.scrollWidth; }, 100);
 }
 
