@@ -209,6 +209,20 @@
     font-weight: 600;
 }
 
+.payment-icons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.payment-icon {
+    color: var(--color-text-muted);
+    transition: var(--transition-fast);
+}
+
+.payment-method.active .payment-icon {
+    color: var(--color-accent);
+}
+
 .card-icons {
     display: flex;
     gap: 0.5rem;
