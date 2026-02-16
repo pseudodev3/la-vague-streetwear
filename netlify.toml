@@ -8,19 +8,18 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# Redirect rules for SPA behavior
+# Redirect rules for API and clean URLs
 [[redirects]]
   from = "/api/*"
   to = "https://la-vague-api.onrender.com/api/:splat"
   status = 200
   force = true
 
-# Redirect all routes to index.html for client-side routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  force = false
+# Netlify automatically handles clean URLs if we don't have a catch-all
+# Pretty URLs optimization will handle the rest
+
+[optimization]
+  pretty_urls = true
 
 # Headers for security
 [[headers]]

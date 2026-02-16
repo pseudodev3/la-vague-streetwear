@@ -222,29 +222,46 @@ async function handlePlaceOrder(e) {
     
     if (!isValid) { showToast('Please fill in all required fields', 'error'); return; }
     
-        const orderData = {
-            customerEmail: document.getElementById('email').value,
-            customerName: `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`,
-            customerPhone: document.getElementById('phone').value,
-            shippingAddress: {
-                address: document.getElementById('address').value,
-                apartment: document.getElementById('apartment')?.value || '',
-                city: document.getElementById('city').value,
-                state: document.getElementById('state').value,
-                zip: document.getElementById('zip').value
-            },
-            shippingMethod: document.querySelector('input[name="shipping"]:checked')?.value || 'standard',
-            shippingCost: state.shipping,
-            subtotal: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-            discount: state.discount,
-            discountCode: state.discountCode,
-            total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + state.shipping - state.discount,
-            items: state.cart,
-            paymentMethod: document.querySelector('input[name="payment"]:checked')?.value || 'manual'
-        };
-    
+    const selectedPayment = document.querySelector('input[name="payment"]:checked')?.value || 'manual';
+    const orderData = {
+        customerEmail: document.getElementById('email').value,
+        customerName: `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`,
+        customerPhone: document.getElementById('phone').value,
+        shippingAddress: {
+            address: document.getElementById('address').value,
+            apartment: document.getElementById('apartment')?.value || '',
+            city: document.getElementById('city').value,
+            state: document.getElementById('state').value,
+            zip: document.getElementById('zip').value
+        },
+        shippingMethod: document.querySelector('input[name="shipping"]:checked')?.value || 'standard',
+        shippingCost: state.shipping,
+        subtotal: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        discount: state.discount,
+        discountCode: state.discountCode,
+        total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + state.shipping - state.discount,
+        items: state.cart,
+        paymentMethod: selectedPayment
+    };
+
     elements.placeOrderBtn.textContent = 'Processing...';
     elements.placeOrderBtn.disabled = true;
+
+    // Use Paystack if selected and configured
+    if ((selectedPayment === 'paystack' || selectedPayment === 'card') && window.PaystackCheckout?.isConfigured()) {
+        try {
+            await window.PaystackCheckout.processOrder(orderData);
+            elements.placeOrderBtn.textContent = 'Complete Order';
+            elements.placeOrderBtn.disabled = false;
+            return;
+        } catch (error) {
+            console.error('[CHECKOUT] Paystack error:', error);
+            showToast('Payment initialization failed. Please try again.', 'error');
+            elements.placeOrderBtn.textContent = 'Complete Order';
+            elements.placeOrderBtn.disabled = false;
+            return;
+        }
+    }
     
     try {
         const csrfResponse = await fetch(`${API_URL}/csrf-token`, { credentials: 'include' });
@@ -258,7 +275,7 @@ async function handlePlaceOrder(e) {
         const result = await response.json();
         if (result.success) {
             localStorage.removeItem('cart');
-            window.location.href = `order-confirmation.html?order=${result.orderId}`;
+            window.location.href = `/order-confirmation?order=${result.orderId}`;
         }
     } catch (error) {
         showToast('API Error: ' + error.message, 'error');

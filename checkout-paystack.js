@@ -318,7 +318,7 @@
      */
     function redirectToConfirmation(orderId) {
         localStorage.removeItem('cart');
-        window.location.href = `order-confirmation.html?order=${orderId}&status=success`;
+        window.location.href = `/order-confirmation?order=${orderId}&status=success`;
     }
 
     // Polling state
@@ -353,7 +353,7 @@
                 <button onclick="window.refreshPaymentStatus('${orderId}')" class="paystack-modal-btn paystack-modal-btn--secondary" id="paystack-refresh-btn" style="display: none;">
                     Check Again
                 </button>
-                <a href="track-order.html" class="paystack-modal-btn paystack-modal-btn--secondary">Track Order</a>
+                <a href="/track-order" class="paystack-modal-btn paystack-modal-btn--secondary">Track Order</a>
             </div>
         `;
         
@@ -478,7 +478,7 @@
         // Update actions
         if (actions) {
             actions.innerHTML = `
-                <button onclick="window.location.href='order-confirmation.html?order=${orderId}&status=success'" 
+                <button onclick="window.location.href='/order-confirmation?order=${orderId}&status=success'" 
                         class="paystack-modal-btn paystack-modal-btn--primary">
                     View Order
                 </button>
