@@ -110,10 +110,14 @@ function createTransporter() {
         return nodemailer.createTransport({
             host: 'smtp-relay.brevo.com',
             port: 587,
+            secure: false, // TLS requires secure: false for port 587
             auth: {
                 user: process.env.BREVO_USER || process.env.SMTP_USER,
                 pass: process.env.BREVO_PASS || process.env.SMTP_PASS
-            }
+            },
+            connectionTimeout: 10000, // 10 seconds
+            greetingTimeout: 10000,
+            socketTimeout: 15000
         });
     }
     

@@ -245,10 +245,16 @@ app.use(compression());
 // Cookie parser
 app.use(cookieParser());
 
-// Body parsing with limits
+// Body parsing with limits and raw body capture for webhooks
 app.use(express.json({ 
     limit: '10mb',
-    strict: true // Only accept arrays and objects
+    strict: true,
+    verify: (req, res, buf) => {
+        // Capture raw body for webhook verification
+        if (req.originalUrl.includes('/api/payment/webhook')) {
+            req.rawBody = buf;
+        }
+    }
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -1401,12 +1407,12 @@ function verifyPaystackSignature(body, signature) {
  * No CSRF protection - called by Paystack servers
  */
 app.post('/api/payment/webhook', 
-    express.raw({ type: 'application/json' }), 
     asyncHandler(async (req, res) => {
         const signature = req.headers['x-paystack-signature'];
+        const payload = req.rawBody || req.body;
         
         // Verify signature
-        if (!signature || !verifyPaystackSignature(req.body, signature)) {
+        if (!signature || !verifyPaystackSignature(payload, signature)) {
             console.error('[PAYSTACK WEBHOOK] Invalid signature');
             res.status(401).json({ error: 'Unauthorized' });
             return;
@@ -1414,7 +1420,13 @@ app.post('/api/payment/webhook',
         
         let event;
         try {
-            event = JSON.parse(req.body);
+            // Use the parsed body for processing logic
+            event = req.body;
+            
+            // If rawBody was used for signature, but req.body is empty/not-json
+            if (typeof event !== 'object' || event === null) {
+                event = JSON.parse(payload.toString());
+            }
         } catch (error) {
             console.error('[PAYSTACK WEBHOOK] Invalid JSON:', error.message);
             res.status(400).json({ error: 'Invalid JSON' });
