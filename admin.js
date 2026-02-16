@@ -2038,7 +2038,7 @@ function renderSalesChart(data) {
         
         // Tooltip
         const tooltip = createElement('div', {
-            style: 'position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-8px); background: var(--color-text); color: white; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.75rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.15);'
+            style: 'position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-8px); background: #111; color: white; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.75rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5); border: 1px solid var(--color-border);'
         });
         tooltip.innerHTML = `
             <div style="font-weight: 600; margin-bottom: 0.25rem;">${formatDate(day.date)}</div>
