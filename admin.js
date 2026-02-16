@@ -1931,7 +1931,7 @@ function renderSalesChart(data) {
     
     // Create professional chart container
     const chartContainer = createElement('div', {
-        style: 'height: 100%; display: flex; flex-direction: column; padding: 1.5rem;'
+        style: 'height: 100%; display: flex; flex-direction: column; padding: 1.5rem 1.5rem 3rem 1.5rem;'
     });
     
     // Header with key metrics
@@ -1974,12 +1974,12 @@ function renderSalesChart(data) {
     
     // Chart area
     const chartArea = createElement('div', { 
-        style: 'flex: 1; display: flex; position: relative; min-height: 0;' 
+        style: 'flex: 1; display: flex; position: relative; min-height: 250px;' 
     });
     
     // Y-axis labels
     const yAxisDiv = createElement('div', { 
-        style: 'display: flex; flex-direction: column; justify-content: space-between; padding-right: 1rem; min-width: 60px; text-align: right;' 
+        style: 'display: flex; flex-direction: column; justify-content: space-between; padding-right: 1.5rem; min-width: 80px; text-align: right;' 
     });
     
     const yAxisSteps = 5;
@@ -2001,7 +2001,7 @@ function renderSalesChart(data) {
     
     // Chart canvas area
     const canvasArea = createElement('div', { 
-        style: 'flex: 1; position: relative; display: flex; flex-direction: column;' 
+        style: 'flex: 1; position: relative; display: flex; flex-direction: column; height: 100%;' 
     });
     
     // Grid lines
@@ -2018,7 +2018,7 @@ function renderSalesChart(data) {
     
     // Bars container
     const barsContainer = createElement('div', { 
-        style: 'flex: 1; display: flex; align-items: flex-end; justify-content: space-around; gap: 4px; padding-top: 0.5rem; position: relative; z-index: 1;' 
+        style: 'flex: 1; display: flex; align-items: flex-end; justify-content: space-around; gap: 4px; padding-top: 0.5rem; position: relative; z-index: 1; height: 100%;' 
     });
     
     // Show last 30 days or all if less
@@ -2033,7 +2033,7 @@ function renderSalesChart(data) {
         
         // Bar wrapper
         const barWrapper = createElement('div', {
-            style: 'flex: 1; max-width: 40px; display: flex; flex-direction: column; align-items: center; position: relative; group: "bar";'
+            style: 'flex: 1; max-width: 40px; display: flex; flex-direction: column; align-items: center; position: relative; group: "bar"; height: 100%; justify-content: flex-end;'
         });
         
         // Tooltip
