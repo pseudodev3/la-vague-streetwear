@@ -875,25 +875,19 @@ async function seedSettings() {
     ];
 
     if (USE_POSTGRES) {
-        const result = await db.query('SELECT COUNT(*) FROM settings');
-        if (parseInt(result.rows[0].count) === 0) {
-            for (const s of defaultSettings) {
-                await db.query(
-                    'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
-                    [s.key, s.value]
-                );
-            }
-            console.log('✅ Default settings seeded');
+        for (const s of defaultSettings) {
+            await db.query(
+                'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP',
+                [s.key, s.value]
+            );
         }
+        console.log('✅ Default settings seeded/updated');
     } else {
-        const count = db.prepare('SELECT COUNT(*) as count FROM settings').get();
-        if (count.count === 0) {
-            const insert = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
-            for (const s of defaultSettings) {
-                insert.run(s.key, s.value);
-            }
-            console.log('✅ Default settings seeded');
+        const insert = db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime("now"))');
+        for (const s of defaultSettings) {
+            insert.run(s.key, s.value);
         }
+        console.log('✅ Default settings seeded/updated');
     }
 }
 

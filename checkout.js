@@ -127,10 +127,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             
             if (data.success && data.settings) {
+                console.log('[CHECKOUT] API Settings received:', data.settings);
                 state.settings.shippingRate = data.settings.shippingRate || 10000;
                 state.settings.expressShippingRate = data.settings.expressShippingRate || 25000;
                 state.settings.freeShippingThreshold = data.settings.freeShippingThreshold || 150000;
-                console.log('[CHECKOUT] Settings loaded:', state.settings);
+                console.log('[CHECKOUT] State settings applied:', state.settings);
+                
+                // Update announcement bar if it exists
+                const announcementText = document.getElementById('announcementText');
+                if (announcementText) {
+                    announcementText.textContent = `FREE SHIPPING ON ORDERS OVER ${CurrencyConfig.formatPrice(state.settings.freeShippingThreshold)}`;
+                }
             }
         } catch (error) {
             console.error('[CHECKOUT] Failed to load settings:', error);
