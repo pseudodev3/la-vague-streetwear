@@ -222,25 +222,26 @@ async function handlePlaceOrder(e) {
     
     if (!isValid) { showToast('Please fill in all required fields', 'error'); return; }
     
-    const orderData = {
-        customerEmail: document.getElementById('email').value,
-        customerName: `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`,
-        customerPhone: document.getElementById('phone').value,
-        shippingAddress: {
-            address: document.getElementById('address').value,
-            apartment: document.getElementById('apartment')?.value || '',
-            city: document.getElementById('city').value,
-            state: document.getElementById('state').value,
-            zip: document.getElementById('zip').value
-        },
-        shippingMethod: document.querySelector('input[name="shipping"]:checked')?.value || 'standard',
-        shippingCost: state.shipping,
-        subtotal: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        discount: state.discount,
-        total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + state.shipping - state.discount,
-        items: state.cart,
-        paymentMethod: document.querySelector('input[name="payment"]:checked')?.value || 'manual'
-    };
+        const orderData = {
+            customerEmail: document.getElementById('email').value,
+            customerName: `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`,
+            customerPhone: document.getElementById('phone').value,
+            shippingAddress: {
+                address: document.getElementById('address').value,
+                apartment: document.getElementById('apartment')?.value || '',
+                city: document.getElementById('city').value,
+                state: document.getElementById('state').value,
+                zip: document.getElementById('zip').value
+            },
+            shippingMethod: document.querySelector('input[name="shipping"]:checked')?.value || 'standard',
+            shippingCost: state.shipping,
+            subtotal: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+            discount: state.discount,
+            discountCode: state.discountCode,
+            total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + state.shipping - state.discount,
+            items: state.cart,
+            paymentMethod: document.querySelector('input[name="payment"]:checked')?.value || 'manual'
+        };
     
     elements.placeOrderBtn.textContent = 'Processing...';
     elements.placeOrderBtn.disabled = true;

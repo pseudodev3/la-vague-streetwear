@@ -1781,10 +1781,11 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
         discount,
         total,
         paymentMethod,
+        discountCode,
         notes
     } = req.body;
 
-    console.log('[ORDER] Creating order:', { customerName, customerEmail, total, items: items?.length });
+    console.log('[ORDER] Creating order:', { customerName, customerEmail, total, items: items?.length, coupon: discountCode });
 
     // Check and reserve inventory
     try {
@@ -1806,6 +1807,19 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             `, [orderId, customerName, customerEmail, customerPhone, shippingAddressStr,
                 itemsStr, subtotal, shippingCost, discount || 0, total, paymentMethod, notes || '']);
+            
+            // Track coupon usage
+            if (discountCode) {
+                const couponResult = await db.query('SELECT id FROM coupons WHERE code = $1', [discountCode.toUpperCase()]);
+                if (couponResult.rows.length > 0) {
+                    const couponId = couponResult.rows[0].id;
+                    await db.query('UPDATE coupons SET usage_count = usage_count + 1 WHERE id = $1', [couponId]);
+                    await db.query(`
+                        INSERT INTO coupon_usage (coupon_id, order_id, customer_email, discount_amount)
+                        VALUES ($1, $2, $3, $4)
+                    `, [couponId, orderId, customerEmail, discount || 0]);
+                }
+            }
         } else {
             db.prepare(`
                 INSERT INTO orders (id, customer_name, customer_email, customer_phone, shipping_address, 
@@ -1813,6 +1827,18 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(orderId, customerName, customerEmail, customerPhone, shippingAddressStr,
                 itemsStr, subtotal, shippingCost, discount || 0, total, paymentMethod, notes || '');
+            
+            // Track coupon usage
+            if (discountCode) {
+                const coupon = db.prepare('SELECT id FROM coupons WHERE code = ?').get(discountCode.toUpperCase());
+                if (coupon) {
+                    db.prepare('UPDATE coupons SET usage_count = usage_count + 1 WHERE id = ?').run(coupon.id);
+                    db.prepare(`
+                        INSERT INTO coupon_usage (coupon_id, order_id, customer_email, discount_amount)
+                        VALUES (?, ?, ?, ?)
+                    `).run(coupon.id, orderId, customerEmail, discount || 0);
+                }
+            }
         }
 
         // Confirm the reservation (deduct from actual inventory)
