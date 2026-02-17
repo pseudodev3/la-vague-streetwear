@@ -188,6 +188,24 @@
     margin-bottom: 1.5rem;
 }
 
+/* Product Badge Styles for Detail Page */
+.product-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--color-accent);
+    color: #ffffff;
+    margin-bottom: 1rem;
+    z-index: 2;
+}
+
+.product-badge.sale { background: #22c55e; }
+.product-badge.new { background: #3b82f6; }
+.product-badge.soldout { background: #6b7280; }
+
 .product-category {
     font-size: 0.75rem;
     font-weight: 600;

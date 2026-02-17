@@ -204,6 +204,21 @@ function renderProduct() {
     elements.productDescription.textContent = p.description;
     elements.productFeatures.innerHTML = p.features.map(f => `<li>${f}</li>`).join('');
     
+    // Render Badge with Sold Out priority
+    const badgeContainer = document.getElementById('productBadgeContainer');
+    if (badgeContainer) {
+        const totalStock = Object.values(p.inventory || {}).reduce((a, b) => a + b, 0);
+        const isSoldOut = totalStock === 0;
+        
+        if (isSoldOut) {
+            badgeContainer.innerHTML = `<span class="product-badge soldout">Sold Out</span>`;
+        } else if (p.badge && p.badge.toLowerCase() !== 'null') {
+            badgeContainer.innerHTML = `<span class="product-badge ${p.badge.toLowerCase()}">${p.badge}</span>`;
+        } else {
+            badgeContainer.innerHTML = '';
+        }
+    }
+
     if (p.colors.length > 1) {
         elements.colorSelector.innerHTML = p.colors.map(color => `
             <button class="color-btn ${state.selectedColor === color.name ? 'active' : ''}" 
