@@ -1825,29 +1825,8 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
         await inventoryService.confirmReservation(orderId, items);
         console.log(`[INVENTORY] Confirmed stock deduction for order ${orderId}`);
 
-        // Send order confirmation email
-        const orderData = {
-            id: orderId,
-            customer_name: customerName,
-            customer_email: customerEmail,
-            customer_phone: customerPhone,
-            shipping_address: shippingAddress,
-            items,
-            subtotal,
-            shipping_cost: shippingCost,
-            discount: discount || 0,
-            total,
-            payment_method: paymentMethod,
-            created_at: new Date().toISOString()
-        };
-        
-        const emailResult = await sendOrderEmailSafely(orderData, 'confirmation');
-        if (emailResult.success) {
-            console.log(`[EMAIL] Confirmation sent for order ${orderId}`);
-        }
-
         console.log(`✅ Order created: ${orderId} for ${customerEmail}`);
-        res.json({ success: true, orderId, emailSent: emailResult.success });
+        res.json({ success: true, orderId });
     } catch (error) {
         // Release reservation on error
         await inventoryService.cancelReservation(orderId);
