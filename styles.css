@@ -1835,7 +1835,7 @@ button {
     padding: 0.5rem 1rem;
     background: var(--color-text);
     color: var(--color-bg);
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.8rem;
     font-weight: 500;
     transition: var(--transition-fast);
@@ -1850,7 +1850,7 @@ button {
     background: transparent;
     border: 1px solid var(--color-border);
     color: var(--color-text-muted);
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.8rem;
     transition: var(--transition-fast);
 }
