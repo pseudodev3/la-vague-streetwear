@@ -16,6 +16,7 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import multer from 'multer';
+import Paystack from 'paystack-api';
 
 // Import custom middleware and services
 import { InventoryService } from './src/services/inventory.js';
@@ -1890,8 +1891,55 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
         await inventoryService.confirmReservation(orderId, items);
         console.log(`[INVENTORY] Confirmed stock deduction for order ${orderId}`);
 
+        // 5. Initialize Paystack Transaction if needed (Access Code Method)
+        let paystackData = null;
+        if (paymentMethod === 'paystack') {
+            const secretKey = process.env.PAYSTACK_SECRET_KEY;
+            if (!secretKey) {
+                console.error('[PAYSTACK] Secret key missing');
+                throw new APIError('Payment gateway configuration error', 500);
+            }
+
+            try {
+                const paystack = Paystack(secretKey);
+                const paystackResponse = await paystack.transaction.initialize({
+                    email: customerEmail,
+                    amount: calculatedTotal * 100, // Paystack uses kobo
+                    reference: orderId,
+                    callback_url: `${process.env.FRONTEND_URL || req.headers.origin}/order-confirmation?order=${orderId}&status=success`,
+                    metadata: {
+                        order_id: orderId,
+                        custom_fields: [
+                            { display_name: "Order ID", variable_name: "order_id", value: orderId }
+                        ]
+                    }
+                });
+
+                if (paystackResponse.status) {
+                    paystackData = {
+                        access_code: paystackResponse.data.access_code,
+                        publicKey: process.env.PAYSTACK_PUBLIC_KEY
+                    };
+                    
+                    // Update order with reference (redundant but safe)
+                    if (USE_POSTGRES) {
+                        await db.query('UPDATE orders SET payment_reference = $1 WHERE id = $2', [paystackResponse.data.reference, orderId]);
+                    } else {
+                        db.prepare('UPDATE orders SET payment_reference = ? WHERE id = ?').run(paystackResponse.data.reference, orderId);
+                    }
+                }
+            } catch (error) {
+                console.error('[PAYSTACK INIT ERROR]', error.message);
+                // We don't fail the order creation, but we notify the user
+            }
+        }
+
         console.log(`✅ Order created: ${orderId} for ${customerEmail}`);
-        res.json({ success: true, orderId });
+        res.json({ 
+            success: true, 
+            orderId,
+            paystack: paystackData 
+        });
     } catch (error) {
         // Release reservation on error
         await inventoryService.cancelReservation(orderId);
