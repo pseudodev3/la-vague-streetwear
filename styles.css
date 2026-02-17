@@ -81,6 +81,51 @@
     display: none;
 }
 
+/* Mobile Language Selector in Hamburger Menu */
+.mobile-language-wrap {
+    display: none; /* Hidden by default on desktop */
+}
+
+@media (max-width: 768px) {
+    .mobile-language-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--color-border);
+        width: 100%;
+        max-width: 200px;
+    }
+
+    .mobile-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+    }
+
+    .mobile-language-options {
+        display: flex;
+        gap: 1.5rem;
+    }
+
+    .mobile-language-options .locale-option {
+        padding: 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--color-text);
+        border-bottom: 2px solid transparent;
+    }
+
+    .mobile-language-options .locale-option.active {
+        color: var(--color-accent);
+        border-bottom-color: var(--color-accent);
+    }
+}
+
 /* Combined Locale Selector (Professional) */
 .locale-selector {
     position: relative;

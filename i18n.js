@@ -19,6 +19,9 @@ const I18n = {
         
         // Add language selector to navigation
         this.addLanguageSelector();
+
+        // Bind global event listeners
+        this.bindEvents();
         
         console.log(`🌍 I18n initialized: ${this.currentLang}`);
     },
@@ -514,7 +517,10 @@ const I18n = {
     
     // Add language selector to navigation
     addLanguageSelector() {
-        // Check if selector already exists
+        // Check if professional locale-selector exists (from components.js)
+        if (document.querySelector('.locale-selector')) return;
+        
+        // Check if legacy selector already exists
         if (document.getElementById('languageSelector')) return;
         
         // Find nav actions container
@@ -583,20 +589,44 @@ const I18n = {
     
     // Update language selector UI
     updateLanguageSelector() {
+        const currentLang = this.currentLang;
+        
+        // Update professional desktop selector
+        const localeCurrent = document.getElementById('localeCurrent');
+        if (localeCurrent) {
+            localeCurrent.textContent = `₦ · ${currentLang.toUpperCase()}`;
+        }
+        
+        // Update all buttons with active state
+        document.querySelectorAll('.locale-option').forEach(btn => {
+            const lang = btn.getAttribute('data-lang');
+            btn.classList.toggle('active', lang === currentLang);
+        });
+
+        // Update legacy selector if it exists
         const selector = document.getElementById('languageSelector');
-        if (!selector) return;
-        
-        const currentLang = LANGUAGE_METADATA[this.currentLang];
-        const flag = selector.querySelector('.language-flag');
-        const code = selector.querySelector('.language-code');
-        
-        if (flag) flag.textContent = currentLang.flag;
-        if (code) code.textContent = currentLang.code.toUpperCase();
-        
-        // Update active state in dropdown
-        selector.querySelectorAll('.language-option').forEach(option => {
-            const lang = option.getAttribute('data-lang');
-            option.classList.toggle('active', lang === this.currentLang);
+        if (selector) {
+            const currentLangMeta = LANGUAGE_METADATA[currentLang];
+            const flag = selector.querySelector('.language-flag');
+            const code = selector.querySelector('.language-code');
+            if (flag) flag.textContent = currentLangMeta.flag;
+            if (code) code.textContent = currentLangMeta.code.toUpperCase();
+        }
+    },
+
+    // Listen for events on injected components
+    bindEvents() {
+        // Use event delegation for dynamically injected locale options
+        document.addEventListener('click', (e) => {
+            const localeBtn = e.target.closest('.locale-option');
+            if (localeBtn) {
+                const lang = localeBtn.getAttribute('data-lang');
+                if (lang) {
+                    this.setLanguage(lang);
+                    // Close dropdowns
+                    document.getElementById('localeDropdown')?.classList.remove('active');
+                }
+            }
         });
     },
     
