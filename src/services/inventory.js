@@ -345,26 +345,17 @@ export class InventoryService {
      */
     async cleanupExpiredReservations() {
         if (this.usePostgres) {
-            const result = await this.db.query(
+            await this.db.query(
                 'DELETE FROM inventory_reservations WHERE expires_at < NOW() RETURNING *'
             );
-            if (result.rows.length > 0) {
-                console.log(`[INVENTORY] Cleaned up ${result.rows.length} expired reservations`);
-            }
         } else {
             // Clean up in-memory expired reservations
             const now = Date.now();
-            let cleaned = 0;
             
             for (const [key, reservation] of this.reservations) {
                 if (reservation.expiresAt < now) {
                     this.reservations.delete(key);
-                    cleaned++;
                 }
-            }
-            
-            if (cleaned > 0) {
-                console.log(`[INVENTORY] Cleaned up ${cleaned} expired reservations`);
             }
         }
     }

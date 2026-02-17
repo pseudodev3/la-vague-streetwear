@@ -23,7 +23,6 @@ const state = {
 let elements = {};
 
 async function initCheckout() {
-    console.log('[CHECKOUT] Initializing checkout logic...');
     // ==========================================
     // DOM ELEMENTS (RE-QUERY AFTER INJECTION)
     // ==========================================
@@ -64,8 +63,6 @@ async function initCheckout() {
             elements.nav?.classList.remove('scrolled');
         }
     }, { passive: true });
-
-    console.log('[CHECKOUT] Initialization complete.');
 }
 
 function render() {

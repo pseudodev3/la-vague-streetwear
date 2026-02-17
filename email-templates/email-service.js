@@ -215,8 +215,6 @@ async function sendEmail({ to, subject, html, text, from, replyTo }) {
         replyTo: replyTo || senderEmail
     };
 
-    console.log(`[EMAIL QUEUE] Queueing email to ${to} from ${senderEmail}`);
-
     // Add to queue for reliability
     emailQueue.add({
         to,
@@ -358,7 +356,6 @@ export function getEmailConfig() {
  */
 export async function sendReviewConfirmationEmail({ customerEmail, customerName, productName, rating, title }) {
     if (!isEmailConfigured()) {
-        console.log('[EMAIL] Skipping review confirmation - email not configured');
         return { success: false, reason: 'email_not_configured' };
     }
     
@@ -402,7 +399,6 @@ export async function sendReviewConfirmationEmail({ customerEmail, customerName,
  */
 export async function sendNewReviewNotification({ reviewId, productName, customerName, rating, title, reviewText }) {
     if (!isEmailConfigured()) {
-        console.log('[EMAIL] Skipping admin review notification - email not configured');
         return { success: false, reason: 'email_not_configured' };
     }
     

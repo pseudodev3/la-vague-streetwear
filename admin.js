@@ -767,15 +767,13 @@ window.viewOrder = async function(orderId) {
         return;
     }
     
-    console.log('Viewing order - raw data:', JSON.stringify(order, null, 2));
-    
     // Load order notes
     let notes = [];
     try {
         const notesData = await fetchAPI(`/admin/orders/${orderId}/notes`);
         notes = notesData.notes || [];
     } catch (e) {
-        console.log('No notes found or error loading notes');
+        // Silent fail for notes
     }
     
     // Ensure items is an array
@@ -813,8 +811,6 @@ window.viewOrder = async function(orderId) {
         shipping_address: shippingAddress,
         items: items
     };
-    
-    console.log('Normalized order data:', normalizedOrder);
     
     elements.orderModalTitle.textContent = `Order ${orderId}`;
     elements.orderModalBody.innerHTML = '';
@@ -907,8 +903,6 @@ window.viewOrder = async function(orderId) {
     const shipping = normalizedOrder.shipping_cost;
     const discount = normalizedOrder.discount;
     const total = normalizedOrder.total;
-    
-    console.log('Payment values:', { subtotal, shipping, discount, total });
     
     // Subtotal
     const subtotalP = createElement('p', {});
@@ -1828,8 +1822,6 @@ async function loadAnalytics() {
         const totalRevenue = salesData.data.reduce((sum, day) => sum + (parseInt(day.revenue) || 0), 0);
         const totalOrders = salesData.data.reduce((sum, day) => sum + (parseInt(day.orders) || 0), 0);
         const aov = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
-        
-        console.log('Analytics data:', { totalRevenue, totalOrders, aov, days: salesData.data.length });
         
         // Update stats cards with proper formatting
         const revenueEl = document.getElementById('analyticsRevenue');

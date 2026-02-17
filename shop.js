@@ -105,7 +105,6 @@ const getCart = () => typeof CartState !== 'undefined' ? CartState.cart : [];
 const getWishlist = () => typeof CartState !== 'undefined' ? CartState.wishlist : [];
 
 async function initShop() {
-    console.log('[SHOP] Initializing shop logic...');
     // ==========================================
     // DOM ELEMENTS (RE-QUERY AFTER INJECTION)
     // ==========================================
@@ -190,7 +189,6 @@ async function initShop() {
     if (category && CATEGORIES.find(c => c.id === category)) {
         setCategory(category);
     }
-    console.log('[SHOP] Initialization complete.');
 }
 
 // ==========================================

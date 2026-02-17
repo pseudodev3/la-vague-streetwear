@@ -10,13 +10,6 @@ const hasCloudinaryConfig = !!(process.env.CLOUDINARY_CLOUD_NAME &&
                                process.env.CLOUDINARY_API_KEY && 
                                process.env.CLOUDINARY_API_SECRET);
 
-console.log('[CLOUDINARY] Config check:', { 
-    hasConfig: hasCloudinaryConfig,
-    hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
-    hasApiKey: !!process.env.CLOUDINARY_API_KEY,
-    hasApiSecret: !!process.env.CLOUDINARY_API_SECRET
-});
-
 if (hasCloudinaryConfig) {
     cloudinary.config({
         cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -24,7 +17,6 @@ if (hasCloudinaryConfig) {
         api_secret: process.env.CLOUDINARY_API_SECRET,
         secure: true
     });
-    console.log('[CLOUDINARY] Configured successfully');
 } else {
     console.warn('[CLOUDINARY] Configuration missing - image uploads will use placeholder URLs');
 }
@@ -85,7 +77,6 @@ export async function uploadImage(fileBuffer, folder = 'products', publicId = nu
                     console.error('[CLOUDINARY] Upload error:', error);
                     reject(new Error('Failed to upload image'));
                 } else {
-                    console.log('[CLOUDINARY] Upload successful:', result.secure_url);
                     resolve(result);
                 }
             }
@@ -102,18 +93,11 @@ export async function uploadImage(fileBuffer, folder = 'products', publicId = nu
  * @returns {Promise<Array>} Array of upload results
  */
 export async function uploadMultipleImages(files, folder = 'products') {
-    console.log(`[CLOUDINARY] Uploading ${files.length} images to folder: ${folder}`);
-    console.log(`[CLOUDINARY] Config status:`, { 
-        hasConfig: hasCloudinaryConfig,
-        cloudName: process.env.CLOUDINARY_CLOUD_NAME 
-    });
     
     const uploadPromises = files.map(async (file, index) => {
         const publicId = `${Date.now()}_${index}`;
-        console.log(`[CLOUDINARY] Uploading file ${index}: ${file.originalname}, size: ${file.buffer?.length} bytes`);
         try {
             const result = await uploadImage(file.buffer, folder, publicId);
-            console.log(`[CLOUDINARY] File ${index} uploaded successfully:`, result.secure_url?.substring(0, 80));
             return result;
         } catch (error) {
             console.error(`[CLOUDINARY] Failed to upload image ${index}:`, error.message);
@@ -137,7 +121,6 @@ export async function uploadMultipleImages(files, folder = 'products') {
 export async function deleteImage(publicId) {
     try {
         const result = await cloudinary.uploader.destroy(publicId);
-        console.log('[CLOUDINARY] Deleted:', publicId);
         return result;
     } catch (error) {
         console.error('[CLOUDINARY] Delete error:', error);

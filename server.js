@@ -1758,7 +1758,7 @@ app.get('/api/admin/products/:id/images', verifyAdminToken, asyncHandler(async (
     });
 }));
 
-// Create order with validation and inventory check
+// Create order with validation, inventory check, and PRICE VERIFICATION
 app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, asyncHandler(async (req, res) => {
     const orderId = 'LV-' + crypto.randomBytes(4).toString('hex').toUpperCase();
     const { 
@@ -1767,18 +1767,71 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
         customerPhone, 
         shippingAddress, 
         items, 
-        subtotal, 
+        subtotal: requestSubtotal,
         shippingCost, 
-        discount,
-        total,
+        discount: requestDiscount,
+        total: requestTotal,
         paymentMethod,
         discountCode,
         notes
     } = req.body;
 
-    console.log('[ORDER] Creating order:', { customerName, customerEmail, total, items: items?.length, coupon: discountCode });
+    console.log('[ORDER] Creating order:', { customerName, customerEmail, total: requestTotal, items: items?.length, coupon: discountCode });
 
-    // Check and reserve inventory
+    // 1. Verify Prices & Subtotal (Security Critical)
+    let calculatedSubtotal = 0;
+    const validatedItems = [];
+
+    for (const item of items) {
+        const product = await productService.getById(item.id);
+        if (!product) {
+            throw new APIError(`Product not found: ${item.name}`, 400, 'INVALID_PRODUCT');
+        }
+        
+        // Use backend price
+        const price = product.price; 
+        const itemTotal = price * item.quantity;
+        calculatedSubtotal += itemTotal;
+        
+        validatedItems.push({
+            ...item,
+            price: price, // Force backend price
+            name: product.name // Force backend name
+        });
+    }
+
+    // 2. Validate Coupon & Discount
+    let calculatedDiscount = 0;
+    if (discountCode) {
+        if (USE_POSTGRES) {
+            const couponResult = await db.query('SELECT * FROM coupons WHERE code = $1 AND is_active = true', [discountCode.toUpperCase()]);
+            const coupon = couponResult.rows[0];
+            if (coupon) {
+                // Check limits/expiry (simplified for now, full logic would go here)
+                calculatedDiscount = coupon.type === 'percentage' 
+                    ? Math.round(calculatedSubtotal * (coupon.value / 100)) 
+                    : coupon.value;
+            }
+        } else {
+            const coupon = db.prepare('SELECT * FROM coupons WHERE code = ? AND is_active = 1').get(discountCode.toUpperCase());
+            if (coupon) {
+                calculatedDiscount = coupon.type === 'percentage' 
+                    ? Math.round(calculatedSubtotal * (coupon.value / 100)) 
+                    : coupon.value;
+            }
+        }
+    }
+
+    // 3. Verify Total
+    const calculatedTotal = calculatedSubtotal + shippingCost - calculatedDiscount;
+    const tolerance = 100; // Allow 100 Naira difference for rounding issues
+    
+    if (Math.abs(calculatedTotal - requestTotal) > tolerance) {
+        console.error(`[ORDER SECURITY] Price mismatch! Req: ${requestTotal}, Calc: ${calculatedTotal}`);
+        throw new APIError('Price mismatch detected. Please refresh and try again.', 400, 'PRICE_MISMATCH');
+    }
+
+    // 4. Check and reserve inventory
     try {
         await inventoryService.reserveItems(items, orderId);
         console.log(`[INVENTORY] Reserved stock for order ${orderId}`);
@@ -1789,18 +1842,19 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
 
     try {
         const shippingAddressStr = JSON.stringify(shippingAddress);
-        const itemsStr = JSON.stringify(items);
+        const itemsStr = JSON.stringify(validatedItems); // Use validated items
 
+        // Insert Order
         if (USE_POSTGRES) {
             await db.query(`
                 INSERT INTO orders (id, customer_name, customer_email, customer_phone, shipping_address, 
                     items, subtotal, shipping_cost, discount, total, payment_method, notes)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             `, [orderId, customerName, customerEmail, customerPhone, shippingAddressStr,
-                itemsStr, subtotal, shippingCost, discount || 0, total, paymentMethod, notes || '']);
+                itemsStr, calculatedSubtotal, shippingCost, calculatedDiscount, calculatedTotal, paymentMethod, notes || '']);
             
             // Track coupon usage
-            if (discountCode) {
+            if (discountCode && calculatedDiscount > 0) {
                 const couponResult = await db.query('SELECT id FROM coupons WHERE code = $1', [discountCode.toUpperCase()]);
                 if (couponResult.rows.length > 0) {
                     const couponId = couponResult.rows[0].id;
@@ -1808,7 +1862,7 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
                     await db.query(`
                         INSERT INTO coupon_usage (coupon_id, order_id, customer_email, discount_amount)
                         VALUES ($1, $2, $3, $4)
-                    `, [couponId, orderId, customerEmail, discount || 0]);
+                    `, [couponId, orderId, customerEmail, calculatedDiscount]);
                 }
             }
         } else {
@@ -1817,17 +1871,17 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
                     items, subtotal, shipping_cost, discount, total, payment_method, notes)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(orderId, customerName, customerEmail, customerPhone, shippingAddressStr,
-                itemsStr, subtotal, shippingCost, discount || 0, total, paymentMethod, notes || '');
+                itemsStr, calculatedSubtotal, shippingCost, calculatedDiscount, calculatedTotal, paymentMethod, notes || '');
             
             // Track coupon usage
-            if (discountCode) {
+            if (discountCode && calculatedDiscount > 0) {
                 const coupon = db.prepare('SELECT id FROM coupons WHERE code = ?').get(discountCode.toUpperCase());
                 if (coupon) {
                     db.prepare('UPDATE coupons SET usage_count = usage_count + 1 WHERE id = ?').run(coupon.id);
                     db.prepare(`
                         INSERT INTO coupon_usage (coupon_id, order_id, customer_email, discount_amount)
                         VALUES (?, ?, ?, ?)
-                    `).run(coupon.id, orderId, customerEmail, discount || 0);
+                    `).run(coupon.id, orderId, customerEmail, calculatedDiscount);
                 }
             }
         }

@@ -22,8 +22,6 @@ const I18n = {
 
         // Bind global event listeners
         this.bindEvents();
-        
-        console.log(`🌍 I18n initialized: ${this.currentLang}`);
     },
     
     // Set language and apply translations
@@ -61,8 +59,6 @@ const I18n = {
         window.dispatchEvent(new CustomEvent('languageChanged', { 
             detail: { language: lang, dir: langMeta.dir } 
         }));
-        
-        console.log(`🌍 Language changed to: ${lang} (${langMeta.name})`);
     },
     
     // Apply translations to all elements with data-i18n attribute

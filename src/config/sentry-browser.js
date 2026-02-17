@@ -15,7 +15,6 @@
     
     // Check if Sentry should be enabled
     if (!SENTRY_DSN) {
-        console.log('[SENTRY] DSN not configured, frontend error tracking disabled');
         return;
     }
 
@@ -152,8 +151,6 @@
             Sentry.setTag('page', window.location.pathname);
             Sentry.setTag('component', 'frontend');
 
-            console.log('[SENTRY] Frontend initialized successfully');
-            
             // Expose Sentry to window for manual error capture
             window.SentryClient = Sentry;
             
@@ -199,7 +196,7 @@ function captureMessage(message, level = 'info') {
     if (window.SentryClient) {
         window.SentryClient.captureMessage(message, level);
     } else {
-        console.log(`[${level.toUpperCase()}]`, message);
+        // Silent in production if Sentry not available
     }
 }
 

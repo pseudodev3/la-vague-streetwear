@@ -363,7 +363,6 @@ const WhatsAppSupport = {
 if (!window.utilsInitialized) {
     window.utilsInitialized = true;
     document.addEventListener('DOMContentLoaded', async () => {
-        console.log('[UTILS] DOM fully loaded, starting initialization...');
         
         // 1. Inject Shared Components (Header, Footer, Sidebars)
         if (window.Components) {

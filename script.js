@@ -293,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.lookbook-item').forEach(item => {
         item.addEventListener('click', () => {
             const title = item.querySelector('h3')?.textContent;
-            console.log(`Lookbook: ${title}`);
             // Could open a lightbox or navigate to detail page
         });
     });
@@ -347,8 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         marqueeObserver.observe(marquee);
     }
-    
-    console.log('🌊 LA VAGUE initialized');
 });
 
 // Add cart styles dynamically

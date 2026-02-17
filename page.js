@@ -8,7 +8,6 @@ const state = {
 };
 
 function initPage() {
-    console.log('[PAGE] Initializing shared page logic...');
     // ==========================================
     // DOM ELEMENTS (RE-QUERY AFTER INJECTION)
     // ==========================================
@@ -73,7 +72,6 @@ function initPage() {
             updateWishlistCount();
         }
     });
-    console.log('[PAGE] Initialization complete.');
 }
 
 // ==========================================

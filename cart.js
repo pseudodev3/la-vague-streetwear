@@ -44,7 +44,6 @@ const CurrencyConfig = {
             if (age < 60 * 60 * 1000) {
                 try {
                     this.rates = JSON.parse(cached);
-                    console.log('[CURRENCY] Loaded rates from cache');
                 } catch (e) {
                     this.rates = { ...this.defaultRates };
                 }
@@ -74,7 +73,6 @@ const CurrencyConfig = {
                     // Cache in localStorage
                     localStorage.setItem('currencyRates', JSON.stringify(this.rates));
                     localStorage.setItem('currencyRatesUpdated', Date.now().toString());
-                    console.log('[CURRENCY] Rates updated from server');
                     
                     // Notify listeners that rates have been updated
                     window.dispatchEvent(new CustomEvent('currencyRatesUpdated', { 
@@ -96,7 +94,6 @@ const CurrencyConfig = {
     // Set currency (no-op, always NGN)
     setCurrency(currency) {
         // Currency switching disabled - always NGN
-        console.log('[CURRENCY] Currency switching disabled. Using NGN.');
         return currency === 'NGN';
     },
     

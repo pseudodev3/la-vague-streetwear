@@ -161,18 +161,12 @@ export class ProductService {
 
         // Upload images to Cloudinary
         let images = [];
-        console.log('[PRODUCT SERVICE] Image files received:', imageFiles.length);
         if (imageFiles.length > 0) {
-            console.log('[PRODUCT SERVICE] Starting image upload...');
             const uploadResults = await uploadMultipleImages(imageFiles, 'products');
-            console.log('[PRODUCT SERVICE] Upload results:', uploadResults.map(r => ({ url: r.secure_url?.substring(0, 100), public_id: r.public_id })));
             images = uploadResults.map((result, index) => ({
                 src: result.secure_url,
                 alt: `${name} - Image ${index + 1}`
             }));
-            console.log('[PRODUCT SERVICE] Final images array:', images);
-        } else {
-            console.log('[PRODUCT SERVICE] No image files to upload');
         }
 
         // Sanitize compareAtPrice
@@ -421,7 +415,6 @@ export class ProductService {
             newLast30Days: parseInt(result.rows[0].new_last_30_days) || 0
         };
         
-        console.log('[PRODUCT STATS]', stats);
         return stats;
     }
 }

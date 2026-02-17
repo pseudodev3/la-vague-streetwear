@@ -19,7 +19,6 @@ const state = {
 let elements = {};
 
 function initHome() {
-    console.log('[HOME] Initializing homepage logic...');
     // ==========================================
     // DOM ELEMENTS (RE-QUERY AFTER INJECTION)
     // ==========================================
@@ -78,8 +77,6 @@ function initHome() {
     
     // Initialize legacy selectors (mobile menu)
     initLegacySelectors();
-
-    console.log('[HOME] Initialization complete.');
 }
 
 // ==========================================

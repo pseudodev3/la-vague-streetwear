@@ -17,7 +17,6 @@ let isSentryInitialized = false;
  */
 export function initSentry() {
     if (!SENTRY_DSN) {
-        console.log('[SENTRY] DSN not configured, error tracking disabled');
         return false;
     }
 

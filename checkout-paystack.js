@@ -3,47 +3,24 @@
  * Handles Paystack popup payment flow
  */
 
-(function() {
-    'use strict';
-
-    // Configuration
-    let PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || '';
-    const API_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3000/api' 
-        : 'https://la-vague-api.onrender.com/api';
-
-    // State
-    let currentOrderId = null;
-    let currentOrderData = null;
-    let isPaystackAvailable = false;
-    let configLoaded = false;
-
     /**
      * Fetch Paystack configuration from backend
      */
     async function loadPaystackConfig() {
         if (configLoaded) return isPaystackConfigured();
         
-        console.log('[PAYSTACK] Loading config from:', `${API_URL}/config/paystack`);
-        
         try {
             const response = await fetch(`${API_URL}/config/paystack`, {
                 credentials: 'include'
             });
             
-            console.log('[PAYSTACK] Config response status:', response.status);
-            
             const data = await response.json();
-            console.log('[PAYSTACK] Config response:', data);
             
             if (data.success && data.configured) {
                 PAYSTACK_PUBLIC_KEY = data.publicKey;
-                console.log('[PAYSTACK] Config loaded! Test mode:', data.testMode);
-                console.log('[PAYSTACK] Key prefix:', PAYSTACK_PUBLIC_KEY.substring(0, 10) + '...');
                 configLoaded = true;
                 return true;
             } else {
-                console.log('[PAYSTACK] Not configured on backend:', data.error);
                 configLoaded = true;
                 return false;
             }
@@ -73,7 +50,6 @@
             }
 
             if (!isPaystackConfigured()) {
-                console.log('[PAYSTACK] Not configured, using manual payment');
                 resolve();
                 return;
             }
@@ -82,7 +58,6 @@
             script.src = 'https://js.paystack.co/v2/inline.js';
             script.async = true;
             script.onload = () => {
-                console.log('[PAYSTACK] Script loaded');
                 isPaystackAvailable = true;
                 resolve();
             };
@@ -97,16 +72,8 @@
 
     /**
      * Get base currency amount (NGN) from order data
-     * 
-     * IMPORTANT: Product prices in cart are stored in the BASE currency (NGN).
-     * The CurrencyConfig display is just for UI - it converts NGN to user's
-     * selected currency for display purposes only.
-     * 
-     * So orderData.total is ALREADY in NGN, no conversion needed!
-     * We just need to convert from Naira to Kobo (multiply by 100).
      */
     function getBaseAmountInNGN(amount) {
-        console.log('[PAYSTACK] Amount is already in base currency (NGN):', amount);
         return Math.round(amount);
     }
 
@@ -164,11 +131,9 @@
                 ]
             },
             onClose: function() {
-                console.log('[PAYSTACK] Payment window closed');
                 handlePaymentClosed(orderId);
             },
             callback: function(response) {
-                console.log('[PAYSTACK] Payment callback:', response);
                 handlePaymentCallback(orderId, response);
             }
         };
@@ -177,23 +142,10 @@
         if (customerData.phone) {
             paymentData.phone = customerData.phone;
         }
-
-        console.log('[PAYSTACK] Initializing payment:', { 
-            orderId, 
-            total: orderData.total,
-            displayCurrency: CurrencyConfig.getCurrentCurrency(),
-            baseCurrency: 'NGN',
-            ngnAmount: amountInNGN,
-            koboAmount: amountInKobo,
-            keyPrefix: PAYSTACK_PUBLIC_KEY.substring(0, 10) + '...',
-            hasEmail: !!customerData.email,
-            emailDomain: customerData.email ? customerData.email.split('@')[1] : 'none'
-        });
         
         try {
             const popup = new window.PaystackPop();
             const result = popup.newTransaction(paymentData);
-            console.log('[PAYSTACK] Popup opened successfully:', result);
         } catch (error) {
             console.error('[PAYSTACK] Failed to open popup:', error);
             console.error('[PAYSTACK] Error details:', {
@@ -213,18 +165,14 @@
      */
     async function handlePaymentClosed(orderId) {
         // Check if payment was successful via webhook
-        console.log('[PAYSTACK] Checking payment status for order:', orderId);
-        
         try {
             const status = await checkPaymentStatus(orderId);
             
             if (status === 'paid') {
                 // Payment succeeded via webhook
-                console.log('[PAYSTACK] Payment confirmed via webhook');
                 redirectToConfirmation(orderId);
             } else {
                 // Payment was cancelled or pending
-                console.log('[PAYSTACK] Payment not completed:', status);
                 showPaymentPendingMessage(orderId);
             }
         } catch (error) {
@@ -238,8 +186,6 @@
      */
     async function handlePaymentCallback(orderId, response) {
         const { reference, status, trans } = response;
-        
-        console.log('[PAYSTACK] Callback received:', { orderId, reference, status });
         
         if (status === 'success') {
             // Verify payment on backend
@@ -403,7 +349,6 @@
     async function checkAndUpdateStatus(orderId) {
         try {
             const status = await checkPaymentStatus(orderId);
-            console.log(`[PAYSTACK POLL] Attempt ${pollAttempts}: status = ${status}`);
             
             if (status === 'paid') {
                 // Payment successful!
@@ -842,7 +787,6 @@
             overlay.addEventListener('click', (e) => {
                 // Only close if clicking directly on the overlay (outside the container)
                 if (e.target === overlay) {
-                    console.log('[PAYSTACK] Modal closed by clicking outside');
                     closeModal();
                 }
             });
@@ -878,7 +822,6 @@
             });
             const csrfData = await csrfResponse.json();
             csrfToken = csrfData.csrfToken;
-            console.log('[PAYSTACK] CSRF token obtained');
         } catch (error) {
             console.error('[PAYSTACK] Failed to get CSRF token:', error);
             throw new Error('CSRF token missing - please refresh and try again');
@@ -889,7 +832,6 @@
             paymentMethod: 'paystack'
         };
         
-        console.log('[PAYSTACK] Creating order:', orderPayload);
         
         const response = await fetch(`${API_URL}/orders`, {
             method: 'POST',
@@ -910,7 +852,6 @@
         currentOrderId = result.orderId;
         currentOrderData = orderPayload;
         
-        console.log('[PAYSTACK] Order created:', currentOrderId);
         
         // Initialize Paystack payment
         await initializePaystackPayment(
@@ -931,7 +872,6 @@
      */
     function updatePaymentUI() {
         if (!isPaystackConfigured()) {
-            console.log('[PAYSTACK] Not configured, keeping manual payment UI');
             return;
         }
         
@@ -982,7 +922,6 @@
             });
         });
         
-        console.log('[PAYSTACK] UI updated');
     }
 
     // Public API
@@ -998,7 +937,6 @@
             await loadPaystackConfig(); // Load config first
             await loadPaystackScript();
             updatePaymentUI();
-            console.log('[PAYSTACK] Checkout initialized');
         }
     };
 

@@ -87,7 +87,6 @@ const state = {
 let elements = {};
 
 async function initProduct() {
-    console.log('[PRODUCT] Initializing product page logic...');
     elements = {
         productLoading: document.getElementById('productLoading'),
         productContent: document.getElementById('productContent'),
@@ -189,7 +188,6 @@ async function initProduct() {
     
     elements.productLoading.style.display = 'none';
     elements.productContent.style.display = 'block';
-    console.log('[PRODUCT] Initialization complete.');
 }
 
 function renderProduct() {
@@ -340,8 +338,8 @@ function bindEvents() {
         }
     });
 
-    elements.addToCartBtn?.addEventListener('click', () => {
-        CartState.addToCart({
+    elements.addToCartBtn?.addEventListener('click', async () => {
+        await CartState.addToCart({
             id: state.product.id, name: state.product.name, price: state.product.price,
             image: state.product.images[0].src, color: state.selectedColor,
             size: state.selectedSize || 'OS', quantity: state.quantity

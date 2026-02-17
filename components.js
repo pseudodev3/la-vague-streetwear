@@ -191,7 +191,6 @@ window.Components = {
     async init() {
         return new Promise((resolve) => {
             const inject = () => {
-                console.log('[COMPONENTS] Injecting shared UI elements...');
                 
                 const nav = document.getElementById('nav');
                 const footer = document.querySelector('footer');
@@ -205,7 +204,6 @@ window.Components = {
                 if (wishlistSidebar) wishlistSidebar.innerHTML = this.templates.wishlistSidebar;
                 if (searchOverlay) searchOverlay.innerHTML = this.templates.searchOverlay;
 
-                console.log('[COMPONENTS] Injection complete.');
                 
                 // Dispatch event to signal that DOM is now ready for JS listeners
                 window.dispatchEvent(new CustomEvent('componentsLoaded'));
