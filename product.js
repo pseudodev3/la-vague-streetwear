@@ -228,6 +228,13 @@ function renderProduct() {
     } else {
         elements.colorSelector.parentElement.style.display = 'none';
     }
+
+    // Set wishlist active state
+    if (elements.wishlistToggleBtn && typeof CartState !== 'undefined') {
+        const inWishlist = CartState.wishlist.includes(p.id);
+        elements.wishlistToggleBtn.classList.toggle('active', inWishlist);
+    }
+
     renderSizes();
 }
 
@@ -358,6 +365,9 @@ function bindEvents() {
     elements.cartBtn?.addEventListener('click', window.openCart);
     elements.cartClose?.addEventListener('click', window.closeCart);
     elements.cartOverlay?.addEventListener('click', window.closeCart);
+    elements.wishlistBtn?.addEventListener('click', window.openWishlist);
+    elements.wishlistClose?.addEventListener('click', window.closeWishlist);
+    elements.wishlistOverlay?.addEventListener('click', window.closeWishlist);
 
     // Reviews events
     elements.writeReviewBtn?.addEventListener('click', () => {

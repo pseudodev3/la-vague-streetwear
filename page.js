@@ -55,118 +55,17 @@ function initPage() {
             elements.nav?.classList.remove('scrolled');
         }
     }, { passive: true });
-    
-    // Listen for currency changes
-    window.addEventListener('currencyChanged', () => {
-        renderCart();
-    });
-    
-    // Listen for storage changes from other pages
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'cart') {
-            state.cart = JSON.parse(e.newValue) || [];
-            updateCartCount();
-            renderCart();
-        }
-        if (e.key === 'wishlist') {
-            updateWishlistCount();
-        }
-    });
-}
-
-// ==========================================
-// CART
-// ==========================================
-function renderCart() {
-    if (!elements.cartItems) return;
-    if (state.cart.length === 0) {
-        elements.cartItems.innerHTML = `
-            <div class="cart-empty">
-                <p data-i18n="cart.empty">Your cart is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()" data-i18n="cart.continueShopping">Continue Shopping</a>
-            </div>
-        `;
-        return;
-    }
-    
-    elements.cartItems.innerHTML = state.cart.map((item, index) => `
-        <div class="cart-item">
-            <div class="cart-item-image">
-                <img src="${item.image}" alt="${item.name}">
-            </div>
-            <div class="cart-item-details">
-                <h4>${item.name}</h4>
-                <p class="cart-item-variant">${item.color} / ${item.size}</p>
-                <div class="cart-item-actions">
-                    <div class="cart-item-qty">
-                        <button onclick="window.updateCartQty(${index}, -1)">−</button>
-                        <span>${item.quantity}</span>
-                        <button onclick="window.updateCartQty(${index}, 1)">+</button>
-                    </div>
-                    <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
-                </div>
-            </div>
-            <button class="cart-item-remove" onclick="window.removeFromCart(${index})">×</button>
-        </div>
-    `).join('');
-    
-    const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    if (elements.cartSubtotal) elements.cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
-}
-
-function openCart() {
-    renderCart();
-    elements.cartSidebar?.classList.add('active');
-    elements.cartOverlay?.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-window.closeCart = function() {
-    elements.cartSidebar?.classList.remove('active');
-    elements.cartOverlay?.classList.remove('active');
-    document.body.style.overflow = '';
-};
-
-window.updateCartQty = function(index, delta) {
-    const item = state.cart[index];
-    const newQty = item.quantity + delta;
-    
-    if (newQty < 1) {
-        state.cart.splice(index, 1);
-    } else {
-        item.quantity = newQty;
-    }
-    
-    saveCart();
-    renderCart();
-    updateCartCount();
-};
-
-window.removeFromCart = function(index) {
-    state.cart.splice(index, 1);
-    saveCart();
-    renderCart();
-    updateCartCount();
-    showToast('Item removed from cart', 'success');
-};
-
-function saveCart() {
-    localStorage.setItem('cart', JSON.stringify(state.cart));
 }
 
 function updateCartCount() {
-    if (!elements.cartCount) return;
-    const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-    elements.cartCount.textContent = count;
-    elements.cartCount.style.display = count > 0 ? 'flex' : 'none';
+    if (typeof CartState !== 'undefined') {
+        CartState.updateCartCount();
+    }
 }
 
 function updateWishlistCount() {
-    const wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
-    const count = wishlist.length;
-    if (elements.wishlistCount) {
-        elements.wishlistCount.textContent = count;
-        elements.wishlistCount.style.display = count > 0 ? 'flex' : 'none';
+    if (typeof CartState !== 'undefined') {
+        CartState.updateWishlistCount();
     }
 }
 
@@ -280,7 +179,7 @@ function bindEvents() {
         elements.mobileMenuBtn.classList.toggle('active');
         elements.navLinks?.classList.toggle('active');
     });
-    elements.cartBtn?.addEventListener('click', openCart);
+    elements.cartBtn?.addEventListener('click', window.openCart);
     elements.cartClose?.addEventListener('click', window.closeCart);
     elements.cartOverlay?.addEventListener('click', window.closeCart);
     elements.wishlistBtn?.addEventListener('click', window.openWishlist);
