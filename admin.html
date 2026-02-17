@@ -679,11 +679,11 @@
                         <div class="form-row">
                             <div class="form-group form-group-lg">
                                 <label>Product Name *</label>
-                                <input type="text" id="productName" required placeholder="e.g., Classic Oversized Hoodie">
+                                <input type="text" id="productName" class="input" required placeholder="e.g., Classic Oversized Hoodie">
                             </div>
                             <div class="form-group">
                                 <label>Category *</label>
-                                <select id="productCategory" required>
+                                <select id="productCategory" class="input" required>
                                     <option value="">Select Category</option>
                                     <option value="hoodies">Hoodies</option>
                                     <option value="tees">T-Shirts</option>
@@ -696,15 +696,15 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Price (₦) *</label>
-                                <input type="number" id="productPrice" required min="0" placeholder="145">
+                                <input type="number" id="productPrice" class="input" required min="0" placeholder="145">
                             </div>
                             <div class="form-group">
                                 <label>Compare at Price (₦)</label>
-                                <input type="number" id="productComparePrice" min="0" placeholder="165">
+                                <input type="number" id="productComparePrice" class="input" min="0" placeholder="165">
                             </div>
                             <div class="form-group">
                                 <label>Badge</label>
-                                <select id="productBadge">
+                                <select id="productBadge" class="input">
                                     <option value="">None</option>
                                     <option value="New">New</option>
                                     <option value="Bestseller">Bestseller</option>
@@ -717,12 +717,12 @@
                         
                         <div class="form-group">
                             <label>Description *</label>
-                            <textarea id="productDescription" rows="3" required placeholder="Product description..."></textarea>
+                            <textarea id="productDescription" class="input" rows="3" required placeholder="Product description..."></textarea>
                         </div>
                         
                         <div class="form-group">
                             <label>Features (one per line)</label>
-                            <textarea id="productFeatures" rows="3" placeholder="450gsm 100% Organic Cotton&#10;Double-layered hood&#10;Embroidered logo"></textarea>
+                            <textarea id="productFeatures" class="input" rows="3" placeholder="450gsm 100% Organic Cotton&#10;Double-layered hood&#10;Embroidered logo"></textarea>
                         </div>
                     </div>
 
@@ -780,7 +780,7 @@
                         <h4>Tags</h4>
                         <div class="form-group">
                             <label>Product Tags (comma separated)</label>
-                            <input type="text" id="productTags" placeholder="bestseller, signature, new">
+                            <input type="text" id="productTags" class="input" placeholder="bestseller, signature, new">
                         </div>
                     </div>
                 </form>
@@ -817,7 +817,7 @@
                 </div>
                 <div class="form-group">
                     <label>New Stock Quantity</label>
-                    <input type="number" id="inventoryNewStock" min="0" required>
+                    <input type="number" id="inventoryNewStock" class="input" min="0" required>
                 </div>
             </div>
             <div class="modal-footer">
