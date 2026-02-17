@@ -3741,32 +3741,40 @@ app.post('/api/products/:id/reviews', csrfProtection, asyncHandler(async (req, r
     const { id } = req.params;
     const { orderId, customerEmail, customerName, rating, title, reviewText, photos } = req.body;
     
-    // Verify purchase
-    let order;
-    if (USE_POSTGRES) {
-        const result = await db.query('SELECT * FROM orders WHERE id = $1 AND customer_email = $2', [orderId, customerEmail]);
-        order = result.rows[0];
-    } else {
-        order = db.prepare('SELECT * FROM orders WHERE id = ? AND customer_email = ?').get(orderId, customerEmail);
+    // Verify purchase (Optional)
+    let isVerified = false;
+    if (orderId) {
+        let order;
+        if (USE_POSTGRES) {
+            const result = await db.query('SELECT * FROM orders WHERE id = $1 AND customer_email = $2', [orderId, customerEmail]);
+            order = result.rows[0];
+        } else {
+            order = db.prepare('SELECT * FROM orders WHERE id = ? AND customer_email = ?').get(orderId, customerEmail);
+        }
+        
+        if (order) {
+            isVerified = true;
+        } else {
+            // If they provided an ID but it's wrong, we notify them instead of a hard 403
+            return res.status(400).json({ error: 'Order ID not found for this email. Please leave it blank if you haven\'t ordered yet.' });
+        }
     }
     
-    if (!order) {
-        return res.status(403).json({ error: 'Purchase verification required' });
-    }
-    
-    // Check if already reviewed
-    let existing;
-    if (USE_POSTGRES) {
-        const result = await db.query('SELECT * FROM reviews WHERE product_id = $1 AND customer_email = $2 AND order_id = $3', 
-            [id, customerEmail, orderId]);
-        existing = result.rows[0];
-    } else {
-        existing = db.prepare('SELECT * FROM reviews WHERE product_id = ? AND customer_email = ? AND order_id = ?')
-            .get(id, customerEmail, orderId);
-    }
-    
-    if (existing) {
-        return res.status(400).json({ error: 'You have already reviewed this product' });
+    // Check if already reviewed (only if verified)
+    if (isVerified) {
+        let existing;
+        if (USE_POSTGRES) {
+            const result = await db.query('SELECT * FROM reviews WHERE product_id = $1 AND customer_email = $2 AND order_id = $3', 
+                [id, customerEmail, orderId]);
+            existing = result.rows[0];
+        } else {
+            existing = db.prepare('SELECT * FROM reviews WHERE product_id = ? AND customer_email = ? AND order_id = ?')
+                .get(id, customerEmail, orderId);
+        }
+        
+        if (existing) {
+            return res.status(400).json({ error: 'You have already reviewed this product for this order' });
+        }
     }
     
     const reviewId = `rvw-${Date.now()}`;
@@ -3774,13 +3782,13 @@ app.post('/api/products/:id/reviews', csrfProtection, asyncHandler(async (req, r
     if (USE_POSTGRES) {
         await db.query(`
             INSERT INTO reviews (id, product_id, order_id, customer_email, customer_name, rating, title, review_text, photos, verified_purchase)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
-        `, [reviewId, id, orderId, customerEmail, customerName, rating, title, reviewText, JSON.stringify(photos || [])]);
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `, [reviewId, id, orderId || null, customerEmail, customerName, rating, title, reviewText, JSON.stringify(photos || []), isVerified]);
     } else {
         db.prepare(`
             INSERT INTO reviews (id, product_id, order_id, customer_email, customer_name, rating, title, review_text, photos, verified_purchase)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-        `).run(reviewId, id, orderId, customerEmail, customerName, rating, title, reviewText, JSON.stringify(photos || []));
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(reviewId, id, orderId || null, customerEmail, customerName, rating, title, reviewText, JSON.stringify(photos || []), isVerified ? 1 : 0);
     }
     
     // Send notifications asynchronously (don't block response)

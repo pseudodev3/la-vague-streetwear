@@ -446,6 +446,7 @@ async function handleReviewSubmit(e) {
 
     const formData = {
         productId: state.product.id,
+        orderId: document.getElementById('orderId')?.value?.trim() || null,
         rating: state.selectedRating,
         title: document.getElementById('reviewTitle').value,
         reviewText: document.getElementById('reviewText').value,
