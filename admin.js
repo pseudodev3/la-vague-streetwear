@@ -1956,7 +1956,7 @@ function renderSalesChart(data) {
     
     // Y-Axis (Fixed on left if we weren't scrolling the whole thing, but here it scrolls with it)
     const yAxis = createElement('div', {
-        style: 'width: 70px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #2a2a2a; padding-right: 10px; margin-bottom: 30px;'
+        style: 'width: 70px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #2a2a2a; padding-right: 10px; margin-bottom: 45px;'
     });
     for (let i = 5; i >= 0; i--) {
         const val = (maxRevenue / 5) * i;
@@ -1969,7 +1969,7 @@ function renderSalesChart(data) {
     
     // Plot Area
     const plotArea = createElement('div', {
-        style: 'flex: 1; position: relative; margin-bottom: 30px;'
+        style: 'flex: 1; position: relative; margin-bottom: 45px;'
     });
     
     // Grid
@@ -1989,7 +1989,7 @@ function renderSalesChart(data) {
     displayData.forEach(day => {
         const barHeight = (day.revenue / maxRevenue) * 100;
         const barWrapper = createElement('div', {
-            style: 'flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; height: 100%; justify-content: flex-end; max-width: 40px;'
+            style: 'flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; height: 100%; justify-content: flex-end; max-width: 50px;'
         });
         
         // The actual bar
@@ -1998,7 +1998,11 @@ function renderSalesChart(data) {
             onmouseenter: (e) => {
                 bar.style.background = '#ef4444';
                 bar.style.boxShadow = '0 0 15px rgba(220, 38, 38, 0.5)';
-                showChartTooltip(e, `<strong>${day.date}</strong><br>Revenue: ₦${day.revenue.toLocaleString()}<br>Orders: ${day.orders}`);
+                
+                // Format date for tooltip
+                const d = new Date(day.date);
+                const fullDate = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+                showChartTooltip(e, `<strong>${fullDate}</strong><br>Revenue: ₦${day.revenue.toLocaleString()}<br>Orders: ${day.orders}`);
             },
             onmouseleave: () => {
                 bar.style.background = '#dc2626';
@@ -2007,10 +2011,18 @@ function renderSalesChart(data) {
             }
         });
         
-        // Date label
+        // Date label (Professional formatting)
+        const d = new Date(day.date);
+        const dayNum = d.getDate();
+        const monthStr = d.toLocaleDateString('en-GB', { month: 'short' });
+        const isFirstOfMonth = dayNum === 1;
+        const isToday = day.date === new Date().toISOString().split('T')[0];
+        
+        const formattedLabel = isToday ? 'Today' : `${dayNum} ${monthStr}`;
+        
         const label = createElement('span', {
-            style: 'position: absolute; bottom: -25px; font-size: 9px; color: #666; white-space: nowrap; transform: rotate(-45deg); transform-origin: top left;'
-        }, day.date.substring(5));
+            style: `position: absolute; bottom: -35px; left: 50%; font-size: 10px; color: ${isToday || isFirstOfMonth ? '#fff' : '#888'}; white-space: nowrap; transform: rotate(45deg); transform-origin: top left; font-weight: ${isToday || isFirstOfMonth ? '600' : '400'};`
+        }, formattedLabel);
         
         barWrapper.appendChild(bar);
         barWrapper.appendChild(label);
