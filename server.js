@@ -1918,19 +1918,24 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
                 if (paystackResponse.status) {
                     paystackData = {
                         access_code: paystackResponse.data.access_code,
+                        authorization_url: paystackResponse.data.authorization_url,
                         publicKey: process.env.PAYSTACK_PUBLIC_KEY
                     };
                     
-                    // Update order with reference (redundant but safe)
+                    console.log(`[PAYSTACK] Transaction initialized: ${paystackResponse.data.access_code}`);
+                    
+                    // Update order with reference
                     if (USE_POSTGRES) {
                         await db.query('UPDATE orders SET payment_reference = $1 WHERE id = $2', [paystackResponse.data.reference, orderId]);
                     } else {
                         db.prepare('UPDATE orders SET payment_reference = ? WHERE id = ?').run(paystackResponse.data.reference, orderId);
                     }
+                } else {
+                    console.error('[PAYSTACK] Initialization failed status:', paystackResponse);
                 }
             } catch (error) {
-                console.error('[PAYSTACK INIT ERROR]', error.message);
-                // We don't fail the order creation, but we notify the user
+                console.error('[PAYSTACK] Init Error:', error.message);
+                // Don't throw, but log it so we can see why it fails
             }
         }
 
