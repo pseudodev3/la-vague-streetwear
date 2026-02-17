@@ -1,7 +1,7 @@
 /**
  * LA VAGUE - Paystack Payment Integration
  * Handles Paystack popup payment flow with Mobile Redirect Fallback
- * Version: 4.2 (Cache Busted)
+ * Version: 4.3 (Safari Mobile Resilience)
  */
 (function() {
     const API_URL = window.location.hostname === 'localhost' 
@@ -12,7 +12,6 @@
     let configLoaded = false;
     let isPaystackAvailable = false;
     let paystackInstance = null;
-    let currentOrderId = null;
 
     /**
      * Detection for mobile devices to determine payment strategy
@@ -85,25 +84,24 @@
             throw new Error('Payment initialization data missing from server');
         }
 
-        // 1. Mobile Redirect (100% Reliable for phones)
+        // 1. Mobile Redirect (100% Reliable for Safari/Chrome on iOS)
         if (isMobile() && paystackData.authorization_url) {
-            console.log('[PAYSTACK] Mobile detected, redirecting...');
             window.location.href = paystackData.authorization_url;
             return;
         }
 
-        // 2. Desktop Modal (Premium feel)
+        // 2. Desktop Modal
         if (window.PaystackPop && paystackData.access_code) {
             try {
                 const popup = paystackInstance || new window.PaystackPop();
                 popup.resumeTransaction(paystackData.access_code);
                 return;
             } catch (error) {
-                console.warn('[PAYSTACK] Modal failed, falling back to redirect:', error.message);
+                console.warn('[PAYSTACK] Modal failed, falling back to redirect');
             }
         }
         
-        // 3. Absolute Fallback: Redirect if Modal isn't available or fails
+        // 3. Absolute Fallback
         if (paystackData.authorization_url) {
             window.location.href = paystackData.authorization_url;
         } else {
@@ -117,43 +115,36 @@
     async function processOrderWithPaystack(orderData) {
         await loadPaystackScript();
         
+        // Safari/ITP Resilience: Refresh the CSRF token IMMEDIATELY before the POST
+        // This ensures the header token is fresh even if the cookie is blocked
+        let freshToken = '';
+        try {
+            const tokenRes = await fetch(`${API_URL}/csrf-token`, { credentials: 'include' });
+            const tokenData = await tokenRes.json();
+            freshToken = tokenData.csrfToken;
+        } catch (e) {
+            console.warn('[PAYSTACK] Could not refresh token, proceeding with existing');
+        }
+        
         const payload = { ...orderData, paymentMethod: 'paystack' };
         
-        // If we already tried and got an orderId, we might want to resume it
-        // but for now, we create a fresh attempt
-        
-        let response;
-        try {
-            if (window.CSRFProtection) {
-                response = await window.CSRFProtection.fetch(`${API_URL}/orders`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            } else {
-                response = await fetch(`${API_URL}/orders`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            }
-        } catch (err) {
-            throw new Error('Connection failed. Please check your internet.');
-        }
+        const response = await fetch(`${API_URL}/orders`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': freshToken || (window.CSRFProtection ? window.CSRFProtection.getToken() : '')
+            },
+            body: JSON.stringify(payload)
+        });
         
         const result = await response.json();
         
         if (!response.ok || !result.success) {
-            // Check for specific backend errors
-            const serverError = result.error || 'Server error';
-            throw new Error(serverError);
+            throw new Error(result.error || 'Server error');
         }
         
-        currentOrderId = result.orderId;
-        
-        // Trigger payment flow
         await initializePaystackPayment(result.orderId, result.paystack);
-        
         return { success: true, orderId: result.orderId };
     }
 
