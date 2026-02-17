@@ -329,7 +329,7 @@ const CartState = {
 
         // Show skeletons immediately if we have items
         cartItems.innerHTML = Array(this.cart.length).fill(0).map(() => `
-            <div class="wishlist-skeleton">
+            <div class="wishlist-skeleton wishlist-item-fade">
                 <div class="skeleton-img"></div>
                 <div class="skeleton-info">
                     <div class="skeleton-text"></div>
@@ -339,11 +339,17 @@ const CartState = {
             </div>
         `).join('');
         
+        // Add a small artificial delay (300ms) to ensure the skeleton is visible and stable
+        const minWait = new Promise(resolve => setTimeout(resolve, 300));
+
         // Batch fetch stock for all items to avoid UI flicker
-        const cartWithStock = await Promise.all(this.cart.map(async (item) => {
-            const stock = await this.getAvailableStock(item.id, item.color, item.size);
-            return { ...item, stock };
-        }));
+        const [cartWithStock] = await Promise.all([
+            Promise.all(this.cart.map(async (item) => {
+                const stock = await this.getAvailableStock(item.id, item.color, item.size);
+                return { ...item, stock };
+            })),
+            minWait
+        ]);
 
         cartItems.innerHTML = cartWithStock.map((item, index) => {
             const isAtMaxStock = item.quantity >= item.stock;
@@ -397,7 +403,7 @@ const CartState = {
 
         // Show skeletons immediately if we have items but they aren't loaded yet
         wishlistItems.innerHTML = Array(this.wishlist.length).fill(0).map(() => `
-            <div class="wishlist-skeleton">
+            <div class="wishlist-skeleton wishlist-item-fade">
                 <div class="skeleton-img"></div>
                 <div class="skeleton-info">
                     <div class="skeleton-text"></div>
@@ -411,39 +417,46 @@ const CartState = {
         // Optimization: Fetch the catalog once if we suspect items are missing from static
         let apiProducts = null;
         
-        const resolvedProducts = await Promise.all(this.wishlist.map(async (productId) => {
-            let product = null;
-            
-            // Try static first
-            if (typeof ProductAPI !== 'undefined') {
-                product = ProductAPI.getById(productId);
-            }
-            
-            // If not found and we haven't fetched the API yet, fetch it once
-            if (!product && !apiProducts) {
-                try {
-                    const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
-                    const response = await fetch(`${API_URL}/products`);
-                    const data = await response.json();
-                    apiProducts = data.products || [];
-                } catch (e) {
-                    apiProducts = [];
+        // Add a small artificial delay (300ms) to ensure the skeleton is visible and stable
+        // This is a professional UI trick to prevent 'flickering' when data loads too fast
+        const minWait = new Promise(resolve => setTimeout(resolve, 300));
+
+        const [resolvedProducts] = await Promise.all([
+            Promise.all(this.wishlist.map(async (productId) => {
+                let product = null;
+                
+                // Try static first
+                if (typeof ProductAPI !== 'undefined') {
+                    product = ProductAPI.getById(productId);
                 }
-            }
+                
+                // If not found and we haven't fetched the API yet, fetch it once
+                if (!product && !apiProducts) {
+                    try {
+                        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+                        const response = await fetch(`${API_URL}/products`);
+                        const data = await response.json();
+                        apiProducts = data.products || [];
+                    } catch (e) {
+                        apiProducts = [];
+                    }
+                }
 
-            // Look in API products if static failed
-            if (!product && apiProducts) {
-                product = apiProducts.find(p => p.id === productId);
-            }
+                // Look in API products if static failed
+                if (!product && apiProducts) {
+                    product = apiProducts.find(p => p.id === productId);
+                }
 
-            if (!product) return null;
+                if (!product) return null;
 
-            const color = product.colors?.[0]?.name || 'Default';
-            const size = product.sizes?.[0] || 'OS';
-            const stock = await this.getAvailableStock(productId, color, size);
-            
-            return { ...product, color, size, stock };
-        }));
+                const color = product.colors?.[0]?.name || 'Default';
+                const size = product.sizes?.[0] || 'OS';
+                const stock = await this.getAvailableStock(productId, color, size);
+                
+                return { ...product, color, size, stock };
+            })),
+            minWait
+        ]);
 
         const filteredProducts = resolvedProducts.filter(p => p);
         
