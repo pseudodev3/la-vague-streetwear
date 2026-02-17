@@ -920,7 +920,7 @@ async function seedProducts() {
             slug: 'classic-oversized-hoodie',
             category: 'hoodies',
             price: 35000,
-            compare_at_price: 45000,
+            compare_at_price: null,
             description: 'Crafted from 450gsm heavyweight cotton, our signature hoodie features a relaxed oversized fit, dropped shoulders, and our embroidered wave logo.',
             features: JSON.stringify(['450gsm Organic Cotton', 'Double-layered hood', 'Embroidered logo']),
             images: JSON.stringify([{ src: './assets/hoodie.jpg', alt: 'Classic Oversized Hoodie' }]),
