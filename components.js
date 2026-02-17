@@ -17,28 +17,11 @@ window.Components = {
                 <li><a href="/#lookbook" class="nav-link">Lookbook</a></li>
                 <li><a href="/#about" class="nav-link">About</a></li>
                 <li><a href="/contact" class="nav-link">Contact</a></li>
-                <li class="mobile-selectors">
-                    <div class="mobile-currency-selector">
-                        <select id="mobileCurrencySelect" aria-label="Currency">
-                            <option value="USD">$ USD</option>
-                            <option value="NGN">₦ NGN</option>
-                            <option value="EUR">€ EUR</option>
-                            <option value="GBP">£ GBP</option>
-                        </select>
-                    </div>
-                    <div class="mobile-language-selector">
-                        <select id="mobileLanguageSelect" aria-label="Language">
-                            <option value="en">EN</option>
-                            <option value="fr">FR</option>
-                            <option value="ar">AR</option>
-                        </select>
-                    </div>
-                </li>
             </ul>
             <div class="nav-actions">
                 <div class="locale-selector">
-                    <button class="locale-btn" id="localeBtn" aria-label="Select currency and language">
-                        <span class="locale-current" id="localeCurrent">$ · EN</span>
+                    <button class="locale-btn" id="localeBtn" aria-label="Select language">
+                        <span class="locale-current" id="localeCurrent">₦ · EN</span>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
@@ -53,22 +36,6 @@ window.Components = {
                             </div>
                         </div>
                     </div>
-                </div>
-                <!-- Hidden selectors for mobile menu -->
-                <div class="currency-selector desktop-hidden">
-                    <select id="currencySelect" aria-label="Currency">
-                        <option value="USD">$ USD</option>
-                        <option value="NGN">₦ NGN</option>
-                        <option value="EUR">€ EUR</option>
-                        <option value="GBP">£ GBP</option>
-                    </select>
-                </div>
-                <div class="language-selector desktop-hidden">
-                    <select id="languageSelect" aria-label="Language">
-                        <option value="en">EN</option>
-                        <option value="fr">FR</option>
-                        <option value="ar">AR</option>
-                    </select>
                 </div>
                 <button class="nav-btn" id="searchBtn" aria-label="Search">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
