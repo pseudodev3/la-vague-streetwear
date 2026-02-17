@@ -141,7 +141,9 @@
         
         // Display order number
         if (orderId) {
-            document.getElementById('orderNumber').textContent = orderId.replace('LV-', '');
+            // If it starts with LV-, don't double prefix it
+            const displayId = orderId.startsWith('LV-') ? orderId.replace('LV-', '') : orderId;
+            document.getElementById('orderNumber').textContent = displayId;
         } else {
             document.getElementById('orderNumber').textContent = Math.random().toString(36).substr(2, 6).toUpperCase();
         }

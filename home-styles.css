@@ -728,40 +728,8 @@
 }
 
 .cart-item-actions {
-    display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.cart-item-qty {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border: 1px solid var(--color-border);
-    padding: 0.25rem;
-}
-
-.cart-item-qty button {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color-border);
-    border: none;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: var(--transition-fast);
-}
-
-.cart-item-qty button:hover {
-    background: var(--color-border-light);
-}
-
-.cart-item-qty span {
-    min-width: 24px;
-    text-align: center;
-    font-size: 0.875rem;
 }
 
 .cart-item-price {
