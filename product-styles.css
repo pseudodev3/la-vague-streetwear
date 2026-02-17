@@ -186,11 +186,18 @@
 
 .product-header {
     margin-bottom: 1.5rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 /* Product Badge Styles for Detail Page */
 .product-badge {
     display: inline-block;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
     padding: 0.35rem 0.75rem;
     font-size: 0.65rem;
     font-weight: 600;

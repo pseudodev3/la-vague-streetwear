@@ -569,9 +569,18 @@ window.addEventListener('componentsLoaded', initProduct);
 
 // Fix for browser back button (bfcache)
 window.addEventListener('pageshow', (event) => {
-    if (event.persisted && productInitialized) {
-        if (elements.productLoading) elements.productLoading.style.display = 'none';
-        if (elements.productContent) elements.productContent.style.display = 'block';
+    console.log('[PRODUCT] pageshow event, persisted:', event.persisted);
+    if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+        // Force hide skeleton and show content if we have a product
+        if (state.product) {
+            console.log('[PRODUCT] Restoring from cache, showing content');
+            if (elements.productLoading) elements.productLoading.style.display = 'none';
+            if (elements.productContent) elements.productContent.style.display = 'block';
+        } else {
+            // Re-init if data is lost
+            console.log('[PRODUCT] Data lost, re-initializing');
+            initProduct();
+        }
     }
 });
 
