@@ -58,6 +58,7 @@ export function csrfProtection(req, res, next) {
     // In a pure Double Submit pattern, we need both, but for cross-domain 
     // mobile web, we prioritize the explicit header.
     if (!requestToken) {
+        console.warn(`[CSRF] Missing token. Header: ${!!headerToken}, Body: ${!!bodyToken}, Cookie: ${!!cookieToken}`);
         return res.status(403).json({
             success: false,
             error: 'Security token missing',
@@ -73,6 +74,7 @@ export function csrfProtection(req, res, next) {
             
             if (cookieBuffer.length !== requestBuffer.length || 
                 !crypto.timingSafeEqual(cookieBuffer, requestBuffer)) {
+                console.warn('[CSRF] Mismatch between cookie and header tokens');
                 return res.status(403).json({
                     success: false,
                     error: 'Invalid security token',
@@ -80,12 +82,15 @@ export function csrfProtection(req, res, next) {
                 });
             }
         } catch (error) {
+            console.error('[CSRF] Validation error:', error.message);
             return res.status(403).json({
                 success: false,
                 error: 'Security validation failed',
                 code: 'CSRF_ERROR'
             });
         }
+    } else if (!cookieToken && requestToken) {
+        console.log('[CSRF] Validating via header only (Safari/Mobile compatibility mode)');
     }
     // If cookie is missing but requestToken exists, we proceed 
     // (This allows Safari mobile to work while still requiring the explicit header)

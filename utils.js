@@ -217,16 +217,23 @@ const CSRFProtection = {
         
         const response = await fetch(url, fetchOptions);
         
+        // Clone the response so we can read it without consuming the original stream
+        const responseClone = response.clone();
+        
         // If we get a 403 with CSRF error, try refreshing the token once
         if (response.status === 403) {
-            const data = await response.json().catch(() => ({}));
-            if (data.code === 'CSRF_INVALID' || data.code === 'CSRF_MISSING') {
-                console.log('[CSRF] Token invalid, refreshing...');
-                await this.refreshToken();
-                
-                // Retry with new token
-                fetchOptions.headers['X-CSRF-Token'] = this.token;
-                return fetch(url, fetchOptions);
+            try {
+                const data = await responseClone.json();
+                if (data.code === 'CSRF_INVALID' || data.code === 'CSRF_MISSING') {
+                    console.log('[CSRF] Token invalid, refreshing...');
+                    await this.refreshToken();
+                    
+                    // Retry with new token
+                    fetchOptions.headers['X-CSRF-Token'] = this.token;
+                    return fetch(url, fetchOptions);
+                }
+            } catch (e) {
+                // If not JSON or other error, just return original response
             }
         }
         

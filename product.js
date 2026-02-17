@@ -438,9 +438,10 @@ async function handleReviewSubmit(e) {
 
     const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
     
-    // Ensure CSRF utility is ready and token is fresh
-    if (window.CSRFProtection && !window.CSRFProtection.getToken()) {
-        await window.CSRFProtection.init();
+    // Always refresh token before sensitive POST actions for mobile compatibility
+    if (window.CSRFProtection) {
+        console.log('[PRODUCT] Refreshing security token...');
+        await window.CSRFProtection.refreshToken();
     }
 
     const formData = {
