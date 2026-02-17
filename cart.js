@@ -327,7 +327,7 @@ const CartState = {
             return;
         }
 
-        // Show skeletons immediately if we have items
+        // Show skeletons immediately
         cartItems.innerHTML = Array(this.cart.length).fill(0).map(() => `
             <div class="wishlist-skeleton wishlist-item-fade">
                 <div class="skeleton-img"></div>
@@ -339,8 +339,7 @@ const CartState = {
             </div>
         `).join('');
         
-        // Add a small artificial delay (300ms) to ensure the skeleton is visible and stable
-        const minWait = new Promise(resolve => setTimeout(resolve, 300));
+        const minWait = new Promise(resolve => setTimeout(resolve, 400));
 
         // Batch fetch stock for all items to avoid UI flicker
         const [cartWithStock] = await Promise.all([
@@ -401,7 +400,7 @@ const CartState = {
             return;
         }
 
-        // Show skeletons immediately if we have items but they aren't loaded yet
+        // Show skeletons immediately
         wishlistItems.innerHTML = Array(this.wishlist.length).fill(0).map(() => `
             <div class="wishlist-skeleton wishlist-item-fade">
                 <div class="skeleton-img"></div>
@@ -413,53 +412,33 @@ const CartState = {
             </div>
         `).join('');
         
-        // Find products from all sources (Static first, then API)
-        // Optimization: Fetch the catalog once if we suspect items are missing from static
+        const minWait = new Promise(resolve => setTimeout(resolve, 400));
         let apiProducts = null;
         
-        // Add a small artificial delay (300ms) to ensure the skeleton is visible and stable
-        // This is a professional UI trick to prevent 'flickering' when data loads too fast
-        const minWait = new Promise(resolve => setTimeout(resolve, 300));
-
         const [resolvedProducts] = await Promise.all([
             Promise.all(this.wishlist.map(async (productId) => {
                 let product = null;
-                
-                // Try static first
-                if (typeof ProductAPI !== 'undefined') {
-                    product = ProductAPI.getById(productId);
-                }
-                
-                // If not found and we haven't fetched the API yet, fetch it once
+                if (typeof ProductAPI !== 'undefined') product = ProductAPI.getById(productId);
                 if (!product && !apiProducts) {
                     try {
                         const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
                         const response = await fetch(`${API_URL}/products`);
                         const data = await response.json();
                         apiProducts = data.products || [];
-                    } catch (e) {
-                        apiProducts = [];
-                    }
+                    } catch (e) { apiProducts = []; }
                 }
-
-                // Look in API products if static failed
-                if (!product && apiProducts) {
-                    product = apiProducts.find(p => p.id === productId);
-                }
-
+                if (!product && apiProducts) product = apiProducts.find(p => p.id === productId);
                 if (!product) return null;
 
                 const color = product.colors?.[0]?.name || 'Default';
                 const size = product.sizes?.[0] || 'OS';
                 const stock = await this.getAvailableStock(productId, color, size);
-                
                 return { ...product, color, size, stock };
             })),
             minWait
         ]);
 
         const filteredProducts = resolvedProducts.filter(p => p);
-        
         if (filteredProducts.length === 0) {
             this.wishlist = [];
             this.saveWishlist();
@@ -484,7 +463,6 @@ const CartState = {
                     <div class="cart-item-actions">
                         <button class="btn btn-primary btn-sm ${isSoldOut ? 'disabled' : ''}" 
                                 ${isSoldOut ? 'disabled' : ''}
-                                style="border-radius: 0 !important; -webkit-border-radius: 0 !important; -moz-border-radius: 0 !important;"
                                 onclick="CartState.addToCart({
                             id: '${product.id}',
                             name: '${product.name.replace(/'/g, "\\'")}',
@@ -496,7 +474,7 @@ const CartState = {
                         }); if (!${isSoldOut}) CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)});">
                             ${isSoldOut ? t('product.soldOut', 'Sold Out') : t('product.addToCart', 'Add to Cart')}
                         </button>
-                        <button class="cart-item-remove" style="border-radius: 0 !important; -webkit-border-radius: 0 !important; -moz-border-radius: 0 !important;" onclick="CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)})">
+                        <button class="cart-item-remove" onclick="CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 6L6 18M6 6l12 12"></path>
                             </svg>
@@ -505,6 +483,59 @@ const CartState = {
                 </div>
             `;
         }).join('');
+    },
+
+    /**
+     * Professional Abandoned Cart Feature
+     * Notifies user if they return with items in cart
+     */
+    checkAbandonedCart() {
+        if (this.cart.length === 0) return;
+        
+        const lastVisit = localStorage.getItem('lastVisit');
+        const now = Date.now();
+        localStorage.setItem('lastVisit', now);
+
+        // If user returns after more than 1 hour (3600000 ms)
+        if (lastVisit && (now - parseInt(lastVisit) > 3600000)) {
+            setTimeout(() => {
+                const toast = document.createElement('div');
+                toast.className = 'recovery-toast';
+                toast.innerHTML = `
+                    <div class="recovery-content">
+                        <h5>WELCOME BACK</h5>
+                        <p>You have ${this.cart.length} items waiting in your cart.</p>
+                    </div>
+                    <div class="recovery-actions">
+                        <button class="btn btn-primary btn-sm" onclick="window.openCart(); this.parentElement.parentElement.remove();">VIEW CART</button>
+                        <button class="btn btn-secondary btn-sm" onclick="this.parentElement.parentElement.remove();">DISMISS</button>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                
+                // Auto remove after 10 seconds
+                setTimeout(() => toast.remove(), 10000);
+            }, 2000);
+        }
+    },
+
+    /**
+     * Professional Tab Reminder
+     * Changes tab title when user navigates away with items in cart
+     */
+    initProfessionalFeatures() {
+        this.checkAbandonedCart();
+        
+        let originalTitle = document.title;
+        window.addEventListener('blur', () => {
+            if (this.cart.length > 0) {
+                document.title = '🛒 Don\'t forget your wave!';
+            }
+        });
+        
+        window.addEventListener('focus', () => {
+            document.title = originalTitle;
+        });
     }
 };
 
@@ -515,10 +546,11 @@ window.openCart = function() {
     const cartSidebar = document.getElementById('cartSidebar');
     const cartOverlay = document.getElementById('cartOverlay');
     if (cartSidebar && cartOverlay) {
-        CartState.renderCart();
         cartSidebar.classList.add('active');
         cartOverlay.classList.add('active');
         document.body.style.overflow = 'hidden';
+        // Render AFTER showing sidebar to ensure skeletons are seen during transition
+        setTimeout(() => CartState.renderCart(), 50);
     }
 };
 
@@ -536,10 +568,11 @@ window.openWishlist = function() {
     const wishlistSidebar = document.getElementById('wishlistSidebar');
     const wishlistOverlay = document.getElementById('wishlistOverlay');
     if (wishlistSidebar && wishlistOverlay) {
-        CartState.renderWishlist();
         wishlistSidebar.classList.add('active');
         wishlistOverlay.classList.add('active');
         document.body.style.overflow = 'hidden';
+        // Render AFTER showing sidebar to ensure skeletons are seen during transition
+        setTimeout(() => CartState.renderWishlist(), 50);
     }
 };
 
@@ -560,6 +593,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update counts on page load
     CartState.updateCartCount();
     CartState.updateWishlistCount();
+    
+    // Initialize Professional features (Abandoned cart, Tab reminder)
+    CartState.initProfessionalFeatures();
     
     // Bind cart button clicks
     document.querySelectorAll('#cartBtn, .cart-btn').forEach(btn => {

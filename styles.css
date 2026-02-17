@@ -1520,6 +1520,88 @@ button {
     border-width: 0;
 }
 
+/* Skeleton Loading & Transitions */
+.wishlist-skeleton {
+    padding: 1rem 0;
+    display: flex;
+    gap: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.skeleton-img {
+    width: 80px;
+    height: 100px;
+    background: linear-gradient(90deg, #111 25%, #222 50%, #111 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+.skeleton-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.skeleton-text {
+    height: 14px;
+    background: linear-gradient(90deg, #111 25%, #222 50%, #111 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 2px;
+}
+
+.skeleton-text.short { width: 60%; }
+.skeleton-text.shorter { width: 40%; }
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.wishlist-item-fade {
+    animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Recovery Toast */
+.recovery-toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 2rem;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-light);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    z-index: 10000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.recovery-content h5 {
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.recovery-content p {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.recovery-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
 
 /* ============================================
    CART & WISHLIST SIDEBARS (Shared across all pages)
