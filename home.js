@@ -141,62 +141,6 @@ function renderFeaturedProducts() {
 // ==========================================
 // CART
 // ==========================================
-function renderCart() {
-    if (!elements.cartItems) return;
-    const cart = (typeof CartState !== 'undefined') ? CartState.cart : state.cart;
-    if (cart.length === 0) {
-        elements.cartItems.innerHTML = `
-            <div class="cart-empty">
-                <p data-i18n="cart.empty">Your cart is empty</p>
-                <a href="shop.html" class="btn btn-secondary" onclick="window.closeCart()" data-i18n="cart.continueShopping">Continue Shopping</a>
-            </div>
-        `;
-    } else {
-        elements.cartItems.innerHTML = cart.map((item, index) => `
-            <div class="cart-item">
-                <div class="cart-item-image">
-                    <img src="${item.image}" alt="${item.name}">
-                </div>
-                <div class="cart-item-details">
-                    <h4>${item.name}</h4>
-                    <p class="cart-item-variant">${item.color} / ${item.size}</p>
-                    <div class="cart-item-actions">
-                        <div class="cart-item-qty">
-                            <button onclick="window.updateCartQty(${index}, -1)">−</button>
-                            <span>${item.quantity}</span>
-                            <button onclick="window.updateCartQty(${index}, 1)">+</button>
-                        </div>
-                        <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
-                    </div>
-                </div>
-                <button class="cart-item-remove" onclick="window.removeFromCart(${index})">×</button>
-            </div>
-        `).join('');
-    }
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    if (elements.cartSubtotal) elements.cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
-}
-
-function openCart() {
-    renderCart();
-    elements.cartSidebar?.classList.add('active');
-    elements.cartOverlay?.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-window.closeCart = function() {
-    if (typeof window.closeCart === 'function') {
-        // Use global closeCart if available
-        const cartSidebar = document.getElementById('cartSidebar');
-        const cartOverlay = document.getElementById('cartOverlay');
-        if (cartSidebar && cartOverlay) {
-            cartSidebar.classList.remove('active');
-            cartOverlay.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-    }
-};
-
 function updateCartCount() {
     if (typeof CartState !== 'undefined') {
         CartState.updateCartCount();

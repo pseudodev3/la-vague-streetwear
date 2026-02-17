@@ -355,20 +355,22 @@ const CartState = {
 
             return `
                 <div class="cart-item wishlist-item-fade" style="animation-delay: ${index * 0.1}s">
-                    <img src="${item.image}" alt="${item.name}" class="cart-item-image">
+                    <div class="cart-item-image">
+                        <img src="${item.image}" alt="${item.name}">
+                    </div>
                     <div class="cart-item-details">
                         <h4 class="cart-item-name">${item.name}</h4>
                         <p class="cart-item-variant">${item.color} / ${item.size}</p>
                         <div class="cart-item-actions">
-                            <div class="quantity-selector">
-                                <button class="qty-btn" style="border-radius: 0 !important;" onclick="CartState.updateCartItemQuantity(${index}, -1)">−</button>
+                            <div class="cart-item-qty">
+                                <button onclick="CartState.updateCartItemQuantity(${index}, -1)">−</button>
                                 <span>${item.quantity}</span>
-                                <button class="qty-btn" style="border-radius: 0 !important;" onclick="CartState.updateCartItemQuantity(${index}, 1)" ${isAtMaxStock ? 'disabled' : ''}>+</button>
+                                <button onclick="CartState.updateCartItemQuantity(${index}, 1)" ${isAtMaxStock ? 'disabled' : ''}>+</button>
                             </div>
                             <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
                         </div>
                     </div>
-                    <button class="cart-item-remove" style="border-radius: 0 !important;" onclick="CartState.removeFromCart(${index})">
+                    <button class="cart-item-remove" onclick="CartState.removeFromCart(${index})">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 6L6 18M6 6l12 12"></path>
                         </svg>
