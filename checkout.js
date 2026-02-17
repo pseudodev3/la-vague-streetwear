@@ -251,7 +251,7 @@ async function handlePlaceOrder(e) {
             return;
         } catch (error) {
             console.error('[CHECKOUT] Paystack error:', error);
-            showToast('Payment initialization failed. Please try again.', 'error');
+            showToast(error.message || 'Payment initialization failed. Please try again.', 'error');
             elements.placeOrderBtn.textContent = 'Complete Order';
             elements.placeOrderBtn.disabled = false;
             return;

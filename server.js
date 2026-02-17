@@ -1896,15 +1896,20 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
         if (paymentMethod === 'paystack') {
             const secretKey = process.env.PAYSTACK_SECRET_KEY;
             if (!secretKey) {
-                console.error('[PAYSTACK] Secret key missing');
+                console.error('[PAYSTACK] Secret key missing in environment');
                 throw new APIError('Payment gateway configuration error', 500);
             }
 
             try {
+                console.log(`[PAYSTACK] Initializing transaction for ${customerEmail}, amount: ${calculatedTotal}`);
                 const paystack = Paystack(secretKey);
+                
+                // Paystack requires integer amount in kobo
+                const amountInKobo = Math.round(calculatedTotal * 100);
+                
                 const paystackResponse = await paystack.transaction.initialize({
                     email: customerEmail,
-                    amount: calculatedTotal * 100, // Paystack uses kobo
+                    amount: amountInKobo,
                     reference: orderId,
                     callback_url: `${process.env.FRONTEND_URL || req.headers.origin}/order-confirmation?order=${orderId}&status=success`,
                     metadata: {
@@ -1915,14 +1920,14 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
                     }
                 });
 
-                if (paystackResponse.status) {
+                if (paystackResponse && paystackResponse.status) {
                     paystackData = {
                         access_code: paystackResponse.data.access_code,
                         authorization_url: paystackResponse.data.authorization_url,
                         publicKey: process.env.PAYSTACK_PUBLIC_KEY
                     };
                     
-                    console.log(`[PAYSTACK] Transaction initialized: ${paystackResponse.data.access_code}`);
+                    console.log(`[PAYSTACK] Success: Access code ${paystackResponse.data.access_code}`);
                     
                     // Update order with reference
                     if (USE_POSTGRES) {
@@ -1931,11 +1936,20 @@ app.post('/api/orders', orderLimiter, csrfProtection, validateCreateOrder, async
                         db.prepare('UPDATE orders SET payment_reference = ? WHERE id = ?').run(paystackResponse.data.reference, orderId);
                     }
                 } else {
-                    console.error('[PAYSTACK] Initialization failed status:', paystackResponse);
+                    console.error('[PAYSTACK] Initialization failed. Response:', paystackResponse);
+                    // If status is false, Paystack usually provides a message
+                    const errorMsg = paystackResponse?.message || 'Paystack initialization failed';
+                    throw new Error(errorMsg);
                 }
             } catch (error) {
-                console.error('[PAYSTACK] Init Error:', error.message);
-                // Don't throw, but log it so we can see why it fails
+                console.error('[PAYSTACK INIT ERROR]', error.message);
+                // We've already created the order, but payment failed to init
+                // We should return the error so the frontend knows what happened
+                return res.status(400).json({
+                    success: false,
+                    error: `Payment setup failed: ${error.message}`,
+                    orderId: orderId // User can try to pay again later
+                });
             }
         }
 

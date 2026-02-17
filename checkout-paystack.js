@@ -1,6 +1,7 @@
 /**
  * LA VAGUE - Paystack Payment Integration
  * Handles Paystack popup payment flow with Mobile Redirect Fallback
+ * Version: 4.2 (Cache Busted)
  */
 (function() {
     const API_URL = window.location.hostname === 'localhost' 
@@ -11,6 +12,7 @@
     let configLoaded = false;
     let isPaystackAvailable = false;
     let paystackInstance = null;
+    let currentOrderId = null;
 
     /**
      * Detection for mobile devices to determine payment strategy
@@ -37,7 +39,7 @@
             const data = await response.json();
             if (data.success && data.configured) {
                 PAYSTACK_PUBLIC_KEY = data.publicKey;
-                window.PAYSTACK_PUBLIC_KEY = data.publicKey; // Sync globally
+                window.PAYSTACK_PUBLIC_KEY = data.publicKey;
                 configLoaded = true;
                 return true;
             }
@@ -77,39 +79,35 @@
 
     /**
      * Primary Payment Handler
-     * Logic: Use Modal on Desktop, Redirect on Mobile for 100% reliability
      */
     async function initializePaystackPayment(orderId, paystackData) {
-        if (!paystackData || !paystackData.access_code) {
-            throw new Error('Payment initialization failed on server');
+        if (!paystackData || (!paystackData.access_code && !paystackData.authorization_url)) {
+            throw new Error('Payment initialization data missing from server');
         }
 
-        // Strategy 1: Mobile Redirect (Most reliable for mobile browsers that block popups)
+        // 1. Mobile Redirect (100% Reliable for phones)
         if (isMobile() && paystackData.authorization_url) {
+            console.log('[PAYSTACK] Mobile detected, redirecting...');
             window.location.href = paystackData.authorization_url;
             return;
         }
 
-        // Strategy 2: Desktop Modal
-        if (!isPaystackAvailable || !window.PaystackPop) {
-            // Fallback if script failed to load
-            if (paystackData.authorization_url) {
-                window.location.href = paystackData.authorization_url;
+        // 2. Desktop Modal (Premium feel)
+        if (window.PaystackPop && paystackData.access_code) {
+            try {
+                const popup = paystackInstance || new window.PaystackPop();
+                popup.resumeTransaction(paystackData.access_code);
                 return;
+            } catch (error) {
+                console.warn('[PAYSTACK] Modal failed, falling back to redirect:', error.message);
             }
-            throw new Error('Payment gateway unavailable');
         }
         
-        try {
-            const popup = paystackInstance || new window.PaystackPop();
-            popup.resumeTransaction(paystackData.access_code);
-        } catch (error) {
-            // Final fallback: Redirect if Modal fails to open
-            if (paystackData.authorization_url) {
-                window.location.href = paystackData.authorization_url;
-            } else {
-                throw new Error('Failed to open payment window');
-            }
+        // 3. Absolute Fallback: Redirect if Modal isn't available or fails
+        if (paystackData.authorization_url) {
+            window.location.href = paystackData.authorization_url;
+        } else {
+            throw new Error('Could not open payment window. Please check your browser settings.');
         }
     }
 
@@ -119,29 +117,41 @@
     async function processOrderWithPaystack(orderData) {
         await loadPaystackScript();
         
-        // Use global CSRF utility for reliability
+        const payload = { ...orderData, paymentMethod: 'paystack' };
+        
+        // If we already tried and got an orderId, we might want to resume it
+        // but for now, we create a fresh attempt
+        
         let response;
-        if (window.CSRFProtection) {
-            response = await window.CSRFProtection.fetch(`${API_URL}/orders`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...orderData, paymentMethod: 'paystack' })
-            });
-        } else {
-            // Fallback if utility not found
-            response = await fetch(`${API_URL}/orders`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...orderData, paymentMethod: 'paystack' })
-            });
+        try {
+            if (window.CSRFProtection) {
+                response = await window.CSRFProtection.fetch(`${API_URL}/orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                response = await fetch(`${API_URL}/orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            }
+        } catch (err) {
+            throw new Error('Connection failed. Please check your internet.');
         }
         
         const result = await response.json();
+        
         if (!response.ok || !result.success) {
-            throw new Error(result.error || 'Failed to create order');
+            // Check for specific backend errors
+            const serverError = result.error || 'Server error';
+            throw new Error(serverError);
         }
         
-        // Trigger payment (Modal or Redirect)
+        currentOrderId = result.orderId;
+        
+        // Trigger payment flow
         await initializePaystackPayment(result.orderId, result.paystack);
         
         return { success: true, orderId: result.orderId };
