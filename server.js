@@ -1535,21 +1535,32 @@ async function handleChargeSuccess(data) {
         
         console.log(`[PAYSTACK WEBHOOK] Order ${order.id} marked as paid`);
         
-        // Send payment confirmation email
+        // Parse items and address for the email
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        const shippingAddress = typeof order.shipping_address === 'string' 
+            ? JSON.parse(order.shipping_address) 
+            : order.shipping_address;
+
+        // Send COMPREHENSIVE payment confirmation email
         const orderData = {
             id: order.id,
             customer_name: order.customer_name,
             customer_email: order.customer_email,
+            customer_phone: order.customer_phone,
+            shipping_address: shippingAddress,
+            items: items,
+            subtotal: order.subtotal,
+            shipping_cost: order.shipping_cost,
+            discount: order.discount || 0,
             total: order.total,
-            payment_method: 'paystack',
-            payment_status: 'paid'
+            payment_method: order.payment_method || 'paystack',
+            payment_status: 'paid',
+            created_at: order.created_at
         };
         
         await sendOrderEmailSafely(orderData, 'confirmation');
         
-        // Confirm inventory reservation (it was already reserved at order creation)
-        // This ensures stock is properly deducted
-        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        // Confirm inventory reservation
         await inventoryService.confirmReservation(order.id, items);
         
         captureMessage(`Payment confirmed for order ${order.id}`, {

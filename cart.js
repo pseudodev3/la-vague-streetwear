@@ -415,7 +415,7 @@ const CartState = {
                     <div class="cart-item-actions">
                         <button class="btn btn-primary btn-sm ${isSoldOut ? 'disabled' : ''}" 
                                 ${isSoldOut ? 'disabled' : ''}
-                                style="border-radius: 0 !important;"
+                                style="border-radius: 0 !important; -webkit-border-radius: 0 !important; -moz-border-radius: 0 !important;"
                                 onclick="CartState.addToCart({
                             id: '${product.id}',
                             name: '${product.name}',
@@ -427,7 +427,7 @@ const CartState = {
                         }); if (!${isSoldOut}) CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)});">
                             ${isSoldOut ? 'Sold Out' : 'Add to Cart'}
                         </button>
-                        <button class="cart-item-remove" style="border-radius: 0 !important;" onclick="CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)})">
+                        <button class="cart-item-remove" style="border-radius: 0 !important; -webkit-border-radius: 0 !important; -moz-border-radius: 0 !important;" onclick="CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 6L6 18M6 6l12 12"></path>
                             </svg>
