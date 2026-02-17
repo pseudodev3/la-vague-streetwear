@@ -177,10 +177,12 @@ const CartState = {
         if (typeof ProductAPI !== 'undefined') {
             const product = ProductAPI.getById(item.id);
             if (product) {
+                const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
                 const variantKey = `${item.color}-${item.size}`;
-                const stock = product.inventory[variantKey] || 0;
+                const stock = parseInt(inventory[variantKey]) || 0;
+                
                 if (newTotalQty > stock) {
-                    this.showToast(`Only ${stock} items available in stock`, 'error');
+                    this.showToast(stock <= 0 ? 'Sorry, this item is out of stock' : `Only ${stock} items available in stock`, 'error');
                     return;
                 }
             }
@@ -238,8 +240,10 @@ const CartState = {
         if (typeof ProductAPI !== 'undefined') {
             const product = ProductAPI.getById(item.id);
             if (product) {
+                const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
                 const variantKey = `${item.color}-${item.size}`;
-                const stock = product.inventory[variantKey] || 0;
+                const stock = parseInt(inventory[variantKey]) || 0;
+                
                 if (newQty > stock) {
                     this.showToast(`Only ${stock} items available in stock`, 'error');
                     return;
@@ -298,28 +302,41 @@ const CartState = {
             return;
         }
         
-        cartItems.innerHTML = this.cart.map((item, index) => `
-            <div class="cart-item">
-                <img src="${item.image}" alt="${item.name}" class="cart-item-image">
-                <div class="cart-item-details">
-                    <h4 class="cart-item-name">${item.name}</h4>
-                    <p class="cart-item-variant">${item.color} / ${item.size}</p>
-                    <div class="cart-item-actions">
-                        <div class="quantity-selector">
-                            <button class="qty-btn" onclick="CartState.updateCartItemQuantity(${index}, -1)">−</button>
-                            <span>${item.quantity}</span>
-                            <button class="qty-btn" onclick="CartState.updateCartItemQuantity(${index}, 1)">+</button>
+        cartItems.innerHTML = this.cart.map((item, index) => {
+            // Check stock limit for the '+' button
+            let isAtMaxStock = false;
+            if (typeof ProductAPI !== 'undefined') {
+                const product = ProductAPI.getById(item.id);
+                if (product) {
+                    const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
+                    const stock = parseInt(inventory[`${item.color}-${item.size}`]) || 0;
+                    isAtMaxStock = item.quantity >= stock;
+                }
+            }
+
+            return `
+                <div class="cart-item">
+                    <img src="${item.image}" alt="${item.name}" class="cart-item-image">
+                    <div class="cart-item-details">
+                        <h4 class="cart-item-name">${item.name}</h4>
+                        <p class="cart-item-variant">${item.color} / ${item.size}</p>
+                        <div class="cart-item-actions">
+                            <div class="quantity-selector">
+                                <button class="qty-btn" onclick="CartState.updateCartItemQuantity(${index}, -1)">−</button>
+                                <span>${item.quantity}</span>
+                                <button class="qty-btn" onclick="CartState.updateCartItemQuantity(${index}, 1)" ${isAtMaxStock ? 'disabled' : ''}>+</button>
+                            </div>
+                            <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
                         </div>
-                        <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
                     </div>
+                    <button class="cart-item-remove" onclick="CartState.removeFromCart(${index})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
-                <button class="cart-item-remove" onclick="CartState.removeFromCart(${index})">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 6L6 18M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         
         const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         if (cartSubtotal) cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
@@ -345,24 +362,36 @@ const CartState = {
         wishlistItems.innerHTML = this.wishlist.map(productId => {
             const product = ProductAPI.getById(productId);
             if (!product) return '';
+            
+            // Check stock for primary variant
+            const color = product.colors[0]?.name || 'Default';
+            const size = product.sizes[0] || 'OS';
+            const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
+            const stock = parseInt(inventory[`${color}-${size}`]) || 0;
+            const isSoldOut = stock <= 0;
+
             return `
                 <div class="cart-item">
-                    <img src="${product.images[0].src}" alt="${product.name}" class="cart-item-image">
+                    <img src="${product.images[0]?.src || ''}" alt="${product.name}" class="cart-item-image">
                     <div class="cart-item-details">
                         <h4 class="cart-item-name">${product.name}</h4>
-                        <p class="cart-item-variant">${CATEGORIES.find(c => c.id === product.category)?.name}</p>
+                        <p class="cart-item-variant">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
                         <span class="cart-item-price">${CurrencyConfig.formatPrice(product.price)}</span>
                     </div>
                     <div class="cart-item-actions">
-                        <button class="btn btn-primary btn-sm" onclick="CartState.addToCart({
+                        <button class="btn btn-primary btn-sm ${isSoldOut ? 'disabled' : ''}" 
+                                ${isSoldOut ? 'disabled' : ''}
+                                onclick="CartState.addToCart({
                             id: '${product.id}',
                             name: '${product.name}',
                             price: ${product.price},
-                            image: '${product.images[0].src}',
-                            color: '${product.colors[0]?.name || 'Default'}',
-                            size: '${product.sizes[0]}',
+                            image: '${product.images[0]?.src || ''}',
+                            color: '${color}',
+                            size: '${size}',
                             quantity: 1
-                        }); CartState.removeFromWishlist(${this.wishlist.indexOf(productId)});">Add to Cart</button>
+                        }); CartState.removeFromWishlist(${this.wishlist.indexOf(productId)});">
+                            ${isSoldOut ? 'Sold Out' : 'Add to Cart'}
+                        </button>
                         <button class="cart-item-remove" onclick="CartState.removeFromWishlist(${this.wishlist.indexOf(productId)})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 6L6 18M6 6l12 12"></path>
