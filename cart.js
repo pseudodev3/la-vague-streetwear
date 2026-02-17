@@ -308,6 +308,8 @@ const CartState = {
         const cartSubtotal = document.getElementById('cartSubtotal');
         if (!cartItems) return;
         
+        const t = (key, def) => (typeof I18n !== 'undefined') ? I18n.getTranslation(key) || def : def;
+
         if (this.cart.length === 0) {
             cartItems.innerHTML = `
                 <div class="cart-empty">
@@ -317,8 +319,8 @@ const CartState = {
                         <circle cx="18" cy="20" r="1"></circle>
                         <path d="M6 6L5 3H2"></path>
                     </svg>
-                    <p>Your cart is empty</p>
-                    <a href="shop.html" class="btn btn-primary">Continue Shopping</a>
+                    <p>${t('cart.empty', 'Your cart is empty')}</p>
+                    <a href="shop.html" class="btn btn-primary" onclick="window.closeCart()">${t('cart.continueShopping', 'Continue Shopping')}</a>
                 </div>
             `;
             if (cartSubtotal) cartSubtotal.textContent = CurrencyConfig.formatPrice(0);
@@ -366,14 +368,16 @@ const CartState = {
         const wishlistItems = document.getElementById('wishlistItems');
         if (!wishlistItems) return;
         
+        const t = (key, def) => (typeof I18n !== 'undefined') ? I18n.getTranslation(key) || def : def;
+
         if (this.wishlist.length === 0) {
             wishlistItems.innerHTML = `
                 <div class="cart-empty">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                     </svg>
-                    <p>Your wishlist is empty</p>
-                    <a href="shop.html" class="btn btn-primary">Continue Shopping</a>
+                    <p>${t('cart.wishlistEmpty', 'Your wishlist is empty')}</p>
+                    <a href="shop.html" class="btn btn-primary" onclick="window.closeWishlist()">${t('cart.continueShopping', 'Continue Shopping')}</a>
                 </div>
             `;
             return;
@@ -409,12 +413,16 @@ const CartState = {
 
         wishlistItems.innerHTML = productsWithStock.filter(p => p).map(product => {
             const isSoldOut = product.stock <= 0;
+            const productImage = product.images?.[0]?.src || product.images?.[0] || '';
+            const productUrl = `product.html?slug=${product.slug}`;
 
             return `
                 <div class="cart-item">
-                    <img src="${product.images?.[0]?.src || product.images?.[0] || ''}" alt="${product.name}" class="cart-item-image">
+                    <a href="${productUrl}" class="cart-item-image">
+                        <img src="${productImage}" alt="${product.name}">
+                    </a>
                     <div class="cart-item-details">
-                        <h4 class="cart-item-name">${product.name}</h4>
+                        <h4 class="cart-item-name"><a href="${productUrl}">${product.name}</a></h4>
                         <p class="cart-item-variant">${product.category}</p>
                         <span class="cart-item-price">${CurrencyConfig.formatPrice(product.price)}</span>
                     </div>
@@ -424,14 +432,14 @@ const CartState = {
                                 style="border-radius: 0 !important; -webkit-border-radius: 0 !important; -moz-border-radius: 0 !important;"
                                 onclick="CartState.addToCart({
                             id: '${product.id}',
-                            name: '${product.name}',
+                            name: '${product.name.replace(/'/g, "\\'")}',
                             price: ${product.price},
-                            image: '${product.images?.[0]?.src || product.images?.[0] || ''}',
+                            image: '${productImage}',
                             color: '${product.color}',
                             size: '${product.size}',
                             quantity: 1
                         }); if (!${isSoldOut}) CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)});">
-                            ${isSoldOut ? 'Sold Out' : 'Add to Cart'}
+                            ${isSoldOut ? t('product.soldOut', 'Sold Out') : t('product.addToCart', 'Add to Cart')}
                         </button>
                         <button class="cart-item-remove" style="border-radius: 0 !important; -webkit-border-radius: 0 !important; -moz-border-radius: 0 !important;" onclick="CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
