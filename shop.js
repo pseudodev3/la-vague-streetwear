@@ -796,11 +796,19 @@ window.addEventListener('componentsLoaded', () => {
     initShop();
 });
 
-window.shopUpdateCartQty = (index, delta) => { CartState.updateCartItemQuantity(index, delta); CartState.renderCart(); };
+window.shopUpdateCartQty = async (index, delta) => { await CartState.updateCartItemQuantity(index, delta); CartState.renderCart(); };
 window.shopRemoveFromCart = (index) => { CartState.removeFromCart(index); CartState.renderCart(); };
-window.shopAddToCartFromWishlist = (id) => { 
+window.shopAddToCartFromWishlist = async (id) => { 
     const p = state.products.find(x => x.id === id);
-    if (p) CartState.addToCart({ id: p.id, name: p.name, price: p.price, image: p.images?.[0]?.src || '', color: 'Default', size: 'OS', quantity: 1 });
+    if (p) {
+        await CartState.addToCart({ 
+            id: p.id, name: p.name, price: p.price, 
+            image: p.images?.[0]?.src || p.images?.[0] || '', 
+            color: p.colors?.[0]?.name || 'Default', 
+            size: p.sizes?.[0] || 'OS', 
+            quantity: 1 
+        });
+    }
 };
 window.shopRemoveFromWishlist = (id) => { const idx = getWishlist().indexOf(id); if (idx > -1) CartState.removeFromWishlist(idx); };
 

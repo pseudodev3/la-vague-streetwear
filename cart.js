@@ -165,7 +165,7 @@ const CartState = {
         });
     },
     
-    addToCart(item) {
+    async addToCart(item) {
         const existingItem = this.cart.find(i => 
             i.id === item.id && i.color === item.color && i.size === item.size
         );
@@ -173,19 +173,15 @@ const CartState = {
         const currentQty = existingItem ? existingItem.quantity : 0;
         const newTotalQty = currentQty + item.quantity;
 
-        // Check stock against static data if available
-        if (typeof ProductAPI !== 'undefined') {
-            const product = ProductAPI.getById(item.id);
-            if (product) {
-                const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
-                const variantKey = `${item.color}-${item.size}`;
-                const stock = parseInt(inventory[variantKey]) || 0;
-                
-                if (newTotalQty > stock) {
-                    this.showToast(stock <= 0 ? 'Sorry, this item is out of stock' : `Only ${stock} items available in stock`, 'error');
-                    return;
-                }
+        // Unified Stock Check (Static + API fallback)
+        try {
+            const stock = await this.getAvailableStock(item.id, item.color, item.size);
+            if (newTotalQty > stock) {
+                this.showToast(stock <= 0 ? 'Sorry, this item is out of stock' : `Only ${stock} items available in stock`, 'error');
+                return;
             }
+        } catch (error) {
+            console.error('[CART] Stock check failed:', error);
         }
         
         if (existingItem) {
@@ -195,9 +191,36 @@ const CartState = {
         }
         
         this.saveCart();
-        // Use i18n if available
         const viewCartText = (typeof I18n !== 'undefined') ? I18n.t('toast.viewCart') : 'View Cart';
         this.showToast(`${item.name} ${(typeof I18n !== 'undefined') ? I18n.t('toast.addedToCart') : 'added to cart'}`, 'success', viewCartText);
+    },
+
+    /**
+     * Helper to get stock from any source
+     */
+    async getAvailableStock(productId, color, size) {
+        // 1. Try static ProductAPI first
+        if (typeof ProductAPI !== 'undefined') {
+            const staticProduct = ProductAPI.getById(productId);
+            if (staticProduct) {
+                const inventory = typeof staticProduct.inventory === 'string' ? JSON.parse(staticProduct.inventory || '{}') : (staticProduct.inventory || {});
+                return parseInt(inventory[`${color}-${size}`]) || 0;
+            }
+        }
+
+        // 2. Fallback to API check
+        try {
+            const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+            const response = await fetch(`${API_URL}/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
+            if (response.ok) {
+                const data = await response.json();
+                return parseInt(data.available) || 0;
+            }
+        } catch (e) {
+            console.warn('[CART] API stock check unavailable');
+        }
+
+        return 999; // Safe default if everything fails
     },
     
     addToWishlist(productId) {
@@ -226,7 +249,7 @@ const CartState = {
         this.renderWishlist();
     },
     
-    updateCartItemQuantity(index, delta) {
+    async updateCartItemQuantity(index, delta) {
         const item = this.cart[index];
         if (!item) return;
         
@@ -236,20 +259,14 @@ const CartState = {
             return;
         }
         
-        // Check stock against static data if available
-        if (typeof ProductAPI !== 'undefined') {
-            const product = ProductAPI.getById(item.id);
-            if (product) {
-                const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
-                const variantKey = `${item.color}-${item.size}`;
-                const stock = parseInt(inventory[variantKey]) || 0;
-                
-                if (newQty > stock) {
-                    this.showToast(`Only ${stock} items available in stock`, 'error');
-                    return;
-                }
+        // Stock check
+        try {
+            const stock = await this.getAvailableStock(item.id, item.color, item.size);
+            if (newQty > stock) {
+                this.showToast(`Only ${stock} items available in stock`, 'error');
+                return;
             }
-        }
+        } catch (error) {}
 
         item.quantity = newQty;
         this.saveCart();
@@ -280,7 +297,7 @@ const CartState = {
         }, 4000);
     },
     
-    renderCart() {
+    async renderCart() {
         const cartItems = document.getElementById('cartItems');
         const cartSubtotal = document.getElementById('cartSubtotal');
         if (!cartItems) return;
@@ -302,17 +319,14 @@ const CartState = {
             return;
         }
         
-        cartItems.innerHTML = this.cart.map((item, index) => {
-            // Check stock limit for the '+' button
-            let isAtMaxStock = false;
-            if (typeof ProductAPI !== 'undefined') {
-                const product = ProductAPI.getById(item.id);
-                if (product) {
-                    const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
-                    const stock = parseInt(inventory[`${item.color}-${item.size}`]) || 0;
-                    isAtMaxStock = item.quantity >= stock;
-                }
-            }
+        // Batch fetch stock for all items to avoid UI flicker
+        const cartWithStock = await Promise.all(this.cart.map(async (item) => {
+            const stock = await this.getAvailableStock(item.id, item.color, item.size);
+            return { ...item, stock };
+        }));
+
+        cartItems.innerHTML = cartWithStock.map((item, index) => {
+            const isAtMaxStock = item.quantity >= item.stock;
 
             return `
                 <div class="cart-item">
@@ -342,9 +356,9 @@ const CartState = {
         if (cartSubtotal) cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
     },
     
-    renderWishlist() {
+    async renderWishlist() {
         const wishlistItems = document.getElementById('wishlistItems');
-        if (!wishlistItems || typeof ProductAPI === 'undefined') return;
+        if (!wishlistItems) return;
         
         if (this.wishlist.length === 0) {
             wishlistItems.innerHTML = `
@@ -359,23 +373,43 @@ const CartState = {
             return;
         }
         
-        wishlistItems.innerHTML = this.wishlist.map(productId => {
-            const product = ProductAPI.getById(productId);
-            if (!product) return '';
+        // Find products from all sources (Static first, then API)
+        const productsWithStock = await Promise.all(this.wishlist.map(async (productId) => {
+            let product = null;
             
-            // Check stock for primary variant
-            const color = product.colors[0]?.name || 'Default';
-            const size = product.sizes[0] || 'OS';
-            const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
-            const stock = parseInt(inventory[`${color}-${size}`]) || 0;
-            const isSoldOut = stock <= 0;
+            // Try static
+            if (typeof ProductAPI !== 'undefined') {
+                product = ProductAPI.getById(productId);
+            }
+            
+            // Try API if not in static
+            if (!product) {
+                try {
+                    const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+                    const response = await fetch(`${API_URL}/products`);
+                    const data = await response.json();
+                    product = data.products?.find(p => p.id === productId);
+                } catch (e) {}
+            }
+
+            if (!product) return null;
+
+            const color = product.colors?.[0]?.name || 'Default';
+            const size = product.sizes?.[0] || 'OS';
+            const stock = await this.getAvailableStock(productId, color, size);
+            
+            return { ...product, color, size, stock };
+        }));
+
+        wishlistItems.innerHTML = productsWithStock.filter(p => p).map(product => {
+            const isSoldOut = product.stock <= 0;
 
             return `
                 <div class="cart-item">
-                    <img src="${product.images[0]?.src || ''}" alt="${product.name}" class="cart-item-image">
+                    <img src="${product.images?.[0]?.src || product.images?.[0] || ''}" alt="${product.name}" class="cart-item-image">
                     <div class="cart-item-details">
                         <h4 class="cart-item-name">${product.name}</h4>
-                        <p class="cart-item-variant">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
+                        <p class="cart-item-variant">${product.category}</p>
                         <span class="cart-item-price">${CurrencyConfig.formatPrice(product.price)}</span>
                     </div>
                     <div class="cart-item-actions">
@@ -385,14 +419,14 @@ const CartState = {
                             id: '${product.id}',
                             name: '${product.name}',
                             price: ${product.price},
-                            image: '${product.images[0]?.src || ''}',
-                            color: '${color}',
-                            size: '${size}',
+                            image: '${product.images?.[0]?.src || product.images?.[0] || ''}',
+                            color: '${product.color}',
+                            size: '${product.size}',
                             quantity: 1
-                        }); CartState.removeFromWishlist(${this.wishlist.indexOf(productId)});">
+                        }); if (!${isSoldOut}) CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)});">
                             ${isSoldOut ? 'Sold Out' : 'Add to Cart'}
                         </button>
-                        <button class="cart-item-remove" onclick="CartState.removeFromWishlist(${this.wishlist.indexOf(productId)})">
+                        <button class="cart-item-remove" onclick="CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 6L6 18M6 6l12 12"></path>
                             </svg>

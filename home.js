@@ -290,25 +290,35 @@ window.closeWishlist = function() {
     document.body.style.overflow = '';
 };
 
-window.addToCartFromWishlist = function(productId) {
-    const product = ProductAPI.getById(productId);
+window.addToCartFromWishlist = async function(productId) {
+    let product = ProductAPI.getById(productId);
+    // If not found in static, it might be from the database
+    if (!product) {
+        try {
+            const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+            const response = await fetch(`${API_URL}/products`);
+            const data = await response.json();
+            product = data.products?.find(p => p.id === productId);
+        } catch (e) {}
+    }
+
     if (!product) return;
     
-    const color = product.colors[0]?.name || 'Default';
-    const size = product.sizes[0];
+    const color = product.colors?.[0]?.name || product.colors?.[0] || 'Default';
+    const size = product.sizes?.[0] || 'OS';
     
     const item = {
         id: product.id,
         name: product.name,
         price: product.price,
-        image: product.images[0].src,
+        image: (product.images?.[0]?.src || product.images?.[0] || ''),
         color: color,
         size: size,
         quantity: 1
     };
     
     if (typeof CartState !== 'undefined') {
-        CartState.addToCart(item);
+        await CartState.addToCart(item);
         updateCartCount();
         return;
     }
