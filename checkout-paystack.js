@@ -2,6 +2,16 @@
  * LA VAGUE - Paystack Payment Integration
  * Handles Paystack popup payment flow
  */
+(function() {
+    const API_URL = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000/api' 
+        : 'https://la-vague-api.onrender.com/api';
+
+    let PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || '';
+    let configLoaded = false;
+    let isPaystackAvailable = false;
+    let currentOrderId = null;
+    let currentOrderData = null;
 
     /**
      * Fetch Paystack configuration from backend
@@ -832,7 +842,6 @@
             paymentMethod: 'paystack'
         };
         
-        
         const response = await fetch(`${API_URL}/orders`, {
             method: 'POST',
             credentials: 'include',
@@ -852,7 +861,6 @@
         currentOrderId = result.orderId;
         currentOrderData = orderPayload;
         
-        
         // Initialize Paystack payment
         await initializePaystackPayment(
             currentOrderId,
@@ -867,76 +875,17 @@
         return { success: true, orderId: currentOrderId };
     }
 
-    /**
-     * Update UI to show Paystack option
-     */
-    function updatePaymentUI() {
-        if (!isPaystackConfigured()) {
-            return;
-        }
-        
-        const paymentSection = document.getElementById('paymentSection');
-        if (!paymentSection) return;
-        
-        // Update payment methods to show Paystack
-        const paymentMethods = paymentSection.querySelector('.payment-methods');
-        if (paymentMethods) {
-            paymentMethods.innerHTML = `
-                <label class="payment-method active">
-                    <input type="radio" name="payment" value="paystack" checked>
-                    <span>Pay with Card / Bank Transfer</span>
-                    <div class="payment-icons">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="payment-icon">
-                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                            <line x1="1" y1="10" x2="23" y2="10"></line>
-                        </svg>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="payment-icon">
-                            <path d="M3 21h18"></path>
-                            <path d="M3 10h18"></path>
-                            <path d="M5 6l7-3 7 3"></path>
-                            <path d="M4 10v11"></path>
-                            <path d="M20 10v11"></path>
-                            <path d="M8 14v3"></path>
-                            <path d="M12 14v3"></path>
-                            <path d="M16 14v3"></path>
-                        </svg>
-                    </div>
-                </label>
-            `;
-        }
-        
-        // Hide card form for Paystack (it's handled in popup)
-        const cardForm = paymentSection.querySelector('.card-form');
-        if (cardForm) {
-            cardForm.style.display = 'none';
-        }
-        
-        // Add payment method change handler
-        const paymentInputs = paymentSection.querySelectorAll('input[name="payment"]');
-        paymentInputs.forEach(input => {
-            input.addEventListener('change', (e) => {
-                const isPaystack = e.target.value === 'paystack';
-                if (cardForm) {
-                    cardForm.style.display = isPaystack ? 'none' : 'block';
-                }
-            });
-        });
-        
-    }
-
     // Public API
     window.PaystackCheckout = {
         isConfigured: isPaystackConfigured,
         isAvailable: () => isPaystackAvailable,
         loadScript: loadPaystackScript,
         processOrder: processOrderWithPaystack,
-        updateUI: updatePaymentUI,
         
         // Initialize
         init: async function() {
             await loadPaystackConfig(); // Load config first
             await loadPaystackScript();
-            updatePaymentUI();
         }
     };
 

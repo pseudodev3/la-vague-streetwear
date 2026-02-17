@@ -38,8 +38,6 @@ async function initCheckout() {
         applyDiscount: document.getElementById('applyDiscount'),
         shippingOptions: document.querySelectorAll('input[name="shipping"]'),
         placeOrderBtn: document.getElementById('placeOrderBtn'),
-        cardNumber: document.getElementById('cardNumber'),
-        expiry: document.getElementById('expiry'),
         toastContainer: document.getElementById('toastContainer'),
         standardShippingPrice: document.getElementById('standardShipping'),
         expressShippingPrice: document.getElementById('expressShipping')
