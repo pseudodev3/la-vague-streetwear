@@ -376,28 +376,25 @@ function bindEvents() {
 
     // Reviews events
     console.log('[PRODUCT] Binding events, writeReviewBtn:', !!elements.writeReviewBtn);
-    if (elements.writeReviewBtn) {
-        elements.writeReviewBtn.addEventListener('click', () => {
+    
+    // Use direct ID lookup for highest reliability
+    const btn = document.getElementById('writeReviewBtn');
+    const modal = document.getElementById('reviewModal');
+    
+    if (btn && modal) {
+        btn.onclick = (e) => {
+            e.preventDefault();
             console.log('[PRODUCT] Write review clicked');
-            if (elements.reviewModal) {
-                elements.reviewModal.classList.add('active');
-            } else {
-                console.error('[PRODUCT] reviewModal element not found!');
-            }
-        });
+            modal.classList.add('active');
+        };
     } else {
-        // Absolute fallback for the review button
-        const directBtn = document.getElementById('writeReviewBtn');
-        if (directBtn) {
-            directBtn.addEventListener('click', () => {
-                document.getElementById('reviewModal')?.classList.add('active');
-            });
-        }
+        console.error('[PRODUCT] Review elements not found:', { btn: !!btn, modal: !!modal });
     }
     
-    elements.reviewModalCloseX?.addEventListener('click', () => {
-        elements.reviewModal.classList.remove('active');
-    });
+    const closeX = document.getElementById('reviewModalCloseX');
+    if (closeX && modal) {
+        closeX.onclick = () => modal.classList.remove('active');
+    }
     
     if (elements.starRatingInput) {
         const stars = elements.starRatingInput.querySelectorAll('span');
