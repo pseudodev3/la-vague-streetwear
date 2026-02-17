@@ -14,9 +14,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="shop-styles.css">
-    <link rel="stylesheet" href="page-styles.css">
+    <link rel="stylesheet" href="styles.css?v=2.3">
+    <link rel="stylesheet" href="shop-styles.css?v=2.3">
+    <link rel="stylesheet" href="page-styles.css?v=2.3">
 </head>
 <body>
     <!-- Announcement Bar -->
@@ -274,23 +274,19 @@
 
     <!-- Footer -->
     <footer class="footer"></footer>
-    <!-- Cart Overlay & Sidebar -->
-    <div class="cart-overlay" id="cartOverlay"></div>
-    <div class="cart-sidebar" id="cartSidebar"></div>
+    <!-- Universal UI Components (Injected by components.js) -->
+    <div id="searchOverlay" class="search-overlay"></div>
+    <div id="cartOverlay" class="cart-overlay"></div>
+    <div id="cartSidebar" class="cart-sidebar"></div>
+    <div id="wishlistOverlay" class="wishlist-overlay"></div>
+    <div id="wishlistSidebar" class="wishlist-sidebar"></div>
 
-    <!-- Search Overlay -->
-    <div class="search-overlay" id="searchOverlay"></div>
-
-    <!-- Wishlist Sidebar -->
-    <div class="wishlist-overlay" id="wishlistOverlay"></div>
-    <div class="wishlist-sidebar" id="wishlistSidebar"></div>
-
-    <script src="products.js"></script>
-    <script src="cart.js"></script>
-    <script src="components.js"></script>
-    <script src="utils.js"></script>
-    <script src="translations.js"></script>
-    <script src="page.js"></script>
-    <script src="cookie-consent.js"></script>
+    <script src="products.js?v=2.3"></script>
+    <script src="cart.js?v=2.3"></script>
+    <script src="components.js?v=2.3"></script>
+    <script src="utils.js?v=2.3"></script>
+    <script src="translations.js?v=2.3"></script>
+    <script src="page.js?v=2.3"></script>
+    <script src="cookie-consent.js?v=2.3"></script>
 </body>
 </html>

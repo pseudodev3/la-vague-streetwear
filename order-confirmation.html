@@ -14,8 +14,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="page-styles.css">
+    <link rel="stylesheet" href="styles.css?v=2.3">
+    <link rel="stylesheet" href="page-styles.css?v=2.3">
     <style>
         .confirmation {
             min-height: 100vh;
@@ -116,23 +116,19 @@
     <!-- Footer -->
     <footer class="footer"></footer>
 
-    <!-- Cart Overlay & Sidebar -->
-    <div class="cart-overlay" id="cartOverlay"></div>
-    <div class="cart-sidebar" id="cartSidebar"></div>
-
-    <!-- Wishlist Sidebar -->
-    <div class="wishlist-overlay" id="wishlistOverlay"></div>
-    <div class="wishlist-sidebar" id="wishlistSidebar"></div>
-
-    <!-- Search Overlay -->
-    <div class="search-overlay" id="searchOverlay"></div>
+    <!-- Universal UI Components (Injected by components.js) -->
+    <div id="searchOverlay" class="search-overlay"></div>
+    <div id="cartOverlay" class="cart-overlay"></div>
+    <div id="cartSidebar" class="cart-sidebar"></div>
+    <div id="wishlistOverlay" class="wishlist-overlay"></div>
+    <div id="wishlistSidebar" class="wishlist-sidebar"></div>
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="cart.js"></script>
-    <script src="components.js"></script>
-    <script src="utils.js"></script>
+    <script src="cart.js?v=2.3"></script>
+    <script src="components.js?v=2.3"></script>
+    <script src="utils.js?v=2.3"></script>
     <script>
         // Get order details from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -166,6 +162,6 @@
             }
         }, { passive: true });
     </script>
-    <script src="cookie-consent.js"></script>
+    <script src="cookie-consent.js?v=2.3"></script>
 </body>
 </html>

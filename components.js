@@ -140,17 +140,14 @@ window.Components = {
             <button class="cart-close" id="cartClose">×</button>
         </div>
         <div class="cart-items" id="cartItems">
-            <div class="cart-empty">
-                <p data-i18n="cart.empty">Your cart is empty</p>
-                <a href="/shop" class="btn btn-secondary" onclick="window.closeCart()" data-i18n="cart.continueShopping">Continue Shopping</a>
-            </div>
+            <!-- Items loaded dynamically by cart.js -->
         </div>
         <div class="cart-footer" id="cartFooter">
             <div class="cart-subtotal">
                 <span data-i18n="cart.subtotal">Subtotal</span>
                 <span id="cartSubtotal">$0</span>
             </div>
-            <a href="/checkout" class="btn btn-primary btn-full" onclick="window.closeCart()" data-i18n="cart.checkout">Checkout</a>
+            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()" data-i18n="cart.checkout">Checkout</a>
             <p class="cart-note" data-i18n="cart.note">Shipping & taxes calculated at checkout</p>
         </div>
         `,
@@ -160,13 +157,7 @@ window.Components = {
             <button class="wishlist-close" id="wishlistClose">×</button>
         </div>
         <div class="wishlist-items" id="wishlistItems">
-            <div class="wishlist-empty">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
-                <p data-i18n="cart.wishlistEmpty">Your wishlist is empty</p>
-                <a href="/shop" class="btn btn-secondary" onclick="window.closeWishlist()" data-i18n="cart.startShopping">Start Shopping</a>
-            </div>
+            <!-- Items loaded dynamically by cart.js -->
         </div>
         `,
         searchOverlay: `
