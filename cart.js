@@ -228,10 +228,12 @@ const CartState = {
         
         if (index > -1) {
             this.wishlist.splice(index, 1);
+            this.saveWishlist();
             this.showToast((typeof I18n !== 'undefined') ? I18n.t('toast.removedFromWishlist') : 'Removed from wishlist', 'success');
             return false;
         } else {
             this.wishlist.push(productId);
+            this.saveWishlist();
             this.showToast((typeof I18n !== 'undefined') ? I18n.t('toast.addedToWishlist') : 'Added to wishlist', 'success');
             return true;
         }

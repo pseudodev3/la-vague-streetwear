@@ -757,11 +757,15 @@ window.addEventListener('componentsLoaded', () => {
                         <div class="cart-item-details">
                             <h4>${item.name}</h4><p>${item.color} / ${item.size}</p>
                             <div class="cart-item-actions">
-                                <div class="cart-item-qty"><button onclick="window.shopUpdateCartQty(${index}, -1)">−</button><span>${item.quantity}</span><button onclick="window.shopUpdateCartQty(${index}, 1)">+</button></div>
+                                <div class="cart-item-qty">
+                                    <button style="border-radius: 0 !important;" onclick="window.shopUpdateCartQty(${index}, -1)">−</button>
+                                    <span>${item.quantity}</span>
+                                    <button style="border-radius: 0 !important;" onclick="window.shopUpdateCartQty(${index}, 1)">+</button>
+                                </div>
                                 <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
                             </div>
                         </div>
-                        <button class="cart-item-remove" onclick="window.shopRemoveFromCart(${index})">×</button>
+                        <button class="cart-item-remove" style="border-radius: 0 !important;" onclick="window.shopRemoveFromCart(${index})">×</button>
                     </div>
                 `).join('');
             }
@@ -784,8 +788,8 @@ window.addEventListener('componentsLoaded', () => {
                         <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
                         <p>${CurrencyConfig.formatPrice(product.price)}</p>
                         <div class="wishlist-item-actions">
-                            <button class="btn-add-cart-sm" onclick="window.shopAddToCartFromWishlist('${product.id}')">Add to Cart</button>
-                            <button class="btn-remove-sm" onclick="window.shopRemoveFromWishlist('${product.id}')">Remove</button>
+                            <button class="btn-add-cart-sm" style="border-radius: 0 !important;" onclick="window.shopAddToCartFromWishlist('${product.id}')">Add to Cart</button>
+                            <button class="btn-remove-sm" style="border-radius: 0 !important;" onclick="window.shopRemoveFromWishlist('${product.id}')">Remove</button>
                         </div>
                     </div>
                 </div>
