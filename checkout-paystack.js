@@ -12,6 +12,21 @@
     let isPaystackAvailable = false;
     let currentOrderId = null;
     let currentOrderData = null;
+    let paystackInstance = null;
+
+    /**
+     * Pre-initialize Paystack instance
+     * This is crucial for mobile browsers to allow the popup
+     */
+    function prewarmPaystack() {
+        if (window.PaystackPop && !paystackInstance) {
+            try {
+                paystackInstance = new window.PaystackPop();
+            } catch (e) {
+                console.warn('[PAYSTACK] Prewarm failed, will retry on click');
+            }
+        }
+    }
 
     /**
      * Fetch Paystack configuration from backend
@@ -55,6 +70,7 @@
         return new Promise((resolve, reject) => {
             if (window.PaystackPop) {
                 isPaystackAvailable = true;
+                prewarmPaystack();
                 resolve();
                 return;
             }
@@ -69,6 +85,7 @@
             script.async = true;
             script.onload = () => {
                 isPaystackAvailable = true;
+                prewarmPaystack();
                 resolve();
             };
             script.onerror = () => {
@@ -154,18 +171,11 @@
         }
         
         try {
-            const popup = new window.PaystackPop();
-            const result = popup.newTransaction(paymentData);
+            // Use existing instance or create new one
+            const popup = paystackInstance || new window.PaystackPop();
+            popup.newTransaction(paymentData);
         } catch (error) {
             console.error('[PAYSTACK] Failed to open popup:', error);
-            console.error('[PAYSTACK] Error details:', {
-                message: error.message,
-                stack: error.stack,
-                paymentData: {
-                    ...paymentData,
-                    key: '***hidden***' // Don't log full key
-                }
-            });
             throw new Error('Failed to initialize Paystack: ' + (error.message || 'Unknown error'));
         }
     }
