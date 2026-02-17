@@ -1,7 +1,7 @@
 /**
  * LA VAGUE - Paystack Payment Integration
  * Handles Paystack popup payment flow with Mobile Redirect Fallback
- * Version: 4.5 (Restored Processing Modal & Confirmation)
+ * Version: 4.6 (Restored Processing Modal & Progress Bar)
  */
 (function() {
     const API_URL = window.location.hostname === 'localhost' 
@@ -13,6 +13,9 @@
     let isPaystackAvailable = false;
     let paystackInstance = null;
     let currentOrderData = null;
+    let pollInterval = null;
+    let pollAttempts = 0;
+    const MAX_POLL_ATTEMPTS = 40;
 
     const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
@@ -91,66 +94,86 @@
     }
 
     /**
-     * Desktop Success Handler
+     * Show Payment Pending Modal with Progress Bar
      */
-    async function handleDesktopSuccess(orderId) {
-        showPaymentSuccess(orderId);
-        setTimeout(() => redirectToConfirmation(orderId), 2000);
+    function showPaymentPendingMessage(orderId) {
+        pollAttempts = 0;
+        const content = `
+            <div class="paystack-modal-icon paystack-modal-icon--pending" id="paystack-status-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <h3 class="paystack-modal-title" id="paystack-status-title">Processing Payment</h3>
+            <p class="paystack-modal-text" id="paystack-status-text">Verifying your payment. Please wait...</p>
+            <div class="paystack-modal-order">
+                <span class="paystack-modal-label">Order ID</span>
+                <span class="paystack-modal-value">#LV-${orderId.replace('LV-','')}</span>
+            </div>
+            <div class="paystack-modal-progress">
+                <div class="paystack-modal-progress-bar" id="paystack-progress-bar"></div>
+            </div>
+            <p class="paystack-modal-hint" id="paystack-status-hint">This usually takes a few seconds</p>
+            <div class="paystack-modal-actions">
+                <button onclick="window.closePaystackModal()" class="paystack-modal-btn paystack-modal-btn--secondary">Close</button>
+            </div>
+        `;
+        showStyledModal(content);
+        startPaymentPolling(orderId);
     }
 
-    /**
-     * Primary Payment Handler
-     */
-    async function initializePaystackPayment(orderId, paystackData) {
-        if (!paystackData || (!paystackData.access_code && !paystackData.authorization_url)) {
-            throw new Error('Payment initialization data missing from server');
-        }
-
-        // 1. Mobile Redirect
-        if (isMobile() && paystackData.authorization_url) {
-            window.location.href = paystackData.authorization_url;
-            return;
-        }
-
-        // 2. Desktop Modal
-        if (window.PaystackPop && paystackData.access_code) {
-            try {
-                const popup = paystackInstance || new window.PaystackPop();
-                popup.resumeTransaction(paystackData.access_code, {
-                    onSuccess: (transaction) => {
-                        handleDesktopSuccess(orderId);
-                    },
-                    onCancel: () => {
-                        console.log('[PAYSTACK] User closed modal');
-                    }
-                });
-                return;
-            } catch (error) {
-                if (paystackData.authorization_url) {
-                    window.location.href = paystackData.authorization_url;
-                    return;
-                }
+    function startPaymentPolling(orderId) {
+        if (pollInterval) clearInterval(pollInterval);
+        checkAndUpdateStatus(orderId);
+        pollInterval = setInterval(() => {
+            pollAttempts++;
+            const progressBar = document.getElementById('paystack-progress-bar');
+            if (progressBar) {
+                const progress = Math.min((pollAttempts / MAX_POLL_ATTEMPTS) * 100, 100);
+                progressBar.style.width = `${progress}%`;
             }
-        }
-        
-        // 3. Absolute Fallback
-        if (paystackData.authorization_url) {
-            window.location.href = paystackData.authorization_url;
-        } else {
-            throw new Error('Could not open payment window.');
-        }
+            checkAndUpdateStatus(orderId);
+        }, 3000);
+    }
+
+    async function checkAndUpdateStatus(orderId) {
+        try {
+            const status = await checkPaymentStatus(orderId);
+            if (status === 'paid') {
+                clearInterval(pollInterval);
+                showPaymentSuccess(orderId);
+            } else if (status === 'failed') {
+                clearInterval(pollInterval);
+                updateModalToFailed();
+            } else if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+                clearInterval(pollInterval);
+                const hint = document.getElementById('paystack-status-hint');
+                if (hint) hint.textContent = 'Verification is taking longer than usual. Please check your email for confirmation.';
+            }
+        } catch (e) {}
     }
 
     function showPaymentSuccess(orderId) {
-        const content = `
-            <div class="paystack-modal-icon paystack-modal-icon--success">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <h3 class="paystack-modal-title">Payment Successful!</h3>
-            <p class="paystack-modal-text">Your order #LV-${orderId.replace('LV-','')} has been confirmed.</p>
-            <p class="paystack-modal-hint">Redirecting to confirmation page...</p>
-        `;
-        showStyledModal(content);
+        const icon = document.getElementById('paystack-status-icon');
+        if (icon) {
+            icon.className = 'paystack-modal-icon paystack-modal-icon--success';
+            icon.innerHTML = `<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="20 6 9 17 4 12"/></svg>`;
+        }
+        const title = document.getElementById('paystack-status-title');
+        if (title) title.textContent = 'Payment Successful!';
+        const text = document.getElementById('paystack-status-text');
+        if (text) text.textContent = 'Your order has been confirmed.';
+        const progress = document.querySelector('.paystack-modal-progress');
+        if (progress) progress.style.display = 'none';
+        
+        setTimeout(() => redirectToConfirmation(orderId), 2000);
+    }
+
+    function updateModalToFailed() {
+        const title = document.getElementById('paystack-status-title');
+        if (title) title.textContent = 'Payment Failed';
+        const icon = document.getElementById('paystack-status-icon');
+        if (icon) {
+            icon.innerHTML = `<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+        }
     }
 
     function showStyledModal(content) {
@@ -164,11 +187,18 @@
                 .paystack-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 1rem; animation: paystack-modal-fade-in 0.3s ease; }
                 .paystack-modal-container { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; max-width: 480px; width: 100%; padding: 3rem 2.5rem; text-align: center; box-shadow: 0 25px 80px rgba(0,0,0,0.6); }
                 .paystack-modal-icon { width: 80px; height: 80px; margin: 0 auto 1.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+                .paystack-modal-icon--pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; animation: paystack-pulse 2s ease-in-out infinite; }
                 .paystack-modal-icon--success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+                .paystack-modal-progress { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin: 1.5rem 0; overflow: hidden; }
+                .paystack-modal-progress-bar { height: 100%; background: linear-gradient(90deg, #dc2626, #ef4444); width: 0%; transition: width 0.4s ease; }
                 .paystack-modal-title { font-family: 'Oswald', sans-serif; font-size: 1.75rem; color: #fff; margin-bottom: 1rem; text-transform: uppercase; }
                 .paystack-modal-text { color: rgba(255,255,255,0.7); margin-bottom: 1.5rem; }
-                .paystack-modal-hint { color: rgba(255,255,255,0.5); font-size: 0.875rem; }
+                .paystack-modal-order { background: rgba(255,255,255,0.05); padding: 1rem; display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
+                .paystack-modal-label { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; }
+                .paystack-modal-btn { font-family: 'Oswald', sans-serif; padding: 0.75rem 2rem; text-transform: uppercase; cursor: pointer; display: inline-flex; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #fff; }
+                .paystack-modal-hint { color: rgba(255,255,255,0.5); font-size: 0.875rem; margin-bottom: 1rem; }
                 @keyframes paystack-modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes paystack-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
             `;
             document.head.appendChild(styles);
         }
@@ -176,6 +206,41 @@
         modal.id = 'paystack-modal';
         modal.innerHTML = `<div class="paystack-modal-overlay"><div class="paystack-modal-container">${content}</div></div>`;
         document.body.appendChild(modal);
+    }
+
+    window.closePaystackModal = function() {
+        if (pollInterval) clearInterval(pollInterval);
+        const modal = document.getElementById('paystack-modal');
+        if (modal) modal.remove();
+    };
+
+    /**
+     * Primary Payment Handler
+     */
+    async function initializePaystackPayment(orderId, paystackData) {
+        if (!paystackData || (!paystackData.access_code && !paystackData.authorization_url)) {
+            throw new Error('Payment initialization data missing');
+        }
+
+        if (isMobile() && paystackData.authorization_url) {
+            window.location.href = paystackData.authorization_url;
+            return;
+        }
+
+        if (window.PaystackPop && paystackData.access_code) {
+            const popup = paystackInstance || new window.PaystackPop();
+            popup.resumeTransaction(paystackData.access_code, {
+                onSuccess: (transaction) => {
+                    showPaymentSuccess(orderId);
+                },
+                onCancel: () => {
+                    // Check if they actually paid but closed the modal
+                    showPaymentPendingMessage(orderId);
+                }
+            });
+        } else if (paystackData.authorization_url) {
+            window.location.href = paystackData.authorization_url;
+        }
     }
 
     async function processOrderWithPaystack(orderData) {
