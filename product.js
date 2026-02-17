@@ -430,7 +430,19 @@ async function handleReviewSubmit(e) {
     e.preventDefault();
     if (state.selectedRating === 0) { showToast('Please select a rating', 'error'); return; }
     
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+    }
+
     const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+    
+    // Ensure CSRF utility is ready and token is fresh
+    if (window.CSRFProtection && !window.CSRFProtection.getToken()) {
+        await window.CSRFProtection.init();
+    }
+
     const formData = {
         productId: state.product.id,
         rating: state.selectedRating,
@@ -454,13 +466,23 @@ async function handleReviewSubmit(e) {
         const result = await response.json();
         if (result.success) {
             showToast('Review submitted for approval!', 'success');
-            elements.reviewModal.classList.remove('active');
+            const modal = document.getElementById('reviewModal');
+            const backdrop = document.getElementById('reviewModalBackdrop');
+            if (modal) modal.classList.remove('active');
+            if (backdrop) backdrop.classList.remove('active');
+            document.body.style.overflow = '';
             elements.reviewForm.reset();
         } else {
             showToast(result.error || 'Failed to submit review', 'error');
         }
     } catch (error) {
-        showToast('Error submitting review', 'error');
+        console.error('[PRODUCT] Submission error:', error);
+        showToast('Error submitting review. Please try again.', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Review';
+        }
     }
 }
 

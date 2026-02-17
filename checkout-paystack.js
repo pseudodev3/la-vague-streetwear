@@ -234,8 +234,13 @@
                     showPaymentSuccess(orderId);
                 },
                 onCancel: () => {
-                    // Check if they actually paid but closed the modal
-                    showPaymentPendingMessage(orderId);
+                    // Professional delay: Wait 2s before showing pending msg
+                    // to give the webhook a chance to redirect them first
+                    console.log('[PAYSTACK] Modal closed, checking status in 2s...');
+                    setTimeout(() => {
+                        // Only show if we haven't redirected yet
+                        showPaymentPendingMessage(orderId);
+                    }, 2000);
                 }
             });
         } else if (paystackData.authorization_url) {
