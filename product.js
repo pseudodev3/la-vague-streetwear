@@ -85,8 +85,25 @@ const state = {
 };
 
 let elements = {};
+let productInitialized = false;
 
 async function initProduct() {
+    if (productInitialized) return;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const slug = urlParams.get('slug');
+    if (!slug) { window.location.href = 'shop.html'; return; }
+
+    const dbProduct = await ProductDetailAPI.getProductBySlug(slug);
+    if (dbProduct) {
+        state.product = transformProduct(dbProduct);
+        state.usingStaticData = false;
+    } else {
+        const staticProduct = ProductAPI.getBySlug(slug);
+        if (staticProduct) { state.product = staticProduct; state.usingStaticData = true; }
+        else { window.location.href = 'shop.html'; return; }
+    }
+
     elements = {
         productLoading: document.getElementById('productLoading'),
         productContent: document.getElementById('productContent'),
@@ -146,20 +163,6 @@ async function initProduct() {
         starRatingInput: document.getElementById('starRatingInput')
     };
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const slug = urlParams.get('slug');
-    if (!slug) { window.location.href = 'shop.html'; return; }
-
-    const dbProduct = await ProductDetailAPI.getProductBySlug(slug);
-    if (dbProduct) {
-        state.product = transformProduct(dbProduct);
-        state.usingStaticData = false;
-    } else {
-        const staticProduct = ProductAPI.getBySlug(slug);
-        if (staticProduct) { state.product = staticProduct; state.usingStaticData = true; }
-        else { window.location.href = 'shop.html'; return; }
-    }
-
     state.selectedColor = state.product.colors[0]?.name || 'Default';
     state.selectedSize = state.product.sizes[0] === 'OS' ? 'OS' : null;
 
@@ -186,8 +189,10 @@ async function initProduct() {
         }
     }, { passive: true });
     
-    elements.productLoading.style.display = 'none';
-    elements.productContent.style.display = 'block';
+    if (elements.productLoading) elements.productLoading.style.display = 'none';
+    if (elements.productContent) elements.productContent.style.display = 'block';
+    
+    productInitialized = true;
 }
 
 function renderProduct() {
@@ -370,9 +375,26 @@ function bindEvents() {
     elements.wishlistOverlay?.addEventListener('click', window.closeWishlist);
 
     // Reviews events
-    elements.writeReviewBtn?.addEventListener('click', () => {
-        elements.reviewModal.classList.add('active');
-    });
+    console.log('[PRODUCT] Binding events, writeReviewBtn:', !!elements.writeReviewBtn);
+    if (elements.writeReviewBtn) {
+        elements.writeReviewBtn.addEventListener('click', () => {
+            console.log('[PRODUCT] Write review clicked');
+            if (elements.reviewModal) {
+                elements.reviewModal.classList.add('active');
+            } else {
+                console.error('[PRODUCT] reviewModal element not found!');
+            }
+        });
+    } else {
+        // Absolute fallback for the review button
+        const directBtn = document.getElementById('writeReviewBtn');
+        if (directBtn) {
+            directBtn.addEventListener('click', () => {
+                document.getElementById('reviewModal')?.classList.add('active');
+            });
+        }
+    }
+    
     elements.reviewModalCloseX?.addEventListener('click', () => {
         elements.reviewModal.classList.remove('active');
     });
@@ -414,12 +436,17 @@ async function handleReviewSubmit(e) {
         customerEmail: document.getElementById('reviewerEmail').value
     };
 
+    const fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    };
+
     try {
-        const response = await fetch(`${API_URL}/products/${state.product.id}/reviews`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        });
+        const response = await (window.CSRFProtection ? 
+            window.CSRFProtection.fetch(`${API_URL}/products/${state.product.id}/reviews`, fetchOptions) : 
+            fetch(`${API_URL}/products/${state.product.id}/reviews`, fetchOptions));
+            
         const result = await response.json();
         if (result.success) {
             showToast('Review submitted for approval!', 'success');
