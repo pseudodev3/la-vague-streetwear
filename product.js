@@ -207,7 +207,8 @@ function renderProduct() {
     // Render Badge with Sold Out priority
     const badgeContainer = document.getElementById('productBadgeContainer');
     if (badgeContainer) {
-        const totalStock = Object.values(p.inventory || {}).reduce((a, b) => a + b, 0);
+        const inventory = typeof p.inventory === 'string' ? JSON.parse(p.inventory || '{}') : (p.inventory || {});
+        const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
         const isSoldOut = totalStock === 0;
         
         if (isSoldOut) {

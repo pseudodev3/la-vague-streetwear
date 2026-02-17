@@ -103,13 +103,18 @@ function renderFeaturedProducts() {
     const featured = ProductAPI.getFeatured().slice(0, 4);
     
     elements.featuredProducts.innerHTML = featured.map(product => {
-        const totalStock = Object.values(product.inventory || {}).reduce((a, b) => a + b, 0);
+        const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
+        const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
         const isSoldOut = totalStock === 0;
 
         return `
         <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" onclick="window.location.href='product.html?slug=${product.slug}'">
             <div class="product-image-wrapper">
-                ${isSoldOut ? '<span class="product-badge soldout">Sold Out</span>' : (product.badge && product.badge.toLowerCase() !== 'null' ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : '')}
+                ${isSoldOut 
+                    ? '<span class="product-badge soldout">Sold Out</span>' 
+                    : (product.badge && product.badge.toLowerCase() !== 'null' 
+                        ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` 
+                        : '')}
                 <img src="${product.images[0].src}" alt="${product.images[0].alt}" class="product-image" loading="lazy">
                 ${product.images[1] ? `<img src="${product.images[1].src}" alt="${product.images[1].alt}" class="product-image-hover" loading="lazy">` : ''}
             </div>

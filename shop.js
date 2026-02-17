@@ -229,13 +229,18 @@ function renderProducts() {
         };
         const secondImage = product.images && product.images[1] ? product.images[1] : null;
         
-        const totalStock = Object.values(product.inventory || {}).reduce((a, b) => a + b, 0);
+        const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
+        const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
         const isSoldOut = totalStock === 0;
 
         return `
         <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-product-id="${product.id}">
             <div class="product-image-wrapper" onclick="window.openProductPage('${product.slug}')">
-                ${isSoldOut ? '<span class="product-badge soldout">Sold Out</span>' : (product.badge && product.badge.toLowerCase() !== 'null' ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` : '')}
+                ${isSoldOut 
+                    ? '<span class="product-badge soldout">Sold Out</span>' 
+                    : (product.badge && product.badge.toLowerCase() !== 'null' 
+                        ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` 
+                        : '')}
                 <img src="${firstImage.src}" alt="${firstImage.alt}" class="product-image" loading="lazy">
                 ${secondImage ? `<img src="${secondImage.src}" alt="${secondImage.alt}" class="product-image-hover" loading="lazy">` : ''}
                 <div class="product-actions">
