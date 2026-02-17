@@ -937,57 +937,43 @@
     opacity: 0.8;
 }
 
-/* Review Modal */
-.review-modal {
+/* Review Modal Overlay & Backdrop */
+.review-modal-backdrop {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.95);
-    background: var(--color-bg);
-    border-radius: 0;
-    width: 90%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-    z-index: 1010;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-}
-    transform: translate(-50%, -50%) scale(0.95);
-    background: var(--color-bg);
-    border-radius: 8px;
-    width: 90%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-    z-index: 1010;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-.review-modal.active {
-    transform: translate(-50%, -50%) scale(1);
+.review-modal-backdrop.active {
     opacity: 1;
     visibility: visible;
 }
 
-/* Modal Backdrop */
-.review-modal::before {
-    content: '';
+.review-modal {
     position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: -1;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -40%) scale(0.95);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    width: 95%;
+    max-width: 550px;
+    max-height: 90vh;
+    overflow-y: auto;
+    z-index: 2001;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 }
 
-.review-modal.active::before {
+.review-modal.active {
+    transform: translate(-50%, -50%) scale(1);
     opacity: 1;
     visibility: visible;
 }
@@ -998,28 +984,30 @@
     align-items: center;
     padding: 1.5rem;
     border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    background: var(--color-bg);
+    z-index: 10;
 }
 
 .review-modal-header h3 {
     margin: 0;
+    font-family: var(--font-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .review-modal-close-x {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     background: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     color: var(--color-text);
-    font-size: 1.5rem;
-    font-weight: 300;
+    font-size: 1.25rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10;
     transition: all 0.2s ease;
 }
 
@@ -1033,48 +1021,54 @@
 }
 
 .review-modal-content .form-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
 }
 
 .review-modal-content .form-group label {
     display: block;
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     margin-bottom: 0.5rem;
+    color: var(--color-text-muted);
 }
 
 .review-modal-content .form-group input,
 .review-modal-content .form-group textarea {
     width: 100%;
-    padding: 0.875rem 1rem;
+    padding: 1rem;
     font-size: 1rem;
     background: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     color: var(--color-text);
     transition: var(--transition-fast);
     font-family: inherit;
+    border-radius: 0;
 }
 
 .review-modal-content .form-group input:focus,
 .review-modal-content .form-group textarea:focus {
     outline: none;
     border-color: var(--color-text);
+    background: var(--color-bg);
 }
 
 .review-modal-content .form-group textarea {
-    min-height: 100px;
+    min-height: 120px;
     resize: vertical;
 }
 
 .review-modal-content .form-group small {
     display: block;
     margin-top: 0.5rem;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--color-text-muted);
 }
 
 .review-modal-content .btn-full {
     width: 100%;
+    height: 56px;
 }
 
 .review-product-info {

@@ -377,23 +377,30 @@ function bindEvents() {
     // Reviews events
     console.log('[PRODUCT] Binding events, writeReviewBtn:', !!elements.writeReviewBtn);
     
-    // Use direct ID lookup for highest reliability
     const btn = document.getElementById('writeReviewBtn');
     const modal = document.getElementById('reviewModal');
+    const backdrop = document.getElementById('reviewModalBackdrop');
     
-    if (btn && modal) {
+    if (btn && modal && backdrop) {
         btn.onclick = (e) => {
             e.preventDefault();
             console.log('[PRODUCT] Write review clicked');
             modal.classList.add('active');
+            backdrop.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent scroll
         };
+        
+        const closeReviewModal = () => {
+            modal.classList.remove('active');
+            backdrop.classList.remove('active');
+            document.body.style.overflow = '';
+        };
+        
+        const closeX = document.getElementById('reviewModalCloseX');
+        if (closeX) closeX.onclick = closeReviewModal;
+        backdrop.onclick = closeReviewModal;
     } else {
-        console.error('[PRODUCT] Review elements not found:', { btn: !!btn, modal: !!modal });
-    }
-    
-    const closeX = document.getElementById('reviewModalCloseX');
-    if (closeX && modal) {
-        closeX.onclick = () => modal.classList.remove('active');
+        console.error('[PRODUCT] Review elements not found:', { btn: !!btn, modal: !!modal, backdrop: !!backdrop });
     }
     
     if (elements.starRatingInput) {
