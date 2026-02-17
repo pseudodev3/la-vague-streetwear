@@ -229,18 +229,26 @@ function renderProducts() {
         };
         const secondImage = product.images && product.images[1] ? product.images[1] : null;
         
+        // Robust stock calculation
         const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
         const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
         const isSoldOut = totalStock === 0;
 
+        // DEBUG: Uncomment to see stock values in console
+        // console.log(`[SHOP] Product: ${product.name}, Total Stock: ${totalStock}, isSoldOut: ${isSoldOut}`);
+
+        // Badge priority logic: SOLD OUT always overwrites everything else
+        let badgeHtml = '';
+        if (isSoldOut) {
+            badgeHtml = '<span class="product-badge soldout" style="background: #6b7280 !important; color: white !important;">Sold Out</span>';
+        } else if (product.badge && product.badge.toLowerCase() !== 'null' && product.badge.trim() !== '') {
+            badgeHtml = `<span class="product-badge ${product.badge.toLowerCase().replace(/\s+/g, '-')}">${product.badge}</span>`;
+        }
+
         return `
         <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-product-id="${product.id}">
             <div class="product-image-wrapper" onclick="window.openProductPage('${product.slug}')">
-                ${isSoldOut 
-                    ? '<span class="product-badge soldout">Sold Out</span>' 
-                    : (product.badge && product.badge.toLowerCase() !== 'null' 
-                        ? `<span class="product-badge ${product.badge.toLowerCase()}">${product.badge}</span>` 
-                        : '')}
+                ${badgeHtml}
                 <img src="${firstImage.src}" alt="${firstImage.alt}" class="product-image" loading="lazy">
                 ${secondImage ? `<img src="${secondImage.src}" alt="${secondImage.alt}" class="product-image-hover" loading="lazy">` : ''}
                 <div class="product-actions">

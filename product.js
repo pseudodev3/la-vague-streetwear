@@ -212,9 +212,9 @@ function renderProduct() {
         const isSoldOut = totalStock === 0;
         
         if (isSoldOut) {
-            badgeContainer.innerHTML = `<span class="product-badge soldout">Sold Out</span>`;
-        } else if (p.badge && p.badge.toLowerCase() !== 'null') {
-            badgeContainer.innerHTML = `<span class="product-badge ${p.badge.toLowerCase()}">${p.badge}</span>`;
+            badgeContainer.innerHTML = `<span class="product-badge soldout" style="background: #6b7280 !important; color: white !important;">Sold Out</span>`;
+        } else if (p.badge && p.badge.toLowerCase() !== 'null' && p.badge.trim() !== '') {
+            badgeContainer.innerHTML = `<span class="product-badge ${p.badge.toLowerCase().replace(/\s+/g, '-')}">${p.badge}</span>`;
         } else {
             badgeContainer.innerHTML = '';
         }
