@@ -326,6 +326,18 @@ const CartState = {
             if (cartSubtotal) cartSubtotal.textContent = CurrencyConfig.formatPrice(0);
             return;
         }
+
+        // Show skeletons immediately if we have items
+        cartItems.innerHTML = Array(this.cart.length).fill(0).map(() => `
+            <div class="wishlist-skeleton">
+                <div class="skeleton-img"></div>
+                <div class="skeleton-info">
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text short"></div>
+                    <div class="skeleton-text shorter"></div>
+                </div>
+            </div>
+        `).join('');
         
         // Batch fetch stock for all items to avoid UI flicker
         const cartWithStock = await Promise.all(this.cart.map(async (item) => {
@@ -337,7 +349,7 @@ const CartState = {
             const isAtMaxStock = item.quantity >= item.stock;
 
             return `
-                <div class="cart-item">
+                <div class="cart-item wishlist-item-fade" style="animation-delay: ${index * 0.1}s">
                     <img src="${item.image}" alt="${item.name}" class="cart-item-image">
                     <div class="cart-item-details">
                         <h4 class="cart-item-name">${item.name}</h4>
@@ -382,24 +394,46 @@ const CartState = {
             `;
             return;
         }
+
+        // Show skeletons immediately if we have items but they aren't loaded yet
+        wishlistItems.innerHTML = Array(this.wishlist.length).fill(0).map(() => `
+            <div class="wishlist-skeleton">
+                <div class="skeleton-img"></div>
+                <div class="skeleton-info">
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text short"></div>
+                    <div class="skeleton-text shorter"></div>
+                </div>
+            </div>
+        `).join('');
         
         // Find products from all sources (Static first, then API)
-        const productsWithStock = await Promise.all(this.wishlist.map(async (productId) => {
+        // Optimization: Fetch the catalog once if we suspect items are missing from static
+        let apiProducts = null;
+        
+        const resolvedProducts = await Promise.all(this.wishlist.map(async (productId) => {
             let product = null;
             
-            // Try static
+            // Try static first
             if (typeof ProductAPI !== 'undefined') {
                 product = ProductAPI.getById(productId);
             }
             
-            // Try API if not in static
-            if (!product) {
+            // If not found and we haven't fetched the API yet, fetch it once
+            if (!product && !apiProducts) {
                 try {
                     const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
                     const response = await fetch(`${API_URL}/products`);
                     const data = await response.json();
-                    product = data.products?.find(p => p.id === productId);
-                } catch (e) {}
+                    apiProducts = data.products || [];
+                } catch (e) {
+                    apiProducts = [];
+                }
+            }
+
+            // Look in API products if static failed
+            if (!product && apiProducts) {
+                product = apiProducts.find(p => p.id === productId);
             }
 
             if (!product) return null;
@@ -411,13 +445,21 @@ const CartState = {
             return { ...product, color, size, stock };
         }));
 
-        wishlistItems.innerHTML = productsWithStock.filter(p => p).map(product => {
+        const filteredProducts = resolvedProducts.filter(p => p);
+        
+        if (filteredProducts.length === 0) {
+            this.wishlist = [];
+            this.saveWishlist();
+            return;
+        }
+
+        wishlistItems.innerHTML = filteredProducts.map((product, index) => {
             const isSoldOut = product.stock <= 0;
             const productImage = product.images?.[0]?.src || product.images?.[0] || '';
             const productUrl = `product.html?slug=${product.slug}`;
 
             return `
-                <div class="cart-item">
+                <div class="cart-item wishlist-item-fade" style="animation-delay: ${index * 0.1}s">
                     <a href="${productUrl}" class="cart-item-image">
                         <img src="${productImage}" alt="${product.name}">
                     </a>
