@@ -313,9 +313,33 @@ button {
 /* ============================================
    NAVIGATION
    ============================================ */
+.announcement-bar {
+    background: var(--color-accent);
+    color: var(--color-text);
+    padding: 0.75rem 0;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1001;
+}
+
+.announcement-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.announcement-divider {
+    opacity: 0.5;
+}
+
 .nav {
     position: fixed;
-    top: 0;
+    top: 40px;
     left: 0;
     right: 0;
     z-index: 1000;
@@ -324,6 +348,7 @@ button {
 }
 
 .nav.scrolled {
+    top: 0;
     background: rgba(10, 10, 10, 0.95);
     backdrop-filter: blur(20px);
     padding: 1rem 0;

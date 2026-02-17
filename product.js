@@ -566,4 +566,13 @@ function initLegacySelectors() {
 }
 
 window.addEventListener('componentsLoaded', initProduct);
+
+// Fix for browser back button (bfcache)
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted && productInitialized) {
+        if (elements.productLoading) elements.productLoading.style.display = 'none';
+        if (elements.productContent) elements.productContent.style.display = 'block';
+    }
+});
+
 if (document.readyState === 'complete' && window.Components && document.getElementById('nav')?.innerHTML) initProduct();
