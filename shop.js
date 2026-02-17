@@ -771,27 +771,45 @@ window.addEventListener('componentsLoaded', () => {
             if (elements.cartSubtotal) elements.cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
         };
 
-        CartState.renderWishlist = function() {
+        CartState.renderWishlist = async function() {
             const wishlist = getWishlist();
             if (!elements.wishlistItems) return;
             if (wishlist.length === 0) {
                 elements.wishlistItems.innerHTML = `<div class="wishlist-empty"><p data-i18n="cart.wishlistEmpty">Your wishlist is empty</p></div>`;
                 return;
             }
+            
             const wishlistProducts = wishlist.map(id => state.products.find(p => p.id === id)).filter(p => p);
-            elements.wishlistItems.innerHTML = wishlistProducts.map(product => `
-                <div class="wishlist-item">
-                    <div class="wishlist-item-image"><img src="${product.images?.[0]?.src || ''}" alt="${product.name}"></div>
-                    <div class="wishlist-item-details">
-                        <h4 onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
-                        <p>${CurrencyConfig.formatPrice(product.price)}</p>
-                        <div class="wishlist-item-actions">
-                            <button class="btn-add-cart-sm" style="border-radius: 0 !important;" onclick="window.shopAddToCartFromWishlist('${product.id}')">Add to Cart</button>
-                            <button class="btn-remove-sm" style="border-radius: 0 !important;" onclick="window.shopRemoveFromWishlist('${product.id}')">Remove</button>
+            
+            elements.wishlistItems.innerHTML = wishlistProducts.map(product => {
+                const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
+                const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
+                const isSoldOut = totalStock <= 0;
+
+                return `
+                    <div class="cart-item">
+                        <img src="${product.images?.[0]?.src || ''}" alt="${product.name}" class="cart-item-image">
+                        <div class="cart-item-details">
+                            <h4 class="cart-item-name" onclick="window.location.href='product.html?slug=${product.slug}'">${product.name}</h4>
+                            <p class="cart-item-variant">${product.category}</p>
+                            <span class="cart-item-price">${CurrencyConfig.formatPrice(product.price)}</span>
+                        </div>
+                        <div class="cart-item-actions">
+                            <button class="btn btn-primary btn-sm ${isSoldOut ? 'disabled' : ''}" 
+                                    ${isSoldOut ? 'disabled' : ''}
+                                    style="border-radius: 0 !important; -webkit-border-radius: 0 !important; -moz-border-radius: 0 !important;"
+                                    onclick="window.shopAddToCartFromWishlist('${product.id}')">
+                                ${isSoldOut ? 'Sold Out' : 'Add to Cart'}
+                            </button>
+                            <button class="cart-item-remove" style="border-radius: 0 !important; -webkit-border-radius: 0 !important; -moz-border-radius: 0 !important;" onclick="window.shopRemoveFromWishlist('${product.id}')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6L6 18M6 6l12 12"></path>
+                                </svg>
+                            </button>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         };
     }
 
