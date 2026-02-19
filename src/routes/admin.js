@@ -11,7 +11,9 @@ import {
     previewEmail, 
     testEmailConfig, 
     getEmailQueueStats, 
-    getEmailConfig 
+    getEmailConfig,
+    sendReviewConfirmationEmail,
+    sendNewReviewNotification
 } from '../../email-templates/index.js';
 
 const router = express.Router();
@@ -22,6 +24,11 @@ const authLimiter = rateLimit({
     skipSuccessfulRequests: true,
     message: { success: false, error: 'Too many login attempts.', code: 'RATE_LIMIT' }
 });
+
+const safeParseJSON = (str, defaultValue = null) => {
+    if (!str || str === 'null' || str === 'undefined') return defaultValue;
+    try { return JSON.parse(str); } catch (e) { return defaultValue; }
+};
 
 export default function(productService, inventoryService) {
     // Admin login
@@ -67,14 +74,11 @@ export default function(productService, inventoryService) {
     // Orders
     router.get('/orders', verifyAdminToken, asyncHandler(async (req, res) => {
         const result = await query('SELECT * FROM orders ORDER BY created_at DESC');
-        const orders = result.rows.map(o => {
-            const parseJson = (val) => typeof val === 'string' ? JSON.parse(val || 'null') : val;
-            return {
-                ...o,
-                shippingAddress: parseJson(o.shipping_address) || {},
-                items: parseJson(o.items) || []
-            };
-        });
+        const orders = result.rows.map(o => ({
+            ...o,
+            shippingAddress: safeParseJSON(o.shipping_address, {}),
+            items: safeParseJSON(o.items, [])
+        }));
         res.json({ success: true, orders });
     }));
 
@@ -88,13 +92,10 @@ export default function(productService, inventoryService) {
         const oldStatus = order.order_status;
 
         await query('UPDATE orders SET order_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, id]);
-        
-        // Audit
         await logAudit('UPDATE_STATUS', 'order', id, { status: oldStatus }, { status }, req);
 
-        // Send email
-        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-        const shippingAddress = typeof order.shipping_address === 'string' ? JSON.parse(order.shipping_address) : order.shipping_address;
+        const items = safeParseJSON(order.items, []);
+        const shippingAddress = safeParseJSON(order.shipping_address, {});
         
         let emailSent = false;
         try {
@@ -105,10 +106,25 @@ export default function(productService, inventoryService) {
         res.json({ success: true, emailSent });
     }));
 
-    // Stats
+    // Order Notes
+    router.get('/orders/:id/notes', verifyAdminToken, asyncHandler(async (req, res) => {
+        const result = await query('SELECT * FROM order_notes WHERE order_id = $1 ORDER BY created_at DESC', [req.params.id]);
+        res.json({ success: true, notes: result.rows });
+    }));
+
+    router.post('/orders/:id/notes', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { id } = req.params;
+        const { note, isInternal = true } = req.body;
+        if (!note?.trim()) throw new APIError('Note is required', 400);
+
+        await query('INSERT INTO order_notes (order_id, note, is_internal) VALUES ($1, $2, $3)', [id, note, isInternal]);
+        await logAudit('ADD_NOTE', 'order', id, null, { note }, req);
+        res.json({ success: true, message: 'Note added' });
+    }));
+
+    // Stats & Analytics
     router.get('/stats', verifyAdminToken, asyncHandler(async (req, res) => {
         let totalOrders, pendingOrders, totalRevenue, recentOrdersResult;
-
         if (USE_POSTGRES) {
             totalOrders = await query('SELECT COUNT(*) FROM orders');
             pendingOrders = await query("SELECT COUNT(*) FROM orders WHERE order_status = 'pending'");
@@ -120,16 +136,29 @@ export default function(productService, inventoryService) {
             totalRevenue = { rows: [{ coalesce: (await query("SELECT SUM(total) as revenue FROM orders WHERE payment_status = 'paid'")).rows[0].revenue || 0 }] };
             recentOrdersResult = await query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 5');
         }
-
         res.json({
             success: true,
             stats: {
-                totalOrders: parseInt(totalOrders.rows[0].count || totalOrders.rows[0].coalesce || 0),
+                totalOrders: parseInt(totalOrders.rows[0].count || 0),
                 pendingOrders: parseInt(pendingOrders.rows[0].count || 0),
                 totalRevenue: parseInt(totalRevenue.rows[0].coalesce || totalRevenue.rows[0].revenue || 0),
                 recentOrders: recentOrdersResult.rows
             }
         });
+    }));
+
+    router.get('/analytics/sales', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { period = '30d' } = req.query;
+        const days = parseInt(period) || 30;
+        const dateFormat = USE_POSTGRES ? 'DATE(created_at)' : 'date(created_at)';
+        const interval = USE_POSTGRES ? `NOW() - INTERVAL '${days} days'` : `datetime('now', '-${days} days')`;
+        
+        const result = await query(`
+            SELECT ${dateFormat} as date, COUNT(*) as orders, COALESCE(SUM(total), 0) as revenue
+            FROM orders WHERE payment_status = 'paid' AND created_at > ${interval}
+            GROUP BY ${dateFormat} ORDER BY date DESC
+        `);
+        res.json({ success: true, data: result.rows });
     }));
 
     // Product Management
@@ -168,6 +197,17 @@ export default function(productService, inventoryService) {
         res.json({ success: true, message: 'Reservation released' });
     }));
 
+    router.get('/inventory/movements', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { productId, limit = 50, offset = 0 } = req.query;
+        let sql = 'SELECT * FROM inventory_movements';
+        const params = [];
+        if (productId) { sql += ' WHERE product_id = $1'; params.push(productId); }
+        sql += ' ORDER BY created_at DESC LIMIT ' + (USE_POSTGRES ? `$${params.length + 1}` : '?') + ' OFFSET ' + (USE_POSTGRES ? `$${params.length + 2}` : '?');
+        params.push(parseInt(limit), parseInt(offset));
+        const result = await query(sql, params);
+        res.json({ success: true, movements: result.rows });
+    }));
+
     // Settings
     router.get('/settings', verifyAdminToken, asyncHandler(async (req, res) => {
         const result = await query('SELECT * FROM settings');
@@ -186,6 +226,53 @@ export default function(productService, inventoryService) {
             }
         }
         res.json({ success: true, message: 'Settings updated' });
+    }));
+
+    // Coupons
+    router.get('/coupons', verifyAdminToken, asyncHandler(async (req, res) => {
+        const result = await query('SELECT * FROM coupons ORDER BY created_at DESC');
+        const coupons = result.rows.map(c => ({
+            ...c,
+            applicable_categories: safeParseJSON(c.applicable_categories, []),
+            applicable_products: safeParseJSON(c.applicable_products, [])
+        }));
+        res.json({ success: true, coupons });
+    }));
+
+    router.post('/coupons', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { code, type, value, min_order_amount, max_discount_amount, usage_limit, per_customer_limit, start_date, end_date, applicable_categories, applicable_products } = req.body;
+        const id = `cpn-${Date.now()}`;
+        await query(`
+            INSERT INTO coupons (id, code, type, value, min_order_amount, max_discount_amount, usage_limit, per_customer_limit, start_date, end_date, applicable_categories, applicable_products)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `, [id, code.toUpperCase(), type, value, min_order_amount || 0, max_discount_amount || null, usage_limit || null, per_customer_limit || 1, start_date || null, end_date || null, JSON.stringify(applicable_categories || []), JSON.stringify(applicable_products || [])]);
+        await logAudit('CREATE_COUPON', 'coupon', id, null, { code, type, value }, req);
+        res.json({ success: true, coupon: { id, code: code.toUpperCase() } });
+    }));
+
+    // Reviews
+    router.get('/reviews', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { status, productId } = req.query;
+        let sql = 'SELECT r.*, p.name as product_name FROM reviews r JOIN products p ON r.product_id = p.id WHERE 1=1';
+        const params = [];
+        if (status) { sql += ' AND r.status = ' + (USE_POSTGRES ? '$1' : '?'); params.push(status); }
+        if (productId) { sql += ' AND r.product_id = ' + (USE_POSTGRES ? `$${params.length + 1}` : '?'); params.push(productId); }
+        sql += ' ORDER BY r.created_at DESC';
+        const result = await query(sql, params);
+        res.json({ success: true, reviews: result.rows.map(r => ({ ...r, photos: safeParseJSON(r.photos, []) })) });
+    }));
+
+    router.put('/reviews/:id/status', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { id } = req.params;
+        const { status } = req.body;
+        await query('UPDATE reviews SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, id]);
+        res.json({ success: true, message: `Review ${status}` });
+    }));
+
+    // Waitlist
+    router.get('/products/:id/waitlist', verifyAdminToken, asyncHandler(async (req, res) => {
+        const result = await query('SELECT * FROM waitlist WHERE product_id = $1 ORDER BY created_at DESC', [req.params.id]);
+        res.json({ success: true, waitlist: result.rows });
     }));
 
     return router;
