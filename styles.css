@@ -426,24 +426,33 @@ button {
     background: var(--color-border);
 }
 
-.cart-btn {
+.cart-btn, .wishlist-btn {
     position: relative;
 }
 
-.cart-count {
+.cart-count, .wishlist-count {
     position: absolute;
     top: -2px;
     right: -2px;
     width: 18px;
     height: 18px;
     background: var(--color-accent);
+    border-color: var(--color-bg);
+    border-width: 1px;
+    border-style: solid;
     border-radius: 50%;
     font-size: 0.65rem;
     font-weight: 600;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
+    color: white;
 }
+
+.cart-count.active, .wishlist-count.active {
+    display: flex;
+}
+
 
 .mobile-menu-btn {
     display: none;

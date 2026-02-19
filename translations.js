@@ -354,10 +354,9 @@ function t(key, vars = {}, lang = null) {
 function applyTranslations() {
     const lang = localStorage.getItem('laVagueLanguage') || localStorage.getItem('preferredLanguage') || 'en';
     
-    // Get dynamic values for variables
-    const threshold = (window.GlobalSettings) ? 
-        window.GlobalSettings.settings.freeShippingThreshold : 150000;
-    const formattedThreshold = (window.CurrencyConfig) ? 
+        // Get dynamic values for variables
+        const threshold = (window.GlobalSettings) ?
+            window.GlobalSettings.settings.freeShippingThreshold : 0;    const formattedThreshold = (window.CurrencyConfig) ? 
         window.CurrencyConfig.formatPrice(threshold) : `₦${threshold.toLocaleString()}`;
     
     const vars = { threshold: formattedThreshold };

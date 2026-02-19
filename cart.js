@@ -153,7 +153,7 @@ const CartState = {
         document.querySelectorAll('.cart-count, #cartCount').forEach(el => {
             if (el) {
                 el.textContent = count;
-                el.style.display = count > 0 ? 'flex' : 'none';
+                el.classList.toggle('active', count > 0);
             }
         });
     },
@@ -163,8 +163,7 @@ const CartState = {
         document.querySelectorAll('.wishlist-count, #wishlistCount').forEach(el => {
             if (el) {
                 el.textContent = count;
-                el.style.display = count > 0 ? 'flex' : 'none';
-                el.classList?.toggle('active', count > 0);
+                el.classList.toggle('active', count > 0);
             }
         });
     },

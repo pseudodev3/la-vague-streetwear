@@ -2173,9 +2173,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const settings = {
                 storeName: document.getElementById('settingStoreName')?.value,
                 supportEmail: document.getElementById('settingSupportEmail')?.value,
-                freeShippingThreshold: String(parseInt(document.getElementById('settingFreeShipping')?.value) || 150000),
-                standardShippingRate: String(parseInt(document.getElementById('settingStandardShippingRate')?.value) || 10000),
-                expressShippingRate: String(parseInt(document.getElementById('settingExpressShippingRate')?.value) || 25000)
+                freeShippingThreshold: String(parseInt(document.getElementById('settingFreeShipping')?.value) || 0),
+                standardShippingRate: String(parseInt(document.getElementById('settingStandardShippingRate')?.value) || 0),
+                expressShippingRate: String(parseInt(document.getElementById('settingExpressShippingRate')?.value) || 0)
             };
             
             try {
@@ -2196,9 +2196,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success && data.settings) {
                 document.getElementById('settingStoreName').value = data.settings.storeName || 'LA VAGUE';
                 document.getElementById('settingSupportEmail').value = data.settings.supportEmail || 'support@la-vague.store';
-                document.getElementById('settingFreeShipping').value = data.settings.freeShippingThreshold || '150000';
-                document.getElementById('settingStandardShippingRate').value = data.settings.standardShippingRate || '10000';
-                document.getElementById('settingExpressShippingRate').value = data.settings.expressShippingRate || '25000';
+                document.getElementById('settingFreeShipping').value = data.settings.freeShippingThreshold || '0';
+                document.getElementById('settingStandardShippingRate').value = data.settings.standardShippingRate || '0';
+                document.getElementById('settingExpressShippingRate').value = data.settings.expressShippingRate || '0';
             }
         } catch (error) {
             console.error('Failed to load settings:', error);

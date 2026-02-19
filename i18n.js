@@ -217,11 +217,10 @@ const I18n = {
         this.updateCheckoutPageElements();
     },
     
-    // Update announcement bar
-    updateAnnouncementBar() {
-        const threshold = (window.GlobalSettings) ? 
-            window.GlobalSettings.settings.freeShippingThreshold : 150000;
-        const formattedThreshold = (window.CurrencyConfig) ? 
+        // Update announcement bar
+        updateAnnouncementBar() {
+            const threshold = (window.GlobalSettings) ?
+                window.GlobalSettings.settings.freeShippingThreshold : 0;        const formattedThreshold = (window.CurrencyConfig) ? 
             window.CurrencyConfig.formatPrice(threshold) : `₦${threshold.toLocaleString()}`;
 
         const announcementSpans = document.querySelectorAll('.announcement-content span:not(.announcement-divider)');

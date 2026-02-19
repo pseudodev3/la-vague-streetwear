@@ -244,9 +244,9 @@ const CSRFProtection = {
 // Global Settings & UI Dynamic Updates
 const GlobalSettings = {
     settings: {
-        freeShippingThreshold: 150000,
-        shippingRate: 10000,
-        expressShippingRate: 25000,
+        freeShippingThreshold: 0,
+        shippingRate: 0,
+        expressShippingRate: 0,
         storeName: 'LA VAGUE'
     },
 

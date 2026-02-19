@@ -9,14 +9,14 @@ const API_URL = window.location.hostname === 'localhost'
 
 const state = {
     cart: JSON.parse(localStorage.getItem('cart')) || [],
-    shipping: 10000,
+    shipping: 0,
     discount: 0,
     discountCode: null,
     isFreeShippingCoupon: false,
     settings: {
-        shippingRate: 10000,
-        expressShippingRate: 25000,
-        freeShippingThreshold: 150000
+        shippingRate: 0,
+        expressShippingRate: 0,
+        freeShippingThreshold: 0
     }
 };
 
