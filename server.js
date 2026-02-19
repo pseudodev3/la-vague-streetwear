@@ -92,11 +92,19 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static files
+// Static files with specific cache rules
 app.use(express.static('.', {
     maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
     etag: true,
-    extensions: ['html']
+    extensions: ['html'],
+    setHeaders: (res, path) => {
+        // Force browsers to check for new HTML files every time
+        if (path.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
 }));
 
 // ==========================================
