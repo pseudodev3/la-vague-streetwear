@@ -93,6 +93,11 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files with specific cache rules
+app.use(express.static('public', {
+    maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+    etag: true
+}));
+
 app.use(express.static('.', {
     maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
     etag: true,
