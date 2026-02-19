@@ -136,7 +136,7 @@ const CartState = {
         localStorage.setItem('cart', JSON.stringify(this.cart));
         this.updateCartCount();
         if (document.getElementById('cartSidebar')?.classList.contains('active')) {
-            this.renderCart();
+            this.renderCart(false);
         }
     },
     
@@ -144,7 +144,7 @@ const CartState = {
         localStorage.setItem('wishlist', JSON.stringify(this.wishlist));
         this.updateWishlistCount();
         if (document.getElementById('wishlistSidebar')?.classList.contains('active')) {
-            this.renderWishlist();
+            this.renderWishlist(false);
         }
     },
     
@@ -245,13 +245,13 @@ const CartState = {
     removeFromCart(index) {
         this.cart.splice(index, 1);
         this.saveCart();
-        this.renderCart();
+        // renderCart is called inside saveCart(false)
     },
     
     removeFromWishlist(index) {
         this.wishlist.splice(index, 1);
         this.saveWishlist();
-        this.renderWishlist();
+        // renderWishlist is called inside saveWishlist(false)
     },
     
     async updateCartItemQuantity(index, delta) {
@@ -275,7 +275,7 @@ const CartState = {
 
         item.quantity = newQty;
         this.saveCart();
-        this.renderCart();
+        // renderCart is called inside saveCart(false)
     },
     
     showToast(message, type = 'success', action = null) {
@@ -302,7 +302,7 @@ const CartState = {
         }, 4000);
     },
     
-    async renderCart() {
+    async renderCart(isInitialLoad = true) {
         const cartItems = document.getElementById('cartItems');
         const cartSubtotal = document.getElementById('cartSubtotal');
         if (!cartItems) return;
@@ -324,31 +324,33 @@ const CartState = {
             `;
             if (cartSubtotal) cartSubtotal.textContent = CurrencyConfig.formatPrice(0);
             
-            // Hide footer/checkout button when empty
             const footer = document.getElementById('cartFooter');
             if (footer) footer.style.display = 'none';
             return;
         }
 
-        // Show footer when not empty
         const footer = document.getElementById('cartFooter');
         if (footer) footer.style.display = 'block';
 
-        // Show skeletons immediately
-        cartItems.innerHTML = Array(this.cart.length).fill(0).map(() => `
-            <div class="wishlist-skeleton wishlist-item-fade">
-                <div class="skeleton-img"></div>
-                <div class="skeleton-info">
-                    <div class="skeleton-text"></div>
-                    <div class="skeleton-text short"></div>
-                    <div class="skeleton-text shorter"></div>
+        // Only show skeletons on first open, not when adjusting quantity
+        if (isInitialLoad || cartItems.innerHTML.includes('cart-empty')) {
+            cartItems.innerHTML = Array(this.cart.length).fill(0).map(() => `
+                <div class="wishlist-skeleton wishlist-item-fade">
+                    <div class="skeleton-img"></div>
+                    <div class="skeleton-info">
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text short"></div>
+                        <div class="skeleton-text shorter"></div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
         
-        const minWait = new Promise(resolve => setTimeout(resolve, 400));
+        // Remove artificial delay if it's an update
+        const waitTime = isInitialLoad ? 400 : 0;
+        const minWait = new Promise(resolve => setTimeout(resolve, waitTime));
 
-        // Batch fetch stock for all items to avoid UI flicker
+        // Batch fetch stock for all items
         const [cartWithStock] = await Promise.all([
             Promise.all(this.cart.map(async (item) => {
                 const stock = await this.getAvailableStock(item.id, item.color, item.size);
@@ -361,7 +363,7 @@ const CartState = {
             const isAtMaxStock = item.quantity >= item.stock;
 
             return `
-                <div class="cart-item wishlist-item-fade" style="animation-delay: ${index * 0.1}s">
+                <div class="cart-item ${isInitialLoad ? 'wishlist-item-fade' : ''}" style="animation-delay: ${index * 0.1}s">
                     <div class="cart-item-image">
                         <img src="${item.image}" alt="${item.name}">
                     </div>
@@ -390,7 +392,7 @@ const CartState = {
         if (cartSubtotal) cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
     },
     
-    async renderWishlist() {
+    async renderWishlist(isInitialLoad = true) {
         const wishlistItems = document.getElementById('wishlistItems');
         if (!wishlistItems) return;
         
@@ -409,19 +411,22 @@ const CartState = {
             return;
         }
 
-        // Show skeletons immediately
-        wishlistItems.innerHTML = Array(this.wishlist.length).fill(0).map(() => `
-            <div class="wishlist-skeleton wishlist-item-fade">
-                <div class="skeleton-img"></div>
-                <div class="skeleton-info">
-                    <div class="skeleton-text"></div>
-                    <div class="skeleton-text short"></div>
-                    <div class="skeleton-text shorter"></div>
+        // Only show skeletons on first open
+        if (isInitialLoad || wishlistItems.innerHTML.includes('wishlist-empty')) {
+            wishlistItems.innerHTML = Array(this.wishlist.length).fill(0).map(() => `
+                <div class="wishlist-skeleton wishlist-item-fade">
+                    <div class="skeleton-img"></div>
+                    <div class="skeleton-info">
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text short"></div>
+                        <div class="skeleton-text shorter"></div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
         
-        const minWait = new Promise(resolve => setTimeout(resolve, 400));
+        const waitTime = isInitialLoad ? 400 : 0;
+        const minWait = new Promise(resolve => setTimeout(resolve, waitTime));
         let apiProducts = null;
         
         const [resolvedProducts] = await Promise.all([
@@ -460,7 +465,7 @@ const CartState = {
             const productUrl = `product.html?slug=${product.slug}`;
 
             return `
-                <div class="cart-item wishlist-item-fade" style="animation-delay: ${index * 0.1}s">
+                <div class="cart-item ${isInitialLoad ? 'wishlist-item-fade' : ''}" style="animation-delay: ${index * 0.1}s">
                     <a href="${productUrl}" class="cart-item-image">
                         <img src="${productImage}" alt="${product.name}">
                     </a>
@@ -642,14 +647,14 @@ document.addEventListener('DOMContentLoaded', () => {
             CartState.cart = JSON.parse(e.newValue || '[]');
             CartState.updateCartCount();
             if (document.getElementById('cartSidebar')?.classList.contains('active')) {
-                CartState.renderCart();
+                CartState.renderCart(false);
             }
         }
         if (e.key === 'wishlist') {
             CartState.wishlist = JSON.parse(e.newValue || '[]');
             CartState.updateWishlistCount();
             if (document.getElementById('wishlistSidebar')?.classList.contains('active')) {
-                CartState.renderWishlist();
+                CartState.renderWishlist(false);
             }
         }
     });
