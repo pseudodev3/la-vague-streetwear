@@ -496,7 +496,7 @@
             
             container.innerHTML = items.map(item => `
                 <div class="order-item">
-                    <img src="${item.image || './assets/hoodie.jpg'}" alt="${item.name}" class="order-item-image">
+                    <img src="${item.image || '/assets/hoodie.jpg'}" alt="${item.name}" class="order-item-image">
                     <div class="order-item-details">
                         <div class="order-item-name">${item.name}</div>
                         <div class="order-item-variant">${item.color || ''} / ${item.size || ''} × ${item.quantity}</div>
