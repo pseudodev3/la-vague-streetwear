@@ -116,6 +116,11 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), database: USE_POSTGRES ? 'postgresql' : 'sqlite', version: '1.2.0' });
 });
 
+app.get('/api/db-test', asyncHandler(async (req, res) => {
+    const result = await (USE_POSTGRES ? db.query('SELECT NOW() as time') : db.prepare('SELECT datetime("now") as time').get());
+    res.json({ success: true, server_time: result.rows?.[0]?.time || result.time });
+}));
+
 app.get('/api/csrf-token', csrfToken, (req, res) => {
     res.json({ success: true, csrfToken: req.csrfToken });
 });

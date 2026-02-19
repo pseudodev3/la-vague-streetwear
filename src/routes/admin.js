@@ -194,6 +194,14 @@ export default function(productService, inventoryService) {
         res.json({ success: true, product });
     }));
 
+    router.get('/products/:id/images', verifyAdminToken, asyncHandler(async (req, res) => {
+        const result = await query('SELECT id, name, images FROM products WHERE id = $1', [req.params.id]);
+        if (result.rows.length === 0) throw new APIError('Product not found', 404);
+        const p = result.rows[0];
+        res.json({ success: true, product: { id: p.id, name: p.name, rawImages: p.images, parsedImages: safeParseJSON(p.images, []) } });
+    }));
+
+
     router.post('/products', verifyAdminToken, upload.array('images', 5), asyncHandler(async (req, res) => {
         const product = await productService.create({ ...req.body, images: req.files });
         res.status(201).json({ success: true, product });
@@ -305,6 +313,63 @@ export default function(productService, inventoryService) {
         const waitlist = (await query('SELECT * FROM waitlist WHERE product_id = $1 AND status = \'waiting\'', [id])).rows;
         await query('UPDATE waitlist SET status = \'notified\', notified_at = CURRENT_TIMESTAMP WHERE product_id = $1 AND status = \'waiting\'', [id]);
         res.json({ success: true, notified: waitlist.length });
+    }));
+
+    // Customers
+    router.get('/customers', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { search, limit = 50, offset = 0 } = req.query;
+        let sql = 'SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value, MAX(created_at) as last_order_date FROM orders';
+        const params = [];
+        if (search) { sql += ' WHERE customer_email ILIKE $1 OR customer_name ILIKE $1'; params.push(`%${search}%`); }
+        sql += ' GROUP BY customer_email, customer_name, customer_phone ORDER BY last_order_date DESC LIMIT ' + (USE_POSTGRES ? '$' + (params.length + 1) : '?') + ' OFFSET ' + (USE_POSTGRES ? '$' + (params.length + 2) : '?');
+        params.push(parseInt(limit), parseInt(offset));
+        const result = await query(sql, params);
+        res.json({ success: true, customers: result.rows });
+    }));
+
+    router.get('/customers/:email', verifyAdminToken, asyncHandler(async (req, res) => {
+        const email = decodeURIComponent(req.params.email);
+        const customer = (await query('SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value FROM orders WHERE customer_email = $1 GROUP BY customer_email, customer_name, customer_phone', [email])).rows[0];
+        const orders = (await query('SELECT * FROM orders WHERE customer_email = $1 ORDER BY created_at DESC', [email])).rows;
+        if (!customer) throw new APIError('Customer not found', 404);
+        res.json({ success: true, customer, orders });
+    }));
+
+    // Currency
+    const DEFAULT_RATES = { USD: 1, NGN: 1550, EUR: 0.94, GBP: 0.80 };
+    router.get('/currency-rates', verifyAdminToken, asyncHandler(async (req, res) => {
+        const result = await query("SELECT value, updated_at FROM settings WHERE key = 'currency_rates'");
+        let rates = { ...DEFAULT_RATES };
+        let lastUpdated = null;
+        if (result.rows.length > 0) { rates = JSON.parse(result.rows[0].value); lastUpdated = result.rows[0].updated_at; }
+        res.json({ success: true, rates, lastUpdated: lastUpdated || new Date().toISOString() });
+    }));
+
+    router.post('/currency-rates', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { rates } = req.body;
+        await query("INSERT INTO settings (key, value) VALUES ('currency_rates', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP", [JSON.stringify(rates)]);
+        await logAudit('UPDATE_CURRENCY_RATES', 'settings', 'currency_rates', null, rates, req);
+        res.json({ success: true, message: 'Rates updated' });
+    }));
+
+    router.post('/currency-rates/reset', verifyAdminToken, asyncHandler(async (req, res) => {
+        await query("INSERT INTO settings (key, value) VALUES ('currency_rates', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP", [JSON.stringify(DEFAULT_RATES)]);
+        res.json({ success: true, message: 'Rates reset' });
+    }));
+
+    // Exports
+    router.get('/export/orders', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { startDate, endDate } = req.query;
+        let sql = 'SELECT * FROM orders WHERE 1=1';
+        const params = [];
+        if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
+        if (endDate) { sql += ' AND created_at <= $' + (params.length + 1); params.push(endDate); }
+        const result = await query(sql, params);
+        // Simplified CSV generation
+        const csv = 'Order ID,Customer,Total,Status,Date\n' + result.rows.map(o => `${o.id},${o.customer_name},${o.total},${o.order_status},${o.created_at}`).join('\n');
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=orders.csv');
+        res.send(csv);
     }));
 
     // Reports

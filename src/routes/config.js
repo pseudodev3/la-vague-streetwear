@@ -42,6 +42,16 @@ router.get('/settings', asyncHandler(async (req, res) => {
     });
 }));
 
+const DEFAULT_RATES = { USD: 1, NGN: 1550, EUR: 0.94, GBP: 0.80 };
+
+router.get('/currency-rates', asyncHandler(async (req, res) => {
+    let rates = { ...DEFAULT_RATES };
+    const result = await query("SELECT value FROM settings WHERE key = 'currency_rates'");
+    if (result.rows.length > 0) rates = JSON.parse(result.rows[0].value);
+    
+    res.json({ success: true, rates, baseCurrency: 'USD', lastUpdated: new Date().toISOString() });
+}));
+
 router.post('/contact', contactLimiter, validateContactForm, asyncHandler(async (req, res) => {
     const { name, email, subject, message } = req.body;
     await sendContactNotification({ name, email, subject, message });
