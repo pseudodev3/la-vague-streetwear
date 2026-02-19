@@ -6,6 +6,7 @@ import { verifyAdminToken } from '../middleware/auth.js';
 import { query, USE_POSTGRES } from '../config/db.js';
 import { logAudit } from '../utils/audit.js';
 import { validateUpdateOrderStatus, validateAdminLogin } from '../middleware/validation.js';
+import { upload } from '../middleware/upload.js';
 import { 
     sendOrderStatusUpdate, 
     previewEmail, 
@@ -161,6 +162,20 @@ export default function(productService, inventoryService) {
         res.json({ success: true, data: result.rows });
     }));
 
+    router.get('/analytics/customers', verifyAdminToken, asyncHandler(async (req, res) => {
+        const interval = USE_POSTGRES ? 'NOW() - INTERVAL \'30 days\'' : 'datetime(\'now\', \'-30 days\')';
+        const interval7 = USE_POSTGRES ? 'NOW() - INTERVAL \'7 days\'' : 'datetime(\'now\', \'-7 days\')';
+        
+        const result = await query(`
+            SELECT
+                COUNT(DISTINCT customer_email) as total_customers,
+                COUNT(DISTINCT CASE WHEN created_at > ${interval} THEN customer_email END) as new_customers,
+                COUNT(DISTINCT CASE WHEN created_at > ${interval7} THEN customer_email END) as recent_customers
+            FROM orders
+        `);
+        res.json({ success: true, stats: result.rows[0] });
+    }));
+
     // Product Management
     router.get('/products', verifyAdminToken, asyncHandler(async (req, res) => {
         const { category, search, limit, offset } = req.query;
@@ -176,6 +191,16 @@ export default function(productService, inventoryService) {
     router.get('/products/:id', verifyAdminToken, asyncHandler(async (req, res) => {
         const product = await productService.getById(req.params.id);
         if (!product) throw new APIError('Product not found', 404);
+        res.json({ success: true, product });
+    }));
+
+    router.post('/products', verifyAdminToken, upload.array('images', 5), asyncHandler(async (req, res) => {
+        const product = await productService.create({ ...req.body, images: req.files });
+        res.status(201).json({ success: true, product });
+    }));
+
+    router.put('/products/:id', verifyAdminToken, upload.array('images', 5), asyncHandler(async (req, res) => {
+        const product = await productService.update(req.params.id, { ...req.body, images: req.files });
         res.json({ success: true, product });
     }));
 
@@ -274,6 +299,29 @@ export default function(productService, inventoryService) {
         const result = await query('SELECT * FROM waitlist WHERE product_id = $1 ORDER BY created_at DESC', [req.params.id]);
         res.json({ success: true, waitlist: result.rows });
     }));
+
+    router.post('/products/:id/notify-waitlist', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { id } = req.params;
+        const waitlist = (await query('SELECT * FROM waitlist WHERE product_id = $1 AND status = \'waiting\'', [id])).rows;
+        await query('UPDATE waitlist SET status = \'notified\', notified_at = CURRENT_TIMESTAMP WHERE product_id = $1 AND status = \'waiting\'', [id]);
+        res.json({ success: true, notified: waitlist.length });
+    }));
+
+    // Reports
+    router.get('/reports/sales', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { startDate, endDate } = req.query;
+        let sql = 'SELECT COUNT(*) as total_orders, COALESCE(SUM(total), 0) as total_revenue FROM orders WHERE payment_status = \'paid\'';
+        const params = [];
+        if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
+        if (endDate) { sql += ' AND created_at <= $' + (params.length + 1); params.push(endDate); }
+        const result = await query(sql, params);
+        res.json({ success: true, report: result.rows[0] });
+    }));
+
+    // Email Config
+    router.get('/email/config', verifyAdminToken, (req, res) => {
+        res.json({ success: true, config: getEmailConfig(), enabled: !!getEmailConfig() });
+    });
 
     return router;
 }

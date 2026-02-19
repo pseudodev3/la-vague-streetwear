@@ -1,8 +1,17 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { query } from '../config/db.js';
+import { validateContactForm } from '../middleware/validation.js';
+import { sendContactNotification } from '../../email-templates/index.js';
 
 const router = express.Router();
+
+const contactLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    message: { success: false, error: 'Too many messages, please try again later.', code: 'RATE_LIMIT' }
+});
 
 router.get('/paystack', (req, res) => {
     const publicKey = process.env.PAYSTACK_PUBLIC_KEY;
@@ -31,6 +40,12 @@ router.get('/settings', asyncHandler(async (req, res) => {
             storeName: settings.storeName || 'LA VAGUE'
         }
     });
+}));
+
+router.post('/contact', contactLimiter, validateContactForm, asyncHandler(async (req, res) => {
+    const { name, email, subject, message } = req.body;
+    await sendContactNotification({ name, email, subject, message });
+    res.json({ success: true, message: 'Message sent successfully' });
 }));
 
 export default router;
