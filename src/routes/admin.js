@@ -31,6 +31,25 @@ const safeParseJSON = (str, defaultValue = null) => {
     try { return JSON.parse(str); } catch (e) { return defaultValue; }
 };
 
+const EMAIL_ENABLED = process.env.EMAIL_TEST_MODE !== 'true' && isEmailConfigured();
+const EMAIL_TEST_MODE = process.env.EMAIL_TEST_MODE === 'true';
+
+async function sendOrderEmailSafely(order, type = 'confirmation', status = null) {
+    if (EMAIL_TEST_MODE) {
+        console.log('[EMAIL TEST MODE] Would send email:', { to: order.customer_email || order.customerEmail, type, status, orderId: order.id });
+        return { success: true, testMode: true };
+    }
+    if (!EMAIL_ENABLED) return { success: false, reason: 'email_not_configured' };
+    try {
+        if (type === 'confirmation') await sendOrderConfirmation(order);
+        else if (type === 'status_update') await sendOrderStatusUpdate(order, status);
+        return { success: true };
+    } catch (error) {
+        console.error('[EMAIL] Failed to send:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
 export default function(productService, inventoryService) {
     // Admin login
     router.post('/login', authLimiter, validateAdminLogin, asyncHandler(async (req, res) => {
@@ -95,14 +114,16 @@ export default function(productService, inventoryService) {
         await query('UPDATE orders SET order_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, id]);
         await logAudit('UPDATE_STATUS', 'order', id, { status: oldStatus }, { status }, req);
 
-        const items = safeParseJSON(order.items, []);
-        const shippingAddress = safeParseJSON(order.shipping_address, {});
-        
         let emailSent = false;
-        try {
-            await sendOrderStatusUpdate({ ...order, items, shipping_address: shippingAddress }, status);
-            emailSent = true;
-        } catch (e) { console.error('Email failed:', e); }
+        if (oldStatus !== status) {
+            const orderData = {
+                ...order,
+                shipping_address: safeParseJSON(order.shipping_address, {}),
+                items: safeParseJSON(order.items, [])
+            };
+            const emailResult = await sendOrderEmailSafely(orderData, 'status_update', status);
+            emailSent = emailResult.success;
+        }
 
         res.json({ success: true, emailSent });
     }));

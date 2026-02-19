@@ -6,6 +6,8 @@ import { createOrder, lookupOrder } from '../services/orderService.js';
 import { query, USE_POSTGRES } from '../config/db.js';
 import rateLimit from 'express-rate-limit';
 
+import { sendOrderConfirmation, sendOrderStatusUpdate, isEmailConfigured } from '../../email-templates/index.js';
+
 const router = express.Router();
 
 const orderLimiter = rateLimit({
@@ -18,6 +20,25 @@ const safeParseJSON = (str, defaultValue = null) => {
     if (!str || str === 'null' || str === 'undefined') return defaultValue;
     try { return JSON.parse(str); } catch (e) { return defaultValue; }
 };
+
+const EMAIL_ENABLED = process.env.EMAIL_TEST_MODE !== 'true' && isEmailConfigured();
+const EMAIL_TEST_MODE = process.env.EMAIL_TEST_MODE === 'true';
+
+async function sendOrderEmailSafely(order, type = 'confirmation', status = null) {
+    if (EMAIL_TEST_MODE) {
+        console.log('[EMAIL TEST MODE] Would send email:', { to: order.customer_email || order.customerEmail, type, status, orderId: order.id });
+        return { success: true, testMode: true };
+    }
+    if (!EMAIL_ENABLED) return { success: false, reason: 'email_not_configured' };
+    try {
+        if (type === 'confirmation') await sendOrderConfirmation(order);
+        else if (type === 'status_update') await sendOrderStatusUpdate(order, status);
+        return { success: true };
+    } catch (error) {
+        console.error('[EMAIL] Failed to send:', error.message);
+        return { success: false, error: error.message };
+    }
+}
 
 export default function(productService, inventoryService) {
     router.post('/', orderLimiter, csrfProtection, validateCreateOrder, asyncHandler(async (req, res) => {
@@ -47,14 +68,39 @@ export default function(productService, inventoryService) {
 
     router.post('/verify-payment', orderLimiter, csrfProtection, asyncHandler(async (req, res) => {
         const { orderId, reference } = req.body;
-        const orderResult = await query('SELECT * FROM orders WHERE payment_reference = $1 OR id = $2', [reference, orderId || '']);
-        if (orderResult.rows.length === 0) throw new APIError('Order not found', 404);
-        const order = orderResult.rows[0];
+        if (!orderId && !reference) throw new APIError('Order ID or payment reference is required', 400);
         
-        if (order.payment_status === 'paid') return res.json({ success: true, status: 'paid', orderId: order.id });
+        let order;
+        if (reference) order = (await query('SELECT * FROM orders WHERE payment_reference = $1 OR id = $2', [reference, orderId || ''])).rows[0];
+        else order = (await query('SELECT * FROM orders WHERE id = $1', [orderId])).rows[0];
         
-        // Detailed verification would happen here (omitted for brevity, assume similar to original)
-        res.json({ success: true, status: order.payment_status, orderId: order.id, verified: false });
+        if (!order) throw new APIError('Order not found', 404);
+        if (order.payment_status === 'paid') return res.json({ success: true, status: 'paid', orderId: order.id, message: 'Payment confirmed' });
+        
+        if (!process.env.PAYSTACK_SECRET_KEY) return res.json({ success: true, status: order.payment_status, orderId: order.id, verified: false, message: 'Paystack not configured' });
+        
+        try {
+            const paystackRef = reference || order.payment_reference;
+            if (!paystackRef) return res.json({ success: true, status: order.payment_status, orderId: order.id, verified: false, message: 'No reference' });
+            
+            const response = await fetch(`https://api.paystack.co/transaction/verify/${paystackRef}`, {
+                headers: { 'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+            });
+            const paystackData = await response.json();
+            
+            if (!paystackData.status) return res.json({ success: false, status: order.payment_status, orderId: order.id, verified: false, message: paystackData.message });
+            
+            if (paystackData.data.status === 'success') {
+                await query('UPDATE orders SET payment_status = \'paid\', payment_reference = $1, order_status = CASE WHEN order_status = \'pending\' THEN \'processing\' ELSE order_status END, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [paystackRef, order.id]);
+                const items = safeParseJSON(order.items, []);
+                await inventoryService.confirmReservation(order.id, items);
+                await sendOrderEmailSafely({ ...order, payment_status: 'paid' }, 'confirmation');
+                return res.json({ success: true, status: 'paid', orderId: order.id, verified: true });
+            }
+            res.json({ success: true, status: paystackData.data.status, orderId: order.id, verified: false });
+        } catch (error) {
+            throw new APIError('Verification failed', 500);
+        }
     }));
 
     return router;

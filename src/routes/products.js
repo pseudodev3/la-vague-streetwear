@@ -2,6 +2,7 @@ import express from 'express';
 import { asyncHandler, APIError } from '../middleware/errorHandler.js';
 import { query, USE_POSTGRES } from '../config/db.js';
 import { csrfProtection } from '../middleware/csrf.js';
+import { sendReviewConfirmationEmail, sendNewReviewNotification } from '../../email-templates/index.js';
 
 const router = express.Router();
 
@@ -48,8 +49,36 @@ router.post('/:id/reviews', csrfProtection, asyncHandler(async (req, res) => {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `, [reviewId, id, orderId || null, customerEmail, customerName, rating, title, reviewText, JSON.stringify(photos || [])]);
     
+    // Send notifications asynchronously
+    (async () => {
+        try {
+            const productResult = await query('SELECT name FROM products WHERE id = $1', [id]);
+            const productName = productResult.rows[0]?.name || id;
+            
+            await sendReviewConfirmationEmail({
+                customerEmail,
+                customerName,
+                productName,
+                rating,
+                title
+            });
+            
+            await sendNewReviewNotification({
+                reviewId,
+                productName,
+                customerName,
+                rating,
+                title,
+                reviewText
+            });
+        } catch (emailError) {
+            console.error('[REVIEWS] Email notification failed:', emailError);
+        }
+    })();
+
     res.json({ success: true, message: 'Review submitted for approval', reviewId });
 }));
+
 
 // Join waitlist
 router.post('/:id/waitlist', csrfProtection, asyncHandler(async (req, res) => {

@@ -443,6 +443,52 @@ export async function sendNewReviewNotification({ reviewId, productName, custome
     return { success: true };
 }
 
+/**
+ * Send contact form notification to admin
+ */
+export async function sendContactNotification({ name, email, subject, message }) {
+    if (!isEmailConfigured()) {
+        return { success: false, reason: 'email_not_configured' };
+    }
+    
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER;
+    
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #dc2626;">New Contact Form Message</h2>
+            <p>You have received a new message from the contact form.</p>
+            
+            <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p><strong>Name:</strong> ${name}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Subject:</strong> ${subject || 'N/A'}</p>
+                <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 15px 0;">
+                <p><strong>Message:</strong></p>
+                <p style="white-space: pre-wrap;">${message}</p>
+            </div>
+            
+            <p>Best regards,<br><strong>LA VAGUE System</strong></p>
+        </div>
+    `;
+    
+    const mailOptions = {
+        from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+        to: adminEmail,
+        replyTo: email,
+        subject: `Contact Form: ${subject || 'New Message'}`,
+        html,
+        text: `New message from ${name} (${email}): ${subject || 'N/A'}\n\n${message}`
+    };
+    
+    emailQueue.add({
+        to: adminEmail,
+        subject: mailOptions.subject,
+        mailOptions
+    });
+    
+    return { success: true };
+}
+
 export default {
     sendOrderConfirmation,
     sendOrderStatusUpdate,
@@ -451,5 +497,8 @@ export default {
     sendTestEmail,
     getEmailQueueStats,
     isEmailConfigured,
-    getEmailConfig
+    getEmailConfig,
+    sendReviewConfirmationEmail,
+    sendNewReviewNotification,
+    sendContactNotification
 };

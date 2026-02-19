@@ -20,7 +20,8 @@ export {
     isEmailConfigured,
     getEmailConfig,
     sendReviewConfirmationEmail,
-    sendNewReviewNotification
+    sendNewReviewNotification,
+    sendContactNotification
 } from './email-service.js';
 
 export { default as emailService } from './email-service.js';

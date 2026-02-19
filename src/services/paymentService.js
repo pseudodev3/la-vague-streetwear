@@ -2,11 +2,30 @@ import crypto from 'crypto';
 import Paystack from 'paystack-api';
 import { query, USE_POSTGRES } from '../config/db.js';
 import { logWebhookEvent } from '../utils/audit.js';
-import { sendOrderConfirmation } from '../../email-templates/index.js';
+import { sendOrderConfirmation, sendOrderStatusUpdate, isEmailConfigured } from '../../email-templates/index.js';
 import { captureException, captureMessage } from '../config/sentry.js';
 
 const secretKey = process.env.PAYSTACK_SECRET_KEY;
 const paystack = secretKey ? Paystack(secretKey) : null;
+
+const EMAIL_ENABLED = process.env.EMAIL_TEST_MODE !== 'true' && isEmailConfigured();
+const EMAIL_TEST_MODE = process.env.EMAIL_TEST_MODE === 'true';
+
+async function sendOrderEmailSafely(order, type = 'confirmation', status = null) {
+    if (EMAIL_TEST_MODE) {
+        console.log('[EMAIL TEST MODE] Would send email:', { to: order.customer_email || order.customerEmail, type, status, orderId: order.id });
+        return { success: true, testMode: true };
+    }
+    if (!EMAIL_ENABLED) return { success: false, reason: 'email_not_configured' };
+    try {
+        if (type === 'confirmation') await sendOrderConfirmation(order);
+        else if (type === 'status_update') await sendOrderStatusUpdate(order, status);
+        return { success: true };
+    } catch (error) {
+        console.error('[EMAIL] Failed to send:', error.message);
+        return { success: false, error: error.message };
+    }
+}
 
 export function verifyPaystackSignature(body, signature) {
     if (!secretKey) return false;
@@ -61,12 +80,12 @@ async function handleChargeSuccess(data, inventoryService) {
         const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
         const shippingAddress = typeof order.shipping_address === 'string' ? JSON.parse(order.shipping_address) : order.shipping_address;
 
-        await sendOrderConfirmation({
+        await sendOrderEmailSafely({
             ...order,
             items,
             shipping_address: shippingAddress,
             payment_status: 'paid'
-        });
+        }, 'confirmation');
         
         await inventoryService.confirmReservation(order.id, items);
         captureMessage(`Payment confirmed for order ${order.id}`, { level: 'info' });
