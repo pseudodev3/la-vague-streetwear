@@ -30,8 +30,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@js/*": ["src/js/*"],
-      "@css/*": ["src/css/*"],
+      "@js/*": ["src/scripts/*"],
+      "@css/*": ["src/styles/*"],
       "@assets/*": ["src/assets/*"]
     },
     
