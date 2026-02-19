@@ -8,11 +8,11 @@ const state = {
     wishlist: JSON.parse(localStorage.getItem('wishlist')) || [],
     currentLook: 0,
     lookbookImages: [
-        { src: './assets/urbannights.png', title: 'Urban Nights', number: '01' },
-        { src: './assets/daylight.jpg', title: 'Daylight', number: '02' },
-        { src: './assets/skatepark.jpg', title: 'Skate Park', number: '03' },
-        { src: './assets/downtown.jpg', title: 'Downtown', number: '04' },
-        { src: './assets/afterhours.jpg', title: 'After Hours', number: '05' }
+        { src: '/assets/urbannights.png', title: 'Urban Nights', number: '01' },
+        { src: '/assets/daylight.jpg', title: 'Daylight', number: '02' },
+        { src: '/assets/skatepark.jpg', title: 'Skate Park', number: '03' },
+        { src: '/assets/downtown.jpg', title: 'Downtown', number: '04' },
+        { src: '/assets/afterhours.jpg', title: 'After Hours', number: '05' }
     ]
 };
 

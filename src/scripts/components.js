@@ -77,7 +77,7 @@ window.Components = {
         <div class="container">
             <div class="footer-grid">
                 <div class="footer-brand">
-                    <img src="la-vague-red-wordmark.png" alt="LA VAGUE" class="footer-logo-img" width="200">
+                    <img src="/la-vague-red-wordmark.png" alt="LA VAGUE" class="footer-logo-img" width="200">
                     <p class="footer-tagline">Ride the wave. Timeless streetwear for the modern individual.</p>
                     <div class="social-links">
                         <a href="https://www.instagram.com/lavague_ng/" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Instagram">

@@ -20,9 +20,9 @@ const PRODUCTS = [
             'Oversized fit'
         ],
         images: [
-            { src: './assets/hoodie.jpg', alt: 'Classic Oversized Hoodie - Black' },
-            { src: './assets/hoodie2.jpg', alt: 'Classic Oversized Hoodie - Detail' },
-            { src: './assets/hoodie3.jpg', alt: 'Classic Oversized Hoodie - Fit' }
+            { src: '/assets/hoodie.jpg', alt: 'Classic Oversized Hoodie - Black' },
+            { src: '/assets/hoodie2.jpg', alt: 'Classic Oversized Hoodie - Detail' },
+            { src: '/assets/hoodie3.jpg', alt: 'Classic Oversized Hoodie - Fit' }
         ],
         colors: [
             { name: 'Black', value: '#0a0a0a', imageIndex: 0 },
@@ -59,8 +59,8 @@ const PRODUCTS = [
             'Made in Nigeria'
         ],
         images: [
-            { src: './assets/hoodie2.jpg', alt: 'Wave Logo Zip Hoodie' },
-            { src: './assets/hoodie3.jpg', alt: 'Wave Logo Zip Hoodie - Detail' }
+            { src: '/assets/hoodie2.jpg', alt: 'Wave Logo Zip Hoodie' },
+            { src: '/assets/hoodie3.jpg', alt: 'Wave Logo Zip Hoodie - Detail' }
         ],
         colors: [
             { name: 'Black', value: '#0a0a0a', imageIndex: 0 },
@@ -95,8 +95,8 @@ const PRODUCTS = [
             'Made in Nigeria'
         ],
         images: [
-            { src: './assets/tshirts.jpg', alt: 'Wave Box Logo Tee - White' },
-            { src: './assets/hoodie.jpg', alt: 'Wave Box Logo Tee - Black' }
+            { src: '/assets/tshirts.jpg', alt: 'Wave Box Logo Tee - White' },
+            { src: '/assets/hoodie.jpg', alt: 'Wave Box Logo Tee - Black' }
         ],
         colors: [
             { name: 'White', value: '#ffffff', imageIndex: 0 },
@@ -131,8 +131,8 @@ const PRODUCTS = [
             'Made in Nigeria'
         ],
         images: [
-            { src: './assets/bottoms.jpg', alt: 'Utility Cargo Pants - Black' },
-            { src: './assets/bottoms.jpg', alt: 'Utility Cargo Pants - Detail' }
+            { src: '/assets/bottoms.jpg', alt: 'Utility Cargo Pants - Black' },
+            { src: '/assets/bottoms.jpg', alt: 'Utility Cargo Pants - Detail' }
         ],
         colors: [
             { name: 'Olive', value: '#4a5d23', imageIndex: 0 },
