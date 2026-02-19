@@ -8,13 +8,15 @@ import { logAudit } from '../utils/audit.js';
 import { validateUpdateOrderStatus, validateAdminLogin } from '../middleware/validation.js';
 import { upload } from '../middleware/upload.js';
 import { 
+    sendOrderConfirmation,
     sendOrderStatusUpdate, 
     previewEmail, 
     testEmailConfig, 
     getEmailQueueStats, 
     getEmailConfig,
     sendReviewConfirmationEmail,
-    sendNewReviewNotification
+    sendNewReviewNotification,
+    isEmailConfigured
 } from '../../email-templates/index.js';
 
 const router = express.Router();
