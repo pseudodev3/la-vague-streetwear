@@ -479,10 +479,63 @@ export default function(productService, inventoryService) {
         res.json({ success: true, data: result.rows });
     }));
 
-    // Email Config
-    router.get('/email/config', verifyAdminToken, (req, res) => {
-        res.json({ success: true, config: getEmailConfig(), enabled: !!getEmailConfig() });
+    // Audit Logs
+    router.get('/audit-logs', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { entityType, entityId, action, limit = 50, offset = 0 } = req.query;
+        let sql = 'SELECT * FROM audit_logs WHERE 1=1';
+        const params = [];
+        if (entityType) { sql += ` AND entity_type = $${params.length + 1}`; params.push(entityType); }
+        if (entityId) { sql += ` AND entity_id = $${params.length + 1}`; params.push(entityId); }
+        if (action) { sql += ` AND action = $${params.length + 1}`; params.push(action); }
+        sql += ' ORDER BY created_at DESC LIMIT ' + (USE_POSTGRES ? `$${params.length + 1}` : '?') + ' OFFSET ' + (USE_POSTGRES ? `$${params.length + 2}` : '?');
+        params.push(parseInt(limit), parseInt(offset));
+        const result = await query(sql, params);
+        res.json({ success: true, logs: result.rows });
+    }));
+
+    // Email Operations
+    router.post('/email/test-config', verifyAdminToken, asyncHandler(async (req, res) => {
+        const result = await testEmailConfig();
+        res.json(result);
+    }));
+
+    router.get('/email/preview/:status', verifyAdminToken, (req, res) => {
+        const { status } = req.params;
+        const result = previewEmail(status);
+        res.json({ success: true, status, ...result });
     });
+
+    router.post('/email/send-test', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { email, status } = req.body;
+        await sendTestEmail(email, status);
+        res.json({ success: true, message: 'Test email sent' });
+    }));
+
+    router.get('/email/queue-stats', verifyAdminToken, (req, res) => {
+        res.json({ success: true, stats: getEmailQueueStats() });
+    });
+
+    // Inventory Updates
+    router.get('/inventory/:productId', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { color, size } = req.query;
+        const stock = await inventoryService.getStock(req.params.productId, color, size);
+        res.json({ success: true, stock });
+    }));
+
+    router.post('/inventory/:productId', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { color, size, quantity } = req.body;
+        const result = await inventoryService.updateStock(req.params.productId, color, size, quantity);
+        res.json({ success: true, ...result });
+    }));
+
+    // Reports Extension
+    router.get('/export/products', verifyAdminToken, asyncHandler(async (req, res) => {
+        const result = await query('SELECT * FROM products ORDER BY name');
+        const csv = 'ID,Name,Price,Inventory\n' + result.rows.map(p => `${p.id},"${p.name}",${p.price},"${p.inventory}"`).join('\n');
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=products.csv');
+        res.send(csv);
+    }));
 
     return router;
 }

@@ -66,6 +66,10 @@ export default function(productService, inventoryService) {
         res.json({ valid: true, coupon: { id: coupon.id, code: coupon.code, type: coupon.type, discount } });
     }));
 
+    // Explicitly add /api/coupons/validate for backward compatibility if needed, 
+    // though the above handles it within the order router scope.
+
+
     router.post('/verify-payment', orderLimiter, csrfProtection, asyncHandler(async (req, res) => {
         const { orderId, reference } = req.body;
         if (!orderId && !reference) throw new APIError('Order ID or payment reference is required', 400);
