@@ -30,6 +30,7 @@ const authLimiter = rateLimit({
 
 const safeParseJSON = (str, defaultValue = null) => {
     if (!str || str === 'null' || str === 'undefined') return defaultValue;
+    if (typeof str === 'object') return str;
     try { return JSON.parse(str); } catch (e) { return defaultValue; }
 };
 
@@ -323,6 +324,17 @@ export default function(productService, inventoryService) {
         `, [id, code.toUpperCase(), type, value, min_order_amount || 0, max_discount_amount || null, usage_limit || null, per_customer_limit || 1, start_date || null, end_date || null, JSON.stringify(applicable_categories || []), JSON.stringify(applicable_products || [])]);
         await logAudit('CREATE_COUPON', 'coupon', id, null, { code, type, value }, req);
         res.json({ success: true, coupon: { id, code: code.toUpperCase() } });
+    }));
+
+    router.delete('/coupons/:id', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { id } = req.params;
+        if (USE_POSTGRES) {
+            await query('DELETE FROM coupons WHERE id = $1', [id]);
+        } else {
+            await query('DELETE FROM coupons WHERE id = ?', [id]);
+        }
+        await logAudit('DELETE_COUPON', 'coupon', id, null, null, req);
+        res.json({ success: true, message: 'Coupon deleted' });
     }));
 
     // Reviews
