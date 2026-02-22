@@ -18,7 +18,7 @@ const state = {
 
 let elements = {};
 
-function initHome() {
+async function initHome() {
     // ==========================================
     // DOM ELEMENTS (RE-QUERY AFTER INJECTION)
     // ==========================================
@@ -59,7 +59,7 @@ function initHome() {
         toastContainer: document.getElementById('toastContainer')
     };
 
-    renderFeaturedProducts();
+    await renderFeaturedProducts();
     
     // Sync with shared CartState if available
     if (typeof CartState !== 'undefined') {
@@ -83,6 +83,45 @@ function initHome() {
 // FEATURED PRODUCTS
 // ==========================================
 
+const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/api' 
+    : 'https://la-vague-api.onrender.com/api';
+
+const HomeAPI = {
+    async getProducts() {
+        try {
+            const response = await fetch(`${API_URL}/products`);
+            if (!response.ok) throw new Error('Failed to fetch products');
+            const data = await response.json();
+            return data.products || [];
+        } catch (error) {
+            console.warn('API unavailable, using static data');
+            return null;
+        }
+    }
+};
+
+function transformProduct(dbProduct) {
+    return {
+        id: dbProduct.id,
+        name: dbProduct.name,
+        slug: dbProduct.slug,
+        category: dbProduct.category,
+        price: dbProduct.price,
+        compareAtPrice: dbProduct.compare_at_price || dbProduct.compareAtPrice,
+        description: dbProduct.description,
+        features: Array.isArray(dbProduct.features) ? dbProduct.features : JSON.parse(dbProduct.features || '[]'),
+        images: Array.isArray(dbProduct.images) ? dbProduct.images : JSON.parse(dbProduct.images || '[]'),
+        colors: Array.isArray(dbProduct.colors) ? dbProduct.colors : JSON.parse(dbProduct.colors || '[]'),
+        sizes: Array.isArray(dbProduct.sizes) ? dbProduct.sizes : JSON.parse(dbProduct.sizes || '[]'),
+        inventory: typeof dbProduct.inventory === 'object' ? dbProduct.inventory : JSON.parse(dbProduct.inventory || '{}'),
+        tags: Array.isArray(dbProduct.tags) ? dbProduct.tags : JSON.parse(dbProduct.tags || '[]'),
+        badge: dbProduct.badge,
+        average_rating: dbProduct.average_rating || 0,
+        review_count: dbProduct.review_count || 0
+    };
+}
+
 function renderStarRating(rating) {
     let html = '';
     for (let i = 1; i <= 5; i++) {
@@ -95,9 +134,22 @@ function renderStarRating(rating) {
     return html;
 }
 
-function renderFeaturedProducts() {
+async function renderFeaturedProducts() {
     if (!elements.featuredProducts) return;
-    const featured = ProductAPI.getFeatured().slice(0, 4);
+    
+    let featured = [];
+    
+    // Try to get from API first
+    const apiProducts = await HomeAPI.getProducts();
+    if (apiProducts && apiProducts.length > 0) {
+        const products = apiProducts.map(transformProduct);
+        featured = products.filter(p => p.tags.includes('bestseller')).slice(0, 4);
+    }
+    
+    // Fallback to static data if API fails or no bestsellers found
+    if (featured.length === 0) {
+        featured = ProductAPI.getFeatured().slice(0, 4);
+    }
     
     elements.featuredProducts.innerHTML = featured.map(product => {
         // Robust stock calculation
@@ -113,15 +165,24 @@ function renderFeaturedProducts() {
             badgeHtml = `<span class="product-badge ${product.badge.toLowerCase().replace(/\s+/g, '-')}">${product.badge}</span>`;
         }
 
+        const categoryName = CATEGORIES.find(c => c.id === product.category)?.name || product.category;
+        
+        // Image safety check
+        const firstImage = product.images && product.images[0] ? product.images[0] : {
+            src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
+            alt: product.name
+        };
+        const secondImage = product.images && product.images[1] ? product.images[1] : null;
+
         return `
         <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" onclick="window.location.href='product.html?slug=${product.slug}'">
             <div class="product-image-wrapper">
                 ${badgeHtml}
-                <img src="${product.images[0].src}" alt="${product.images[0].alt}" class="product-image" loading="lazy">
-                ${product.images[1] ? `<img src="${product.images[1].src}" alt="${product.images[1].alt}" class="product-image-hover" loading="lazy">` : ''}
+                <img src="${firstImage.src}" alt="${firstImage.alt}" class="product-image" loading="lazy">
+                ${secondImage ? `<img src="${secondImage.src}" alt="${secondImage.alt}" class="product-image-hover" loading="lazy">` : ''}
             </div>
             <div class="product-info">
-                <p class="product-category">${CATEGORIES.find(c => c.id === product.category)?.name}</p>
+                <p class="product-category">${categoryName}</p>
                 <h3 class="product-name">${product.name}</h3>
                 <div class="product-price">
                     <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
