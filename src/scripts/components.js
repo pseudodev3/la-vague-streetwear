@@ -4,7 +4,7 @@
  */
 
 window.Components = {
-    // Current templates extracted from index.html
+    // Current templates based on index.html
     templates: {
         nav: `
         <div class="nav-container">

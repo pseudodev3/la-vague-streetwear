@@ -106,7 +106,7 @@ const getWishlist = () => typeof CartState !== 'undefined' ? CartState.wishlist 
 
 async function initShop() {
     // ==========================================
-    // DOM ELEMENTS (RE-QUERY AFTER INJECTION)
+    // UI Elements (Refresh after injection)
     // ==========================================
     elements = {
         productsGrid: document.getElementById('productsGrid'),

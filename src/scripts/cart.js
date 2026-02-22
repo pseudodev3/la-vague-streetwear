@@ -32,7 +32,7 @@ const CurrencyConfig = {
             : 'https://la-vague-api.onrender.com/api';
     },
     
-    // Initialize rates from localStorage or defaults
+    // Load rates using storage or defaults
     init() {
         // Try to load cached rates from localStorage
         const cached = localStorage.getItem('currencyRates');

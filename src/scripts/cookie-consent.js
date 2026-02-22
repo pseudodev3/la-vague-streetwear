@@ -526,7 +526,7 @@
             modal.style.display = 'none';
         });
 
-        // Accept all from modal
+        // User choice: grant full access
         modal.querySelector('#cookie-accept-all-modal').addEventListener('click', () => {
             const choices = {};
             for (const key of Object.keys(categories)) {

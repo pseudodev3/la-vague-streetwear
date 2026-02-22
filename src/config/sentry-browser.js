@@ -18,7 +18,7 @@
         return;
     }
 
-    // Load Sentry SDK from CDN
+    // Load Sentry SDK
     const script = document.createElement('script');
     script.src = 'https://browser.sentry-cdn.com/7.100.0/bundle.tracing.min.js';
     script.crossOrigin = 'anonymous';

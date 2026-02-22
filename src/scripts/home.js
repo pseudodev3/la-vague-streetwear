@@ -20,7 +20,7 @@ let elements = {};
 
 async function initHome() {
     // ==========================================
-    // DOM ELEMENTS (RE-QUERY AFTER INJECTION)
+    // UI Elements (Refresh after injection)
     // ==========================================
     elements = {
         nav: document.getElementById('nav'),
