@@ -273,7 +273,7 @@ function renderProducts() {
                 <h3 class="product-name" onclick="window.openProductPage('${product.slug}')">${product.name}</h3>
                 <div class="product-price">
                     <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
-                    ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
+                    ${(product.compareAtPrice && product.compareAtPrice > product.price) ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
                 </div>
                 ${product.average_rating ? `
                     <div class="product-rating">
@@ -396,7 +396,7 @@ function renderQuickView() {
             <h2 class="quick-view-title">${product.name}</h2>
             <div class="quick-view-price">
                 <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
-                ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
+                ${(product.compareAtPrice && product.compareAtPrice > product.price) ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
             </div>
             <p class="quick-view-description">${product.description || ''}</p>
             

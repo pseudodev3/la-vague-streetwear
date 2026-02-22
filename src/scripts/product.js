@@ -202,7 +202,7 @@ function renderProduct() {
     elements.productCategory.textContent = CATEGORIES.find(c => c.id === p.category)?.name || p.category;
     elements.productTitle.textContent = p.name;
     elements.productPrice.textContent = CurrencyConfig.formatPrice(p.price);
-    elements.productOriginalPrice.textContent = p.compareAtPrice ? CurrencyConfig.formatPrice(p.compareAtPrice) : '';
+    elements.productOriginalPrice.textContent = (p.compareAtPrice && p.compareAtPrice > p.price) ? CurrencyConfig.formatPrice(p.compareAtPrice) : '';
     elements.productShortDesc.textContent = p.description;
     elements.productDescription.textContent = p.description;
     elements.productFeatures.innerHTML = p.features.map(f => `<li>${f}</li>`).join('');
@@ -313,7 +313,13 @@ async function renderRelatedProducts() {
     elements.relatedGrid.innerHTML = related.map(p => `
         <article class="product-card" onclick="window.location.href='product.html?slug=${p.slug}'">
             <img src="${p.images[0]?.src || ''}" alt="${p.name}">
-            <div class="product-info"><h3>${p.name}</h3><p>${CurrencyConfig.formatPrice(p.price)}</p></div>
+            <div class="product-info">
+                <h3>${p.name}</h3>
+                <div class="product-price">
+                    <span class="current-price">${CurrencyConfig.formatPrice(p.price)}</span>
+                    ${(p.compareAtPrice && p.compareAtPrice > p.price) ? `<span class="original-price">${CurrencyConfig.formatPrice(p.compareAtPrice)}</span>` : ''}
+                </div>
+            </div>
         </article>
     `).join('');
 }
