@@ -58,16 +58,27 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://js.paystack.co", "https://checkout.paystack.com"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "https:", "data:", "blob:"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            connectSrc: ["'self'", process.env.FRONTEND_URL || "*"],
+            imgSrc: ["'self'", "https:", "data:", "blob:", "res.cloudinary.com"],
+            connectSrc: ["'self'", process.env.FRONTEND_URL || "*", "https://api.paystack.co"],
+            frameSrc: ["'self'", "https://checkout.paystack.com", "https://js.paystack.co"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: [],
         },
     },
-    crossOriginEmbedderPolicy: false,
+    crossOriginEmbedderPolicy: false, // Required for some third-party scripts like Paystack
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true }
 }));
+
+// Set Permissions-Policy header
+app.use((req, res, next) => {
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
+    next();
+});
 
 const allowedOrigins = process.env.NODE_ENV === 'production' 
     ? [process.env.FRONTEND_URL, 'https://la-vague.store', 'https://www.la-vague.store', /https:\/\/.+\.netlify\.app$/].filter(Boolean)

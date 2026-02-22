@@ -186,7 +186,8 @@ async function initShop() {
     
     const urlParams = new URLSearchParams(window.location.search);
     const category = urlParams.get('category');
-    if (category && CATEGORIES.find(c => c.id === category)) {
+    // Sanitize input: only allow categories that actually exist
+    if (category && typeof CATEGORIES !== 'undefined' && CATEGORIES.find(c => c.id === category)) {
         setCategory(category);
     }
 }
