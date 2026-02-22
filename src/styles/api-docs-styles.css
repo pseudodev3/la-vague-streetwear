@@ -1,0 +1,27 @@
+/**
+ * LA VAGUE - API Documentation Styles
+ */
+body {
+    margin: 0;
+    padding: 0;
+}
+.swagger-ui .topbar {
+    background: #1a1a1a;
+}
+.swagger-ui .topbar .download-url-wrapper input[type=text] {
+    border-color: #dc2626;
+}
+.swagger-ui .topbar .download-url-wrapper .download-url-button {
+    background: #dc2626;
+}
+.swagger-ui .info .title {
+    color: #dc2626;
+}
+.swagger-ui .btn.authorize {
+    background-color: #dc2626;
+    border-color: #dc2626;
+}
+.swagger-ui .btn.execute {
+    background-color: #dc2626;
+    border-color: #dc2626;
+}
