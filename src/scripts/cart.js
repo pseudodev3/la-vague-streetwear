@@ -65,7 +65,7 @@ const CurrencyConfig = {
     // Fetch rates from server
     async fetchRates() {
         try {
-            const response = await fetch(`${this.API_BASE_URL}/currency-rates`);
+            const response = await fetch(`${this.API_BASE_URL}/config/currency-rates`);
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.rates) {
