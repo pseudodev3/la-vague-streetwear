@@ -657,7 +657,7 @@
         <div class="modal-content modal-lg">
             <div class="modal-header">
                 <h3 id="orderModalTitle">Order Details</h3>
-                <button class="modal-close" onclick="closeOrderModal()">&times;</button>
+                <button class="modal-close" id="closeOrderModalBtn">&times;</button>
             </div>
             <div class="modal-body" id="orderModalBody">
                 <!-- Order details loaded here -->
@@ -670,7 +670,7 @@
         <div class="modal-content modal-lg">
             <div class="modal-header">
                 <h3 id="productModalTitle">Add Product</h3>
-                <button class="modal-close" onclick="closeProductModal()">&times;</button>
+                <button class="modal-close" id="closeProductModalBtn">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="productForm">
@@ -757,7 +757,7 @@
                             <div id="colorsContainer" class="variants-container">
                                 <!-- Color inputs added here -->
                             </div>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="addColorInput()">+ Add Color</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="addColorBtn">+ Add Color</button>
                         </div>
                         
                         <!-- Sizes -->
@@ -766,7 +766,7 @@
                             <div id="sizesContainer" class="variants-container">
                                 <!-- Size inputs added here -->
                             </div>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="addSizeInput()">+ Add Size</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="addSizeBtn">+ Add Size</button>
                         </div>
                         
                         <!-- Inventory -->
@@ -789,7 +789,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+                <button type="button" class="btn btn-secondary" id="cancelProductBtn">Cancel</button>
                 <button type="button" class="btn btn-primary" id="saveProductBtn">
                     <span class="btn-text">Save Product</span>
                     <span class="btn-loading" style="display: none;">Saving...</span>
@@ -803,7 +803,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Update Inventory</h3>
-                <button class="modal-close" onclick="closeInventoryModal()">&times;</button>
+                <button class="modal-close" id="closeInventoryModalBtn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -824,7 +824,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeInventoryModal()">Cancel</button>
+                <button type="button" class="btn btn-secondary" id="cancelInventoryBtn">Cancel</button>
                 <button type="button" class="btn btn-primary" id="updateInventoryBtn">Update Stock</button>
             </div>
         </div>

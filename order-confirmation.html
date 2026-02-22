@@ -19,75 +19,6 @@
     
     <link rel="stylesheet" href="src/styles/styles.css?v=8.0">
     <link rel="stylesheet" href="src/styles/page-styles.css?v=8.0">
-    <style>
-        .confirmation {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 8rem 2rem 4rem;
-            text-align: center;
-            background: var(--color-bg);
-        }
-        
-        .confirmation-icon {
-            width: 80px;
-            height: 80px;
-            background: #22c55e;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 2rem;
-        }
-        
-        .confirmation-icon svg {
-            color: white;
-        }
-        
-        .confirmation h1 {
-            font-family: var(--font-heading);
-            font-size: 2.5rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-        
-        .confirmation > p {
-            color: var(--color-text-muted);
-            font-size: 1.125rem;
-            max-width: 500px;
-            margin: 0 auto 2rem;
-            line-height: 1.7;
-        }
-        
-        .order-details {
-            background: var(--color-bg-secondary);
-            border: 1px solid var(--color-border);
-            padding: 2rem;
-            max-width: 500px;
-            margin: 0 auto 2rem;
-            text-align: left;
-        }
-        
-        .order-number {
-            font-family: var(--font-heading);
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        
-        .order-email {
-            color: var(--color-text-muted);
-            font-size: 0.9rem;
-        }
-        
-        .confirmation-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-    </style>
 </head>
 <body>
     <!-- Navigation -->
@@ -132,6 +63,7 @@
     <script src="src/scripts/cart.js?v=8.0"></script>
     <script src="src/scripts/components.js?v=8.0"></script>
     <script src="src/scripts/utils.js?v=8.0"></script>
+    <script src="src/scripts/page.js?v=8.0"></script>
     <script>
         // Get order details from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -140,7 +72,6 @@
         
         // Display order number
         if (orderId) {
-            // If it starts with LV-, don't double prefix it
             const displayId = orderId.startsWith('LV-') ? orderId.replace('LV-', '') : orderId;
             document.getElementById('orderNumber').textContent = displayId;
         } else {
@@ -154,16 +85,6 @@
                 confirmationMsg.innerHTML = 'Your payment was successful! We\'ve sent a confirmation email with your order details.';
             }
         }
-        
-        // Nav scroll effect
-        window.addEventListener('scroll', () => {
-            const nav = document.getElementById('nav');
-            if (window.scrollY > 50) {
-                nav?.classList.add('scrolled');
-            } else {
-                nav?.classList.remove('scrolled');
-            }
-        }, { passive: true });
     </script>
     <script src="src/scripts/cookie-consent.js?v=8.0"></script>
 </body>

@@ -2158,6 +2158,17 @@ document.addEventListener('DOMContentLoaded', () => {
         customerSearch.addEventListener('input', () => renderCustomersTable(customersState));
     }
     
+    // Modal listeners
+    document.getElementById('closeOrderModalBtn')?.addEventListener('click', window.closeOrderModal);
+    document.getElementById('closeProductModalBtn')?.addEventListener('click', window.closeProductModal);
+    document.getElementById('cancelProductBtn')?.addEventListener('click', window.closeProductModal);
+    document.getElementById('closeInventoryModalBtn')?.addEventListener('click', window.closeInventoryModal);
+    document.getElementById('cancelInventoryBtn')?.addEventListener('click', window.closeInventoryModal);
+    
+    // Variant buttons
+    document.getElementById('addColorBtn')?.addEventListener('click', window.addColorInput);
+    document.getElementById('addSizeBtn')?.addEventListener('click', window.addSizeInput);
+    
     // Reviews filter
     const reviewFilter = document.getElementById('reviewFilter');
     if (reviewFilter) {

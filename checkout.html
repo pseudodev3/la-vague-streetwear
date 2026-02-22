@@ -20,18 +20,6 @@
     <link rel="stylesheet" href="src/styles/styles.css?v=8.0">
     <link rel="stylesheet" href="src/styles/shop-styles.css?v=8.0">
     <link rel="stylesheet" href="src/styles/checkout-styles.css?v=8.0">
-    <style>
-        .currency-badge {
-            font-family: 'Oswald', sans-serif;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #fff;
-            background: rgba(220, 38, 38, 0.9);
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            letter-spacing: 0.05em;
-        }
-    </style>
 </head>
 <body>
     <!-- Announcement Bar -->
@@ -220,11 +208,7 @@
     <script src="src/scripts/components.js?v=8.0"></script>
     <script src="src/scripts/utils.js?v=8.0"></script>
     <script src="src/scripts/translations.js?v=8.0"></script>
-    <script>
-        // Paystack public key will be loaded from /api/config/paystack
-        // This allows the key to be set via environment variable on the backend
-        window.PAYSTACK_PUBLIC_KEY = '';
-    </script>
+    <script src="src/scripts/checkout-config.js?v=8.0"></script>
     <script src="src/scripts/checkout-paystack.js?v=8.0"></script>
     <script src="src/scripts/checkout.js?v=8.0"></script>
     <script src="src/scripts/cookie-consent.js?v=8.0"></script>
