@@ -186,7 +186,6 @@ async function renderFeaturedProducts() {
                 <h3 class="product-name">${product.name}</h3>
                 <div class="product-price">
                     <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
-                    ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
                 </div>
                 ${product.average_rating ? `
                     <div class="product-rating">
