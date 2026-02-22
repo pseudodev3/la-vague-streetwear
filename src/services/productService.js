@@ -234,6 +234,15 @@ export class ProductService {
             keepImages = []
         } = productData;
 
+        // Helper to handle JSON strings or objects
+        const safeParse = (val, fallback = []) => {
+            if (!val) return fallback;
+            if (typeof val === 'string') {
+                try { return JSON.parse(val); } catch (e) { return fallback; }
+            }
+            return val;
+        };
+
         // Delete removed images from Cloudinary
         if (imagesToDelete.length > 0) {
             const publicIds = imagesToDelete
@@ -268,21 +277,36 @@ export class ProductService {
             slug = await this.ensureUniqueSlug(this.generateSlug(name), id);
         }
 
+        // Sanitize numeric inputs
+        let sanitizedPrice = existing.price;
+        if (price !== undefined && price !== null && price !== '') {
+            const parsed = parseInt(price, 10);
+            if (!isNaN(parsed)) sanitizedPrice = parsed;
+        }
+
+        let sanitizedCompareAtPrice = existing.compareAtPrice;
+        if (compareAtPrice !== undefined) {
+            if (compareAtPrice === null || compareAtPrice === '') {
+                sanitizedCompareAtPrice = null;
+            } else {
+                const parsed = parseInt(compareAtPrice, 10);
+                if (!isNaN(parsed)) sanitizedCompareAtPrice = parsed;
+            }
+        }
+
         const product = {
             name: name || existing.name,
             slug,
             category: category || existing.category,
-            price: price !== undefined ? parseInt(price) : existing.price,
-            compare_at_price: compareAtPrice !== undefined 
-                ? (compareAtPrice ? parseInt(compareAtPrice) : null)
-                : existing.compareAtPrice,
+            price: sanitizedPrice,
+            compare_at_price: sanitizedCompareAtPrice,
             description: description !== undefined ? description : existing.description,
-            features: JSON.stringify(features || existing.features),
+            features: JSON.stringify(safeParse(features, existing.features)),
             images: JSON.stringify(images),
-            colors: JSON.stringify(colors || existing.colors),
-            sizes: JSON.stringify(sizes || existing.sizes),
-            inventory: JSON.stringify(inventory || existing.inventory),
-            tags: JSON.stringify(tags || existing.tags),
+            colors: JSON.stringify(safeParse(colors, existing.colors)),
+            sizes: JSON.stringify(safeParse(sizes, existing.sizes)),
+            inventory: JSON.stringify(safeParse(inventory, existing.inventory || {})),
+            tags: JSON.stringify(safeParse(tags, existing.tags)),
             badge: badge !== undefined ? badge : existing.badge,
             id
         };

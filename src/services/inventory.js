@@ -193,7 +193,14 @@ export class InventoryService {
                         [item.id]
                     );
                     
-                    const inventory = product.rows[0].inventory;
+                    let inventory = product.rows[0].inventory;
+                    if (typeof inventory === 'string') {
+                        try {
+                            inventory = JSON.parse(inventory);
+                        } catch (e) {
+                            inventory = {};
+                        }
+                    }
                     inventory[variantKey] = Math.max(0, (inventory[variantKey] || 0) - item.quantity);
                     
                     // Update inventory
@@ -267,7 +274,15 @@ export class InventoryService {
                     throw new Error('Product not found');
                 }
                 
-                const inventory = result.rows[0].inventory;
+                let inventory = result.rows[0].inventory;
+                if (typeof inventory === 'string') {
+                    try {
+                        inventory = JSON.parse(inventory);
+                    } catch (e) {
+                        inventory = {};
+                    }
+                }
+                
                 inventory[variantKey] = Math.max(0, parseInt(newQuantity) || 0);
                 
                 await this.db.query(
