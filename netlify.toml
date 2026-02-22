@@ -36,22 +36,23 @@
     Cross-Origin-Embedder-Policy = "unsafe-none"
     Cross-Origin-Resource-Policy = "cross-origin"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
-# Cache static assets
+# Cache static assets long-term
 [[headers]]
-  for = "*.css"
+  for = "/src/*.css"
   [headers.values]
-    Cache-Control = "public, max-age=31536000"
-
-[[headers]]
-  for = "*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000"
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
-  for = "*.png"
+  for = "/src/*.js"
   [headers.values]
-    Cache-Control = "public, max-age=31536000"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 # Environment variables (set in Netlify dashboard)
 [context.production.environment]
