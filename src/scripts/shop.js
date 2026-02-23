@@ -37,7 +37,7 @@ const ShopAPI = {
     
     async checkStock(productId, color, size) {
         try {
-            const response = await fetch(`${API_URL}/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
+            const response = await fetch(`${API_URL}/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
             const data = await response.json();
             return data;
         } catch (error) {
@@ -48,6 +48,12 @@ const ShopAPI = {
 
 // Transform database product to frontend format
 function transformProduct(dbProduct) {
+    const parseJson = (val, defaultValue = []) => {
+        if (!val) return defaultValue;
+        if (typeof val === 'object') return val;
+        try { return JSON.parse(val); } catch (e) { return defaultValue; }
+    };
+
     return {
         id: dbProduct.id,
         name: dbProduct.name,
@@ -56,12 +62,12 @@ function transformProduct(dbProduct) {
         price: dbProduct.price,
         compareAtPrice: dbProduct.compare_at_price || dbProduct.compareAtPrice,
         description: dbProduct.description,
-        features: Array.isArray(dbProduct.features) ? dbProduct.features : JSON.parse(dbProduct.features || '[]'),
-        images: Array.isArray(dbProduct.images) ? dbProduct.images : JSON.parse(dbProduct.images || '[]'),
-        colors: Array.isArray(dbProduct.colors) ? dbProduct.colors : JSON.parse(dbProduct.colors || '[]'),
-        sizes: Array.isArray(dbProduct.sizes) ? dbProduct.sizes : JSON.parse(dbProduct.sizes || '[]'),
-        inventory: typeof dbProduct.inventory === 'object' ? dbProduct.inventory : JSON.parse(dbProduct.inventory || '{}'),
-        tags: Array.isArray(dbProduct.tags) ? dbProduct.tags : JSON.parse(dbProduct.tags || '[]'),
+        features: parseJson(dbProduct.features),
+        images: parseJson(dbProduct.images),
+        colors: parseJson(dbProduct.colors),
+        sizes: parseJson(dbProduct.sizes),
+        inventory: parseJson(dbProduct.inventory, {}),
+        tags: parseJson(dbProduct.tags),
         badge: dbProduct.badge,
         createdAt: dbProduct.created_at || dbProduct.createdAt,
         sizeGuide: getSizeGuideForCategory(dbProduct.category)
@@ -229,12 +235,9 @@ function renderProducts() {
         const secondImage = product.images && product.images[1] ? product.images[1] : null;
         
         // Robust stock calculation
-        const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
+        const inventory = product.inventory || {};
         const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
         const isSoldOut = totalStock === 0;
-
-        // DEBUG: Uncomment to see stock values in console
-        // console.log(`[SHOP] Product: ${product.name}, Total Stock: ${totalStock}, isSoldOut: ${isSoldOut}`);
 
         // Badge priority logic: SOLD OUT always overwrites everything else
         let badgeHtml = '';
@@ -698,13 +701,6 @@ function bindEvents() {
         elements.mobileMenuBtn.classList.toggle('active');
         elements.navLinks?.classList.toggle('active');
     });
-
-    elements.cartBtn?.addEventListener('click', window.openCart);
-    elements.cartClose?.addEventListener('click', window.closeCart);
-    elements.cartOverlay?.addEventListener('click', window.closeCart);
-    elements.wishlistBtn?.addEventListener('click', window.openWishlist);
-    elements.wishlistClose?.addEventListener('click', window.closeWishlist);
-    elements.wishlistOverlay?.addEventListener('click', window.closeWishlist);
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {

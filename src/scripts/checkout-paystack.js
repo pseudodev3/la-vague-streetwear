@@ -106,7 +106,7 @@
             <p class="paystack-modal-text" id="paystack-status-text">Verifying your payment. Please wait...</p>
             <div class="paystack-modal-order">
                 <span class="paystack-modal-label">Order ID</span>
-                <span class="paystack-modal-value">#LV-${orderId.replace('LV-','')}</span>
+                <span class="paystack-modal-value">#${orderId.toUpperCase()}</span>
             </div>
             <div class="paystack-modal-progress">
                 <div class="paystack-modal-progress-bar" id="paystack-progress-bar"></div>

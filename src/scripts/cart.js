@@ -125,6 +125,9 @@ const CurrencyConfig = {
 // Initialize currency config on load
 CurrencyConfig.init();
 
+// Export to window for global access
+window.CurrencyConfig = CurrencyConfig;
+
 // ==========================================
 // SHARED STATE
 // ==========================================
@@ -202,28 +205,49 @@ const CartState = {
      * Helper to get stock from any source
      */
     async getAvailableStock(productId, color, size) {
+        const parseJson = (val, defaultValue = {}) => {
+            if (!val) return defaultValue;
+            if (typeof val === 'object') return val;
+            try { return JSON.parse(val); } catch (e) { return defaultValue; }
+        };
+
+        const findStockInInventory = (inventory, color, size) => {
+            if (!inventory) return null;
+            const targetKey = `${color}-${size}`.toLowerCase();
+            const keys = Object.keys(inventory);
+            const match = keys.find(k => k.toLowerCase() === targetKey);
+            if (match) return parseInt(inventory[match]);
+            if (size.toLowerCase() === 'os') {
+                const osMatch = keys.find(k => k.toLowerCase().includes('os'));
+                if (osMatch) return parseInt(inventory[osMatch]);
+            }
+            return null;
+        };
+
         // 1. Try static ProductAPI first
         if (typeof ProductAPI !== 'undefined') {
-            const staticProduct = ProductAPI.getById(productId);
+            const staticProduct = ProductAPI.getById(productId) || ProductAPI.getBySlug(productId);
             if (staticProduct) {
-                const inventory = typeof staticProduct.inventory === 'string' ? JSON.parse(staticProduct.inventory || '{}') : (staticProduct.inventory || {});
-                return parseInt(inventory[`${color}-${size}`]) || 0;
+                const inventory = parseJson(staticProduct.inventory, {});
+                const stock = findStockInInventory(inventory, color, size);
+                if (stock !== null) return stock;
             }
         }
 
-        // 2. Fallback to API check
+        // 2. Fallback to API check (Corrected path)
         try {
             const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
-            const response = await fetch(`${API_URL}/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
+            const response = await fetch(`${API_URL}/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
             if (response.ok) {
                 const data = await response.json();
-                return parseInt(data.available) || 0;
+                if (data.success) return parseInt(data.available) || 0;
             }
         } catch (e) {
             console.warn('[CART] API stock check unavailable');
         }
 
-        return 999; // Safe default if everything fails
+        // 3. Safety Fallback: Use optimistic stock unless we're certain it's empty
+        return 999;
     },
     
     addToWishlist(productId) {
@@ -553,6 +577,8 @@ const CartState = {
     }
 };
 
+window.CartState = CartState;
+
 // ==========================================
 // UI FUNCTIONS
 // ==========================================
@@ -603,17 +629,17 @@ window.closeWishlist = function() {
 // ==========================================
 // INITIALIZATION
 // ==========================================
-document.addEventListener('DOMContentLoaded', () => {
+function initCartUI() {
     // Update counts on page load
     CartState.updateCartCount();
     CartState.updateWishlistCount();
     
-    // Initialize Professional features (Abandoned cart, Tab reminder)
-    CartState.initProfessionalFeatures();
-    
     // Bind cart button clicks
     document.querySelectorAll('#cartBtn, .cart-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        // Remove existing listeners if any to prevent double-binding
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', (e) => {
             e.preventDefault();
             window.openCart();
         });
@@ -621,7 +647,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Bind wishlist button clicks
     document.querySelectorAll('#wishlistBtn, .wishlist-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', (e) => {
             e.preventDefault();
             window.openWishlist();
         });
@@ -632,6 +660,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cartOverlay')?.addEventListener('click', window.closeCart);
     document.getElementById('wishlistClose')?.addEventListener('click', window.closeWishlist);
     document.getElementById('wishlistOverlay')?.addEventListener('click', window.closeWishlist);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize UI
+    initCartUI();
+    
+    // Initialize Professional features (Abandoned cart, Tab reminder)
+    CartState.initProfessionalFeatures();
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -659,3 +695,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// Re-initialize UI when shared components are loaded (for other pages)
+window.addEventListener('componentsLoaded', initCartUI);

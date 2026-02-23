@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Display order number
     if (orderId) {
-        const displayId = orderId.startsWith('LV-') ? orderId.replace('LV-', '') : orderId;
+        // Robust case-insensitive removal of LV- prefix
+        const displayId = orderId.replace(/^lv-/gi, '').toUpperCase();
         const orderNumberEl = document.getElementById('orderNumber');
         if (orderNumberEl) orderNumberEl.textContent = displayId;
     } else {

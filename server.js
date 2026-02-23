@@ -58,11 +58,11 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://js.paystack.co", "https://checkout.paystack.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://js.paystack.co", "https://checkout.paystack.com", "https://browser.sentry-cdn.com"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "https:", "data:", "blob:", "res.cloudinary.com"],
-            connectSrc: ["'self'", process.env.FRONTEND_URL || "*", "https://api.paystack.co"],
+            connectSrc: ["'self'", process.env.FRONTEND_URL || "*", "https://api.paystack.co", "https://browser.sentry-cdn.com", "*.sentry.io"],
             frameSrc: ["'self'", "https://checkout.paystack.com", "https://js.paystack.co"],
             objectSrc: ["'none'"],
             upgradeInsecureRequests: [],
