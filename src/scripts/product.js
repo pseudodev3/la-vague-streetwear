@@ -351,10 +351,34 @@ function bindEvents() {
     });
 
     elements.addToCartBtn?.addEventListener('click', async () => {
+        const size = state.selectedSize || 'OS';
+        
+        // Final stock check before adding to cart
+        let isAvailable = true;
+        if (!state.usingStaticData) {
+            try {
+                const stockCheck = await ProductDetailAPI.checkStock(state.product.id, state.selectedColor, size);
+                if (stockCheck && stockCheck.success && stockCheck.inStock === false) {
+                    isAvailable = false;
+                }
+            } catch (e) {
+                isAvailable = true; // Fallback to allowed on error
+            }
+        } else {
+            const variantKey = `${state.selectedColor}-${size}`;
+            const stock = state.product.inventory?.[variantKey] || 0;
+            if (stock <= 0) isAvailable = false;
+        }
+
+        if (!isAvailable) {
+            showToast('Sorry, this item is out of stock', 'error');
+            return;
+        }
+
         await CartState.addToCart({
             id: state.product.id, name: state.product.name, price: state.product.price,
             image: state.product.images[0].src, color: state.selectedColor,
-            size: state.selectedSize || 'OS', quantity: state.quantity
+            size: size, quantity: state.quantity
         });
     });
     elements.wishlistToggleBtn?.addEventListener('click', () => {

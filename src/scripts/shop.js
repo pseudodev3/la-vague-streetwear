@@ -554,19 +554,28 @@ window.addToCartFromCard = async function(productId) {
     const color = product.colors?.[0]?.name || 'Default';
     const size = product.sizes?.[0] || 'OS';
     
+    // Perform thorough stock check
+    let isAvailable = true;
     if (!state.usingStaticData) {
-        const stockCheck = await ShopAPI.checkStock(product.id, color, size);
-        if (!stockCheck.inStock) {
-            showToast('Sorry, this item is out of stock', 'error');
-            return;
+        try {
+            const stockCheck = await ShopAPI.checkStock(product.id, color, size);
+            // Only block if we definitely get a successful response saying it's out of stock
+            if (stockCheck && stockCheck.success && stockCheck.inStock === false) {
+                isAvailable = false;
+            }
+        } catch (e) {
+            console.warn('[SHOP] Stock check failed, allowing add');
+            isAvailable = true; 
         }
     } else {
         const variantKey = `${color}-${size}`;
         const stock = product.inventory?.[variantKey] || 0;
-        if (stock <= 0) {
-            showToast('Sorry, this item is out of stock', 'error');
-            return;
-        }
+        if (stock <= 0) isAvailable = false;
+    }
+
+    if (!isAvailable) {
+        showToast('Sorry, this item is out of stock', 'error');
+        return;
     }
     
     CartState.addToCart({

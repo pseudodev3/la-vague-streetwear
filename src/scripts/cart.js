@@ -210,7 +210,8 @@ const CartState = {
             const staticProduct = ProductAPI.getById(productId);
             if (staticProduct) {
                 const inventory = typeof staticProduct.inventory === 'string' ? JSON.parse(staticProduct.inventory || '{}') : (staticProduct.inventory || {});
-                return parseInt(inventory[`${color}-${size}`]) || 0;
+                const stock = parseInt(inventory[`${color}-${size}`]);
+                if (!isNaN(stock)) return stock;
             }
         }
 
@@ -220,13 +221,15 @@ const CartState = {
             const response = await fetch(`${API_URL}/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
             if (response.ok) {
                 const data = await response.json();
-                return parseInt(data.available) || 0;
+                if (data.success && typeof data.available !== 'undefined') {
+                    return parseInt(data.available);
+                }
             }
         } catch (e) {
-            console.warn('[CART] API stock check unavailable');
+            console.warn('[CART] API stock check unavailable, assuming available');
         }
 
-        return 999; // Safe default if everything fails
+        return 999; // Safe default if everything fails (allow purchase)
     },
     
     addToWishlist(productId) {
