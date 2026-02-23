@@ -37,7 +37,7 @@ const ProductDetailAPI = {
             const API_URL = window.location.hostname === 'localhost' 
                 ? 'http://localhost:3000/api' 
                 : 'https://la-vague-api.onrender.com/api';
-            const response = await fetch(`${API_URL}/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
+            const response = await fetch(`${API_URL}/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
             const data = await response.json();
             return data;
         } catch (error) {
@@ -48,12 +48,6 @@ const ProductDetailAPI = {
 
 // Transform database product to frontend format
 function transformProduct(dbProduct) {
-    const parseJson = (val, defaultValue = []) => {
-        if (!val) return defaultValue;
-        if (typeof val === 'object') return val;
-        try { return JSON.parse(val); } catch (e) { return defaultValue; }
-    };
-
     return {
         id: dbProduct.id,
         name: dbProduct.name,
@@ -62,12 +56,12 @@ function transformProduct(dbProduct) {
         price: dbProduct.price,
         compareAtPrice: dbProduct.compare_at_price || dbProduct.compareAtPrice,
         description: dbProduct.description,
-        features: parseJson(dbProduct.features),
-        images: parseJson(dbProduct.images),
-        colors: parseJson(dbProduct.colors),
-        sizes: parseJson(dbProduct.sizes),
-        inventory: parseJson(dbProduct.inventory, {}),
-        tags: parseJson(dbProduct.tags),
+        features: Array.isArray(dbProduct.features) ? dbProduct.features : JSON.parse(dbProduct.features || '[]'),
+        images: Array.isArray(dbProduct.images) ? dbProduct.images : JSON.parse(dbProduct.images || '[]'),
+        colors: Array.isArray(dbProduct.colors) ? dbProduct.colors : JSON.parse(dbProduct.colors || '[]'),
+        sizes: Array.isArray(dbProduct.sizes) ? dbProduct.sizes : JSON.parse(dbProduct.sizes || '[]'),
+        inventory: typeof dbProduct.inventory === 'object' ? dbProduct.inventory : JSON.parse(dbProduct.inventory || '{}'),
+        tags: Array.isArray(dbProduct.tags) ? dbProduct.tags : JSON.parse(dbProduct.tags || '[]'),
         badge: dbProduct.badge,
         createdAt: dbProduct.created_at || dbProduct.createdAt,
         sizeGuide: getSizeGuideForCategory(dbProduct.category)
@@ -216,7 +210,7 @@ function renderProduct() {
     // Render Badge with Sold Out priority
     const badgeContainer = document.getElementById('productBadgeContainer');
     if (badgeContainer) {
-        const inventory = p.inventory || {};
+        const inventory = typeof p.inventory === 'string' ? JSON.parse(p.inventory || '{}') : (p.inventory || {});
         const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
         const isSoldOut = totalStock === 0;
         

@@ -102,12 +102,6 @@ const HomeAPI = {
 };
 
 function transformProduct(dbProduct) {
-    const parseJson = (val, defaultValue = []) => {
-        if (!val) return defaultValue;
-        if (typeof val === 'object') return val;
-        try { return JSON.parse(val); } catch (e) { return defaultValue; }
-    };
-
     return {
         id: dbProduct.id,
         name: dbProduct.name,
@@ -116,12 +110,12 @@ function transformProduct(dbProduct) {
         price: dbProduct.price,
         compareAtPrice: dbProduct.compare_at_price || dbProduct.compareAtPrice,
         description: dbProduct.description,
-        features: parseJson(dbProduct.features),
-        images: parseJson(dbProduct.images),
-        colors: parseJson(dbProduct.colors),
-        sizes: parseJson(dbProduct.sizes),
-        inventory: parseJson(dbProduct.inventory, {}),
-        tags: parseJson(dbProduct.tags),
+        features: Array.isArray(dbProduct.features) ? dbProduct.features : JSON.parse(dbProduct.features || '[]'),
+        images: Array.isArray(dbProduct.images) ? dbProduct.images : JSON.parse(dbProduct.images || '[]'),
+        colors: Array.isArray(dbProduct.colors) ? dbProduct.colors : JSON.parse(dbProduct.colors || '[]'),
+        sizes: Array.isArray(dbProduct.sizes) ? dbProduct.sizes : JSON.parse(dbProduct.sizes || '[]'),
+        inventory: typeof dbProduct.inventory === 'object' ? dbProduct.inventory : JSON.parse(dbProduct.inventory || '{}'),
+        tags: Array.isArray(dbProduct.tags) ? dbProduct.tags : JSON.parse(dbProduct.tags || '[]'),
         badge: dbProduct.badge,
         average_rating: dbProduct.average_rating || 0,
         review_count: dbProduct.review_count || 0
@@ -159,7 +153,7 @@ async function renderFeaturedProducts() {
     
     elements.featuredProducts.innerHTML = featured.map(product => {
         // Robust stock calculation
-        const inventory = product.inventory || {};
+        const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
         const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
         const isSoldOut = totalStock === 0;
 

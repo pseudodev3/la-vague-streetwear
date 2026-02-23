@@ -138,36 +138,12 @@ router.get('/inventory/check/:productId', asyncHandler(async (req, res) => {
     const { productId } = req.params;
     const { color, size } = req.query;
     
-    if (!color || !size) {
-        throw new APIError('Color and size are required', 400);
-    }
-
-    const result = await query('SELECT inventory FROM products WHERE id = $1 OR slug = $1', [productId]);
+    const result = await query('SELECT inventory FROM products WHERE id = $1', [productId]);
     if (result.rows.length === 0) throw new APIError('Product not found', 404);
     
     const inventory = safeParseJSON(result.rows[0].inventory, {});
-    
-    // Case-insensitive lookup
-    const targetKey = `${color}-${size}`.toLowerCase();
-    let available = 0;
-    
-    // 1. Try exact match first
-    const exactKey = `${color}-${size}`;
-    if (inventory.hasOwnProperty(exactKey)) {
-        available = parseInt(inventory[exactKey]) || 0;
-    } else {
-        // 2. Fallback to case-insensitive search
-        const match = Object.keys(inventory).find(k => k.toLowerCase() === targetKey);
-        if (match) {
-            available = parseInt(inventory[match]) || 0;
-        } else {
-            // 3. Special handling for OS (One Size)
-            if (size.toLowerCase() === 'os') {
-                const osMatch = Object.keys(inventory).find(k => k.toLowerCase().includes('os'));
-                if (osMatch) available = parseInt(inventory[osMatch]) || 0;
-            }
-        }
-    }
+    const variantKey = `${color}-${size}`;
+    const available = inventory[variantKey] || 0;
     
     res.json({ success: true, available, inStock: available > 0 });
 }));
