@@ -3,20 +3,19 @@
  * LA VAGUE - Order Confirmation Logic
  */
 function initOrderConfirmation() {
-    // Get order details from URL
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = urlParams.get('order');
     const paymentStatus = urlParams.get('status');
     
-    // Display order number
-    if (orderId) {
-        // Robust case-insensitive removal of LV- prefix
-        const displayId = orderId.replace(/^lv-/gi, '').toUpperCase();
-        const orderNumberEl = document.getElementById('orderNumber');
-        if (orderNumberEl) orderNumberEl.textContent = displayId;
-    } else {
-        const orderNumberEl = document.getElementById('orderNumber');
-        if (orderNumberEl) orderNumberEl.textContent = Math.random().toString(36).substr(2, 6).toUpperCase();
+    const orderNumberEl = document.getElementById('orderNumber');
+    if (orderNumberEl) {
+        if (orderId) {
+            // Show full ID from URL (e.g., LV-87DF27C1)
+            orderNumberEl.textContent = orderId.toUpperCase();
+        } else {
+            // Fallback for missing ID
+            orderNumberEl.textContent = 'LV-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+        }
     }
     
     // Show payment success message if applicable
@@ -28,14 +27,12 @@ function initOrderConfirmation() {
     }
 }
 
-// Wait for components to be loaded before initializing
+// Initialize on load and when components are ready
 window.addEventListener('componentsLoaded', initOrderConfirmation);
+window.addEventListener('load', initOrderConfirmation);
+document.addEventListener('DOMContentLoaded', initOrderConfirmation);
 
-// Fallback if event already fired or components.js not used
+// Run immediately if ready
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    if (document.getElementById('orderNumber')) initOrderConfirmation();
-} else {
-    document.addEventListener('DOMContentLoaded', () => {
-        if (document.getElementById('orderNumber')) initOrderConfirmation();
-    });
+    initOrderConfirmation();
 }
