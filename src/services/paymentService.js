@@ -29,7 +29,13 @@ async function sendOrderEmailSafely(order, type = 'confirmation', status = null)
 
 export function verifyPaystackSignature(body, signature) {
     if (!secretKey) return false;
-    const hash = crypto.createHmac('sha512', secretKey).update(body).digest('hex');
+    
+    // Ensure body is a string or buffer for HMAC update
+    const payload = typeof body === 'string' || Buffer.isBuffer(body) 
+        ? body 
+        : JSON.stringify(body);
+        
+    const hash = crypto.createHmac('sha512', secretKey).update(payload).digest('hex');
     return hash === signature;
 }
 

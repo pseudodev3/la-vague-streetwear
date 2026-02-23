@@ -60,15 +60,18 @@ export default function(productService, inventoryService) {
         const adminPassword = process.env.ADMIN_PASSWORD;
 
         if (!adminPassword) {
+            console.error('[AUTH] ADMIN_PASSWORD environment variable is not set');
             throw new APIError('Server configuration error', 500, 'CONFIG_ERROR');
         }
 
-        const passwordBuffer = Buffer.from(password);
-        const adminBuffer = Buffer.from(adminPassword);
+        // Use constant-time comparison on hashes to prevent timing attacks and handle different lengths safely
+        const passwordHash = crypto.createHash('sha256').update(password).digest();
+        const adminHash = crypto.createHash('sha256').update(adminPassword).digest();
 
-        if (passwordBuffer.length !== adminBuffer.length ||
-            !crypto.timingSafeEqual(passwordBuffer, adminBuffer)) {
-            throw new APIError('Invalid password', 401, 'AUTH_ERROR');
+        if (!crypto.timingSafeEqual(passwordHash, adminHash)) {
+            // Add a small random delay to further mitigate timing attacks
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+            throw new APIError('Invalid credentials', 401, 'AUTH_ERROR');
         }
 
         const token = crypto.randomBytes(32).toString('hex');
