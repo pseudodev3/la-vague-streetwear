@@ -26,9 +26,20 @@ export async function createOrder(orderData, productService, inventoryService, o
     if (discountCode) {
         const coupon = (await query('SELECT * FROM coupons WHERE code = $1 AND is_active = true', [discountCode.toUpperCase()])).rows[0];
         if (coupon) {
-            calculatedDiscount = coupon.type === 'percentage' 
-                ? Math.round(calculatedSubtotal * (coupon.value / 100)) 
-                : coupon.value;
+            const now = new Date();
+            const isWithinDates = (!coupon.start_date || new Date(coupon.start_date) <= now) && 
+                                 (!coupon.end_date || new Date(coupon.end_date) >= now);
+            const isUnderLimit = !coupon.usage_limit || coupon.usage_count < coupon.usage_limit;
+
+            if (isWithinDates && isUnderLimit) {
+                calculatedDiscount = coupon.type === 'percentage' 
+                    ? Math.round(calculatedSubtotal * (coupon.value / 100)) 
+                    : coupon.value;
+                
+                if (coupon.max_discount_amount && calculatedDiscount > coupon.max_discount_amount) {
+                    calculatedDiscount = coupon.max_discount_amount;
+                }
+            }
         }
     }
 

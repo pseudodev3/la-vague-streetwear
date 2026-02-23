@@ -58,7 +58,22 @@ export default function(productService, inventoryService) {
         if (result.rows.length === 0) return res.status(400).json({ valid: false, error: 'Invalid coupon code' });
         
         const coupon = result.rows[0];
-        if (cartTotal < coupon.min_order_amount) return res.status(400).json({ valid: false, error: `Minimum order amount is ₦${coupon.min_order_amount}` });
+        
+        // Check Usage Limit
+        if (coupon.usage_limit && coupon.usage_count >= coupon.usage_limit) {
+            return res.status(400).json({ valid: false, error: 'Coupon usage limit has been reached' });
+        }
+
+        // Check Dates
+        const now = new Date();
+        if (coupon.start_date && new Date(coupon.start_date) > now) {
+            return res.status(400).json({ valid: false, error: 'Coupon is not yet active' });
+        }
+        if (coupon.end_date && new Date(coupon.end_date) < now) {
+            return res.status(400).json({ valid: false, error: 'Coupon has expired' });
+        }
+
+        if (cartTotal < coupon.min_order_amount) return res.status(400).json({ valid: false, error: `Minimum order amount is ₦${coupon.min_order_amount.toLocaleString()}` });
         
         let discount = coupon.type === 'percentage' ? Math.round(cartTotal * (coupon.value / 100)) : coupon.value;
         if (coupon.max_discount_amount && discount > coupon.max_discount_amount) discount = coupon.max_discount_amount;
