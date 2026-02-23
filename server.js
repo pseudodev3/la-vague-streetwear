@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import fs from 'fs';
 
 // Import local modules
 import { db, USE_POSTGRES } from './src/config/db.js';
@@ -102,6 +103,43 @@ app.use(express.json({
     }
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ==========================================
+// AUTOMATIC CACHE BUSTING
+// ==========================================
+const BUILD_ID = Date.now();
+
+// Middleware to inject dynamic versioning into HTML files
+app.get(['/', '/*.html'], (req, res, next) => {
+    // Only handle GET requests for potential HTML files
+    if (req.method !== 'GET' || req.path.startsWith('/api')) return next();
+
+    let relativePath = req.path === '/' ? 'index.html' : req.path;
+    if (relativePath.startsWith('/')) relativePath = relativePath.substring(1);
+    if (!relativePath.endsWith('.html') && !relativePath.includes('.')) relativePath += '.html';
+
+    const filePath = path.join(__dirname, relativePath);
+
+    if (fs.existsSync(filePath) && !fs.lstatSync(filePath).isDirectory()) {
+        try {
+            let content = fs.readFileSync(filePath, 'utf8');
+            // Automatically replace all ?v=... with the dynamic BUILD_ID
+            content = content.replace(/\?v=[0-9.]+/g, `?v=${BUILD_ID}`);
+            
+            // Set headers to prevent HTML caching
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.setHeader('Content-Type', 'text/html');
+            return res.send(content);
+        } catch (error) {
+            console.error('[CACHE-BUST] Error processing HTML:', error);
+            next();
+        }
+    } else {
+        next();
+    }
+});
 
 // Static files with specific cache rules
 app.use(express.static('.', {
