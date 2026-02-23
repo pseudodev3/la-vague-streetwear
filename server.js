@@ -152,6 +152,11 @@ app.use('/api/config', configRoutes);
 app.use('/api/payment', paymentRoutes(inventoryService));
 app.use('/api/admin', adminRoutes(productService, inventoryService));
 
+// Backward Compatibility Aliases
+app.get('/api/inventory/check/:productId', (req, res) => res.redirect(307, `/api/products/inventory/check/${req.params.productId}${req.url.includes('?') ? '?' + req.url.split('?')[1] : ''}`));
+app.post('/api/inventory/check', (req, res) => res.redirect(307, '/api/products/inventory/check'));
+app.post('/api/coupons/validate', (req, res) => res.redirect(307, '/api/orders/validate-coupon'));
+
 // ==========================================
 // HTTPS ENFORCEMENT
 // ==========================================

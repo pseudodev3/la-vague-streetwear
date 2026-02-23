@@ -169,7 +169,7 @@ async function applyDiscountCode() {
         const csrfResponse = await fetch(`${API_URL}/csrf-token`, { credentials: 'include' });
         const csrfData = await csrfResponse.json();
         
-        const response = await fetch(`${API_URL}/coupons/validate`, {
+        const response = await fetch(`${API_URL}/orders/validate-coupon`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
@@ -179,16 +179,14 @@ async function applyDiscountCode() {
         const data = await response.json();
         if (!response.ok || !data.valid) { showToast(data.error || 'Invalid code', 'error'); return; }
         
-        if (data.coupon.type === 'free_shipping') {
-            state.isFreeShippingCoupon = true;
+        state.discount = data.coupon.discount;
+        state.isFreeShippingCoupon = data.coupon.type === 'free_shipping';
+        
+        if (state.isFreeShippingCoupon) {
             state.shipping = 0;
-            state.discount = 0;
-        } else if (data.coupon.type === 'percentage') {
-            state.isFreeShippingCoupon = false;
-            state.discount = Math.round((subtotal * data.coupon.discount) / 100);
-        } else if (data.coupon.type === 'fixed') {
-            state.isFreeShippingCoupon = false;
-            state.discount = data.coupon.discount;
+            showToast('Free shipping applied!', 'success');
+        } else {
+            showToast(`Coupon applied! ₦${state.discount.toLocaleString()} off`, 'success');
         }
         
         state.discountCode = code;

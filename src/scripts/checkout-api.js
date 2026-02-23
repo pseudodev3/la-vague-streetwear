@@ -42,7 +42,7 @@ const api = {
     getProducts: (params) => api.request(`/products?${new URLSearchParams(params)}`),
     getProduct: (slug) => api.request(`/products/${slug}`),
     checkInventory: (productId, color, size) => 
-        api.request('/inventory/check', { method: 'POST', body: { productId, color, size } }),
+        api.request('/products/inventory/check', { method: 'POST', body: { productId, color, size } }),
 
     // Payments
     initializePayment: (email, amount, metadata) => 

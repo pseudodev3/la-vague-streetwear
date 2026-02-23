@@ -133,10 +133,24 @@ router.post('/:id/waitlist', csrfProtection, asyncHandler(async (req, res) => {
     res.json({ success: true, message: 'Added to waitlist' });
 }));
 
-// Check stock availability
+// Check stock availability (GET)
 router.get('/inventory/check/:productId', asyncHandler(async (req, res) => {
     const { productId } = req.params;
     const { color, size } = req.query;
+    
+    const result = await query('SELECT inventory FROM products WHERE id = $1', [productId]);
+    if (result.rows.length === 0) throw new APIError('Product not found', 404);
+    
+    const inventory = safeParseJSON(result.rows[0].inventory, {});
+    const variantKey = `${color}-${size}`;
+    const available = inventory[variantKey] || 0;
+    
+    res.json({ success: true, available, inStock: available > 0 });
+}));
+
+// Check stock availability (POST) - used by checkout-api.js
+router.post('/inventory/check', asyncHandler(async (req, res) => {
+    const { productId, color, size } = req.body;
     
     const result = await query('SELECT inventory FROM products WHERE id = $1', [productId]);
     if (result.rows.length === 0) throw new APIError('Product not found', 404);

@@ -37,7 +37,7 @@ const ShopAPI = {
     
     async checkStock(productId, color, size) {
         try {
-            const response = await fetch(`${API_URL}/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
+            const response = await fetch(`${API_URL}/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
             const data = await response.json();
             return data;
         } catch (error) {
