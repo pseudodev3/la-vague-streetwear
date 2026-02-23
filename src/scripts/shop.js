@@ -558,10 +558,17 @@ window.addToCartFromCard = async function(productId) {
     let isAvailable = true;
     if (!state.usingStaticData) {
         try {
-            const stockCheck = await ShopAPI.checkStock(product.id, color, size);
-            // Only block if we definitely get a successful response saying it's out of stock
-            if (stockCheck && stockCheck.success && stockCheck.inStock === false) {
-                isAvailable = false;
+            const response = await fetch(`${API_URL}/products/inventory/check/${product.id}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
+            if (response.ok) {
+                const stockCheck = await response.json();
+                if (stockCheck && stockCheck.success && stockCheck.inStock === false) {
+                    isAvailable = false;
+                }
+            } else if (response.status === 404) {
+                // If product is not found in DB, it might be in static data
+                const variantKey = `${color}-${size}`;
+                const staticStock = product.inventory?.[variantKey] || 0;
+                if (staticStock <= 0) isAvailable = false;
             }
         } catch (e) {
             console.warn('[SHOP] Stock check failed, allowing add');

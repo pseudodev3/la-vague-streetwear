@@ -357,9 +357,21 @@ function bindEvents() {
         let isAvailable = true;
         if (!state.usingStaticData) {
             try {
-                const stockCheck = await ProductDetailAPI.checkStock(state.product.id, state.selectedColor, size);
-                if (stockCheck && stockCheck.success && stockCheck.inStock === false) {
-                    isAvailable = false;
+                const API_URL = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:3000/api' 
+                    : 'https://la-vague-api.onrender.com/api';
+                const response = await fetch(`${API_URL}/products/inventory/check/${state.product.id}?color=${encodeURIComponent(state.selectedColor)}&size=${encodeURIComponent(size)}`);
+                
+                if (response.ok) {
+                    const stockCheck = await response.json();
+                    if (stockCheck && stockCheck.success && stockCheck.inStock === false) {
+                        isAvailable = false;
+                    }
+                } else if (response.status === 404) {
+                    // Fallback to local data if not found in DB
+                    const variantKey = `${state.selectedColor}-${size}`;
+                    const stock = state.product.inventory?.[variantKey] || 0;
+                    if (stock <= 0) isAvailable = false;
                 }
             } catch (e) {
                 isAvailable = true; // Fallback to allowed on error

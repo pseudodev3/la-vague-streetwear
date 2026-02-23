@@ -6,26 +6,26 @@ import { sendReviewConfirmationEmail, sendNewReviewNotification } from '../../em
 
 const router = express.Router();
 
-const safeParseJSON = (str, defaultValue = null) => {
-    if (!str || str === 'null' || str === 'undefined') return defaultValue;
-    try { return JSON.parse(str); } catch (e) { return defaultValue; }
+const safeParseJSON = (val, defaultValue = null) => {
+    if (val === null || val === undefined) return defaultValue;
+    if (typeof val === 'object') return val;
+    if (typeof val !== 'string') return defaultValue;
+    if (val === 'null' || val === 'undefined' || val.trim() === '') return defaultValue;
+    try { return JSON.parse(val); } catch (e) { return defaultValue; }
 };
 
 // Get all products
 router.get('/', asyncHandler(async (req, res) => {
     const result = await query('SELECT * FROM products ORDER BY created_at DESC');
-    const products = result.rows.map(p => {
-        const parseJson = (val) => typeof val === 'string' ? JSON.parse(val || 'null') : val;
-        return {
-            ...p,
-            features: parseJson(p.features) || [],
-            images: parseJson(p.images) || [],
-            colors: parseJson(p.colors) || [],
-            sizes: parseJson(p.sizes) || [],
-            inventory: parseJson(p.inventory) || {},
-            tags: parseJson(p.tags) || []
-        };
-    });
+    const products = result.rows.map(p => ({
+        ...p,
+        features: safeParseJSON(p.features, []),
+        images: safeParseJSON(p.images, []),
+        colors: safeParseJSON(p.colors, []),
+        sizes: safeParseJSON(p.sizes, []),
+        inventory: safeParseJSON(p.inventory, {}),
+        tags: safeParseJSON(p.tags, [])
+    }));
     res.json({ success: true, products });
 }));
 
@@ -38,17 +38,16 @@ router.get('/:slug', asyncHandler(async (req, res) => {
         throw new APIError('Product not found', 404, 'NOT_FOUND');
     }
     const p = result.rows[0];
-    const parseJson = (val) => typeof val === 'string' ? JSON.parse(val || 'null') : val;
     res.json({
         success: true,
         product: {
             ...p,
-            features: parseJson(p.features) || [],
-            images: parseJson(p.images) || [],
-            colors: parseJson(p.colors) || [],
-            sizes: parseJson(p.sizes) || [],
-            inventory: parseJson(p.inventory) || {},
-            tags: parseJson(p.tags) || []
+            features: safeParseJSON(p.features, []),
+            images: safeParseJSON(p.images, []),
+            colors: safeParseJSON(p.colors, []),
+            sizes: safeParseJSON(p.sizes, []),
+            inventory: safeParseJSON(p.inventory, {}),
+            tags: safeParseJSON(p.tags, [])
         }
     });
 }));
@@ -138,7 +137,8 @@ router.get('/inventory/check/:productId', asyncHandler(async (req, res) => {
     const { productId } = req.params;
     const { color, size } = req.query;
     
-    const result = await query('SELECT inventory FROM products WHERE id = $1', [productId]);
+    // Support both ID and slug for inventory check
+    const result = await query('SELECT inventory FROM products WHERE id = $1 OR slug = $1', [productId]);
     if (result.rows.length === 0) throw new APIError('Product not found', 404);
     
     const inventory = safeParseJSON(result.rows[0].inventory, {});
@@ -152,7 +152,8 @@ router.get('/inventory/check/:productId', asyncHandler(async (req, res) => {
 router.post('/inventory/check', asyncHandler(async (req, res) => {
     const { productId, color, size } = req.body;
     
-    const result = await query('SELECT inventory FROM products WHERE id = $1', [productId]);
+    // Support both ID and slug for inventory check
+    const result = await query('SELECT inventory FROM products WHERE id = $1 OR slug = $1', [productId]);
     if (result.rows.length === 0) throw new APIError('Product not found', 404);
     
     const inventory = safeParseJSON(result.rows[0].inventory, {});

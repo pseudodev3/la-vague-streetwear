@@ -219,17 +219,23 @@ const CartState = {
         try {
             const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
             const response = await fetch(`${API_URL}/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
+            
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && typeof data.available !== 'undefined') {
                     return parseInt(data.available);
                 }
+            } else if (response.status === 404) {
+                // Product not in DB, but we might have it in static data or it might be a newly added product
+                // If it's a 404, we don't assume availability if we can't find it
+                console.warn(`[CART] Product ${productId} not found in database`);
+                return 0; 
             }
         } catch (e) {
             console.warn('[CART] API stock check unavailable, assuming available');
         }
 
-        return 999; // Safe default if everything fails (allow purchase)
+        return 999; // Safe default if server is DOWN (allow purchase)
     },
     
     addToWishlist(productId) {
