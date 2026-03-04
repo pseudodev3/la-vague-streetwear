@@ -72,6 +72,8 @@ COPY --from=builder /app/checkout.js ./
 COPY --from=builder /app/checkout-api.js ./
 COPY --from=builder /app/admin.js ./
 COPY --from=builder /app/script.js ./
+COPY --from=builder /app/sw.js ./
+COPY --from=builder /app/site.webmanifest ./
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/email-templates ./email-templates
 COPY --from=builder /app/scripts ./scripts
@@ -79,6 +81,7 @@ COPY --from=builder /app/assets ./assets
 COPY --from=builder /app/*.html ./
 COPY --from=builder /app/*.css ./
 COPY --from=builder /app/*.png ./
+COPY --from=builder /app/*.svg ./
 
 # Change ownership to non-root user
 RUN chown -R nodejs:nodejs /app

@@ -153,6 +153,18 @@ app.use(express.static('.', {
             res.setHeader('Pragma', 'no-cache');
             res.setHeader('Expires', '0');
         }
+        // Service worker must never be cached
+        if (path.endsWith('sw.js')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.setHeader('Service-Worker-Allowed', '/');
+        }
+        // Web manifest should have reasonable cache
+        if (path.endsWith('site.webmanifest')) {
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+            res.setHeader('Content-Type', 'application/manifest+json');
+        }
     }
 }));
 
