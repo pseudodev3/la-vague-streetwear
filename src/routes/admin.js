@@ -355,8 +355,54 @@ export default function(productService, inventoryService) {
     router.put('/reviews/:id/status', verifyAdminToken, asyncHandler(async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
+        
+        // Get the review to find the product_id
+        const reviewResult = await query('SELECT product_id FROM reviews WHERE id = $1', [id]);
+        if (reviewResult.rows.length === 0) {
+            throw new APIError('Review not found', 404, 'NOT_FOUND');
+        }
+        const productId = reviewResult.rows[0].product_id;
+        
+        // Update review status
         await query('UPDATE reviews SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, id]);
+        
+        // Recalculate product rating
+        await recalculateProductRating(productId);
+        
         res.json({ success: true, message: `Review ${status}` });
+    }));
+    
+    // Helper function to recalculate product rating
+    async function recalculateProductRating(productId) {
+        const statsResult = await query(`
+            SELECT 
+                COALESCE(AVG(rating), 0) as average_rating,
+                COUNT(*) as review_count
+            FROM reviews 
+            WHERE product_id = $1 AND status = 'approved'
+        `, [productId]);
+        
+        const averageRating = parseFloat(statsResult.rows[0].average_rating) || 0;
+        const reviewCount = parseInt(statsResult.rows[0].review_count) || 0;
+        
+        await query(`
+            UPDATE products 
+            SET average_rating = $1, review_count = $2 
+            WHERE id = $3
+        `, [averageRating, reviewCount, productId]);
+    }
+    
+    // Bulk recalculate all product ratings (useful for fixing existing data)
+    router.post('/reviews/recalculate-all', verifyAdminToken, asyncHandler(async (req, res) => {
+        const productsResult = await query('SELECT id FROM products');
+        let updated = 0;
+        
+        for (const product of productsResult.rows) {
+            await recalculateProductRating(product.id);
+            updated++;
+        }
+        
+        res.json({ success: true, message: `Recalculated ratings for ${updated} products` });
     }));
 
     // Waitlist

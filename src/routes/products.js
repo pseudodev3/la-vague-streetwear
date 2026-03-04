@@ -24,7 +24,9 @@ router.get('/', asyncHandler(async (req, res) => {
         colors: safeParseJSON(p.colors, []),
         sizes: safeParseJSON(p.sizes, []),
         inventory: safeParseJSON(p.inventory, {}),
-        tags: safeParseJSON(p.tags, [])
+        tags: safeParseJSON(p.tags, []),
+        average_rating: p.average_rating || 0,
+        review_count: p.review_count || 0
     }));
     res.json({ success: true, products });
 }));
@@ -47,7 +49,9 @@ router.get('/:slug', asyncHandler(async (req, res) => {
             colors: safeParseJSON(p.colors, []),
             sizes: safeParseJSON(p.sizes, []),
             inventory: safeParseJSON(p.inventory, {}),
-            tags: safeParseJSON(p.tags, [])
+            tags: safeParseJSON(p.tags, []),
+            average_rating: p.average_rating || 0,
+            review_count: p.review_count || 0
         }
     });
 }));
