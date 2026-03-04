@@ -15,7 +15,8 @@ import { initDatabase } from './src/services/dbInit.js';
 import { 
     globalErrorHandler, 
     notFoundHandler,
-    asyncHandler 
+    asyncHandler,
+    APIError
 } from './src/middleware/errorHandler.js';
 import { csrfProtection, csrfToken } from './src/middleware/csrf.js';
 import {
@@ -182,12 +183,65 @@ app.use('/api/', apiLimiter);
 // ROUTES
 // ==========================================
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString(), database: USE_POSTGRES ? 'postgresql' : 'sqlite', version: '1.2.0' });
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), database: USE_POSTGRES ? 'postgresql' : 'sqlite', version: '1.2.1', features: ['pwa', 'reviews'] });
+});
+
+// Debug endpoint to check admin routes are loaded
+app.get('/api/debug/routes', (req, res) => {
+    const routes = [];
+    app._router.stack.forEach(middleware => {
+        if (middleware.route) {
+            routes.push({ path: middleware.route.path, methods: Object.keys(middleware.route.methods) });
+        } else if (middleware.name === 'router') {
+            middleware.handle.stack.forEach(handler => {
+                if (handler.route) {
+                    const path = handler.route.path;
+                    const basePath = middleware.regexp.toString().includes('admin') ? '/api/admin' : '';
+                    routes.push({ path: basePath + path, methods: Object.keys(handler.route.methods) });
+                }
+            });
+        }
+    });
+    res.json({ routes: routes.filter(r => r.path.includes('admin') || r.path.includes('recalculate')) });
 });
 
 app.get('/api/db-test', asyncHandler(async (req, res) => {
     const result = await (USE_POSTGRES ? db.query('SELECT NOW() as time') : db.prepare('SELECT datetime("now") as time').get());
     res.json({ success: true, server_time: result.rows?.[0]?.time || result.time });
+}));
+
+// One-time fix: Recalculate all product ratings (requires secret key)
+app.post('/api/fix/recalculate-ratings', asyncHandler(async (req, res) => {
+    const secretKey = req.headers['x-fix-key'];
+    if (secretKey !== process.env.ADMIN_PASSWORD) {
+        throw new APIError('Unauthorized', 401, 'AUTH_ERROR');
+    }
+    
+    const productsResult = await query('SELECT id FROM products');
+    let updated = 0;
+    
+    for (const product of productsResult.rows) {
+        const statsResult = await query(`
+            SELECT 
+                COALESCE(AVG(rating), 0) as average_rating,
+                COUNT(*) as review_count
+            FROM reviews 
+            WHERE product_id = $1 AND status = 'approved'
+        `, [product.id]);
+        
+        const averageRating = parseFloat(statsResult.rows[0].average_rating) || 0;
+        const reviewCount = parseInt(statsResult.rows[0].review_count) || 0;
+        
+        await query(`
+            UPDATE products 
+            SET average_rating = $1, review_count = $2 
+            WHERE id = $3
+        `, [averageRating, reviewCount, product.id]);
+        
+        updated++;
+    }
+    
+    res.json({ success: true, message: `Recalculated ratings for ${updated} products` });
 }));
 
 app.get('/api/csrf-token', csrfToken, (req, res) => {
