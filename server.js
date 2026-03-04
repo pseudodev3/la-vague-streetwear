@@ -63,7 +63,7 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "https:", "data:", "blob:", "res.cloudinary.com"],
-            connectSrc: ["'self'", process.env.FRONTEND_URL || "*", "https://api.paystack.co", "https://browser.sentry-cdn.com", "*.sentry.io"],
+            connectSrc: ["'self'", process.env.FRONTEND_URL || "*", "https://api.paystack.co", "https://browser.sentry-cdn.com", "*.sentry.io", "https://fonts.googleapis.com", "https://res.cloudinary.com"],
             frameSrc: ["'self'", "https://checkout.paystack.com", "https://js.paystack.co"],
             objectSrc: ["'none'"],
             upgradeInsecureRequests: [],

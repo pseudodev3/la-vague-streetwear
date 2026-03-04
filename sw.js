@@ -1,21 +1,20 @@
 /**
  * LA VAGUE - Service Worker
  * Provides offline support and caching for PWA functionality
- * Version: 1.0.0
+ * Version: 1.0.1
  */
 
 const CACHE_NAME = 'la-vague-v1';
 const STATIC_CACHE = 'la-vague-static-v1';
 const IMAGE_CACHE = 'la-vague-images-v1';
 
-// Assets to cache on install
+// Assets to cache on install (same-origin only)
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/shop.html',
     '/product.html',
     '/checkout.html',
-    '/cart.html',
     '/faq.html',
     '/shipping.html',
     '/returns.html',
@@ -51,7 +50,8 @@ const STATIC_ASSETS = [
     '/src/scripts/checkout.js',
     '/src/scripts/checkout-api.js',
     '/src/scripts/checkout-config.js',
-    '/src/scripts/checkout-paystack.js'
+    '/src/scripts/checkout-paystack.js',
+    '/src/scripts/pwa-register.js'
 ];
 
 // Routes that should never be cached (dynamic/API)
@@ -68,6 +68,16 @@ function isNetworkOnly(url) {
     return NETWORK_ONLY_ROUTES.some(route => route.test(url));
 }
 
+// Check if URL is same-origin
+function isSameOrigin(url) {
+    try {
+        const urlObj = new URL(url, self.location.origin);
+        return urlObj.origin === self.location.origin;
+    } catch (e) {
+        return true; // Assume same-origin for relative URLs
+    }
+}
+
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
     console.log('[SW] Installing service worker...');
@@ -76,7 +86,13 @@ self.addEventListener('install', (event) => {
         caches.open(STATIC_CACHE)
             .then(cache => {
                 console.log('[SW] Caching static assets...');
-                return cache.addAll(STATIC_ASSETS);
+                // Cache assets one by one to avoid failing if one is missing
+                const cachePromises = STATIC_ASSETS.map(asset => {
+                    return cache.add(asset).catch(error => {
+                        console.warn('[SW] Failed to cache:', asset, error.message);
+                    });
+                });
+                return Promise.all(cachePromises);
             })
             .then(() => {
                 console.log('[SW] Static assets cached successfully');
@@ -84,7 +100,6 @@ self.addEventListener('install', (event) => {
             })
             .catch(error => {
                 console.error('[SW] Failed to cache static assets:', error);
-                // Don't fail installation if some assets can't be cached
                 return self.skipWaiting();
             })
     );
@@ -128,13 +143,14 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Skip cross-origin requests (except images)
-    if (url.origin !== self.location.origin && !request.destination === 'image') {
+    // Skip cross-origin requests (CSP blocks them)
+    if (url.origin !== self.location.origin) {
+        // Allow the browser to handle cross-origin requests normally
         return;
     }
     
     // Network-only routes (API, payments, admin)
-    if (isNetworkOnly(url.pathname) || isNetworkOnly(url.href)) {
+    if (isNetworkOnly(url.pathname)) {
         event.respondWith(
             fetch(request)
                 .catch(error => {
@@ -158,14 +174,13 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Image caching strategy: Cache First, then Network
-    if (request.destination === 'image') {
+    // Same-origin images - Cache First
+    if (request.destination === 'image' && url.origin === self.location.origin) {
         event.respondWith(
             caches.open(IMAGE_CACHE).then(cache => {
                 return cache.match(request).then(response => {
-                    // Return cached image if found
                     if (response) {
-                        // Refresh cache in background
+                        // Return cached version, refresh in background
                         fetch(request).then(networkResponse => {
                             if (networkResponse.ok) {
                                 cache.put(request, networkResponse.clone());
@@ -174,15 +189,13 @@ self.addEventListener('fetch', (event) => {
                         return response;
                     }
                     
-                    // Fetch and cache new image
+                    // Fetch and cache
                     return fetch(request).then(networkResponse => {
                         if (networkResponse.ok) {
                             cache.put(request, networkResponse.clone());
                         }
                         return networkResponse;
-                    }).catch(error => {
-                        console.error('[SW] Image fetch failed:', error);
-                        // Return a placeholder or empty response
+                    }).catch(() => {
                         return new Response('', { status: 404 });
                     });
                 });
@@ -191,12 +204,12 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Static assets: Cache First, fallback to Network
+    // Static assets: Cache First
     event.respondWith(
         caches.match(request).then(cachedResponse => {
             if (cachedResponse) {
                 // Return cached version immediately
-                // Refresh cache in background for next time
+                // Refresh cache in background
                 fetch(request).then(networkResponse => {
                     if (networkResponse.ok) {
                         caches.open(STATIC_CACHE).then(cache => {
@@ -209,7 +222,6 @@ self.addEventListener('fetch', (event) => {
             
             // Not in cache, fetch from network
             return fetch(request).then(networkResponse => {
-                // Don't cache non-successful responses
                 if (!networkResponse.ok) {
                     return networkResponse;
                 }
@@ -232,34 +244,6 @@ self.addEventListener('fetch', (event) => {
                 throw error;
             });
         })
-    );
-});
-
-// Background sync for offline form submissions (optional enhancement)
-self.addEventListener('sync', (event) => {
-    if (event.tag === 'sync-cart') {
-        event.waitUntil(syncCartData());
-    }
-});
-
-// Push notification support (placeholder for future)
-self.addEventListener('push', (event) => {
-    if (!event.data) return;
-    
-    const data = event.data.json();
-    const options = {
-        body: data.body || 'New notification from LA VAGUE',
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
-        tag: data.tag || 'default',
-        requireInteraction: false
-    };
-    
-    event.waitUntil(
-        self.registration.showNotification(
-            data.title || 'LA VAGUE Streetwear',
-            options
-        )
     );
 });
 
