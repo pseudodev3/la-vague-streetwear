@@ -1801,6 +1801,39 @@ function updatePendingReviewsCount() {
     }
 }
 
+async function recalculateRatings() {
+    const btn = document.getElementById('recalculateRatingsBtn');
+    if (!btn || btn.disabled) return;
+    
+    const originalText = btn.textContent;
+    btn.textContent = 'Recalculating...';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch(`${API_URL}/admin/reviews/recalculate-all`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            showToast(data.message || 'Ratings recalculated successfully', 'success');
+            // Reload reviews to refresh counts if needed
+            loadReviews();
+        } else {
+            throw new Error(data.error || 'Failed to recalculate');
+        }
+    } catch (error) {
+        console.error('[ADMIN] Recalculate failed:', error);
+        showToast(error.message || 'Error recalculating ratings', 'error');
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
 // ==========================================
 // ANALYTICS
 // ==========================================
@@ -2174,9 +2207,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (reviewFilter) {
         reviewFilter.addEventListener('change', () => renderReviewsTable(reviewsState));
     }
-    
-    // Settings form
+
+    document.getElementById('recalculateRatingsBtn')?.addEventListener('click', recalculateRatings);
+
+    // Settings
     const settingsForm = document.getElementById('settingsForm');
+
     if (settingsForm) {
         settingsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
