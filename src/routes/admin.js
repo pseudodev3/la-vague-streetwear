@@ -393,13 +393,21 @@ export default function (productService, inventoryService) {
         const averageRating = parseFloat(statsResult.rows[0].average_rating) || 0;
         const reviewCount = parseInt(statsResult.rows[0].review_count) || 0;
 
+        // Get product to find slug for cache clearing
+        const productResult = await query('SELECT slug FROM products WHERE id = $1', [productId]);
+        const slug = productResult.rows[0]?.slug;
+
         await query(`
             UPDATE products 
             SET average_rating = $1, review_count = $2 
             WHERE id = $3
         `, [averageRating, reviewCount, productId]);
-    }
 
+        // Clear cache
+        cacheService.del('products_all');
+        cacheService.del(`product_${productId}`);
+        if (slug) cacheService.del(`product_${slug}`);
+    }
     // Bulk recalculate all product ratings (useful for fixing existing data)
     router.post('/reviews/recalculate-all', verifyAdminToken, asyncHandler(async (req, res) => {
         const productsResult = await query('SELECT id FROM products');

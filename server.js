@@ -28,6 +28,7 @@ import {
 } from './src/config/sentry.js';
 import logger from './src/utils/logger.js';
 import { generateSitemap, generateRobotsTxt } from './src/services/seoService.js';
+import { cacheService } from './src/utils/cache.js';
 
 // Import Routes
 import productRoutes from './src/routes/products.js';
@@ -275,6 +276,7 @@ app.post('/api/fix/recalculate-ratings', asyncHandler(async (req, res) => {
         updated++;
     }
 
+    cacheService.del('products_all');
     res.json({ success: true, message: `Recalculated ratings for ${updated} products` });
 }));
 
