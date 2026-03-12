@@ -103,11 +103,12 @@ router.post('/:id/reviews', csrfProtection, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { orderId, customerEmail, customerName, rating, title, reviewText, photos } = req.body;
     const reviewId = `rvw-${Date.now()}`;
+    const isVerified = !!orderId;
 
     await query(`
-        INSERT INTO reviews (id, product_id, order_id, customer_email, customer_name, rating, title, review_text, photos)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    `, [reviewId, id, orderId || null, customerEmail, customerName, rating, title, reviewText, JSON.stringify(photos || [])]);
+        INSERT INTO reviews (id, product_id, order_id, customer_email, customer_name, rating, title, review_text, photos, verified_purchase)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `, [reviewId, id, orderId || null, customerEmail, customerName, rating, title, reviewText, JSON.stringify(photos || []), isVerified]);
 
     // Send notifications asynchronously
     (async () => {

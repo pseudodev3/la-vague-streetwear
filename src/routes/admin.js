@@ -382,20 +382,20 @@ export default function (productService, inventoryService) {
 
     // Helper function to recalculate product rating
     async function recalculateProductRating(productId) {
+        // Get product to find slug for both matching and cache clearing
+        const productResult = await query('SELECT slug FROM products WHERE id = $1', [productId]);
+        const slug = productResult.rows[0]?.slug;
+
         const statsResult = await query(`
             SELECT 
                 COALESCE(AVG(rating), 0) as average_rating,
                 COUNT(*) as review_count
             FROM reviews 
-            WHERE product_id = $1 AND status = 'approved'
-        `, [productId]);
+            WHERE (product_id = $1 OR product_id = $2) AND status = 'approved'
+        `, [productId, slug || '']);
 
         const averageRating = parseFloat(statsResult.rows[0].average_rating) || 0;
         const reviewCount = parseInt(statsResult.rows[0].review_count) || 0;
-
-        // Get product to find slug for cache clearing
-        const productResult = await query('SELECT slug FROM products WHERE id = $1', [productId]);
-        const slug = productResult.rows[0]?.slug;
 
         await query(`
             UPDATE products 
@@ -419,6 +419,14 @@ export default function (productService, inventoryService) {
         }
 
         res.json({ success: true, message: `Recalculated ratings for ${updated} products` });
+    }));
+
+    router.put('/reviews/:id/verified', verifyAdminToken, asyncHandler(async (req, res) => {
+        const { id } = req.params;
+        const { verified } = req.body;
+
+        await query('UPDATE reviews SET verified_purchase = $1 WHERE id = $2', [verified, id]);
+        res.json({ success: true, message: `Review marked as ${verified ? 'verified' : 'unverified'}` });
     }));
 
     // Waitlist
