@@ -5,18 +5,20 @@ import { asyncHandler, APIError } from '../middleware/errorHandler.js';
 import { verifyAdminToken } from '../middleware/auth.js';
 import { query, USE_POSTGRES } from '../config/db.js';
 import { logAudit } from '../utils/audit.js';
+import { cacheService } from '../utils/cache.js';
 import { validateUpdateOrderStatus, validateAdminLogin } from '../middleware/validation.js';
 import { upload } from '../middleware/upload.js';
-import { 
+import {
     sendOrderConfirmation,
-    sendOrderStatusUpdate, 
-    previewEmail, 
-    testEmailConfig, 
-    getEmailQueueStats, 
+    sendOrderStatusUpdate,
+    previewEmail,
+    testEmailConfig,
+    getEmailQueueStats,
     getEmailConfig,
     sendReviewConfirmationEmail,
     sendNewReviewNotification,
-    isEmailConfigured
+    isEmailConfigured,
+    sendTestEmail
 } from '../../email-templates/index.js';
 
 const router = express.Router();
@@ -53,7 +55,7 @@ async function sendOrderEmailSafely(order, type = 'confirmation', status = null)
     }
 }
 
-export default function(productService, inventoryService) {
+export default function (productService, inventoryService) {
     // Admin login
     router.post('/login', authLimiter, validateAdminLogin, asyncHandler(async (req, res) => {
         const { password } = req.body;
@@ -180,7 +182,7 @@ export default function(productService, inventoryService) {
         const days = parseInt(period) || 30;
         const dateFormat = USE_POSTGRES ? 'DATE(created_at)' : 'date(created_at)';
         const interval = USE_POSTGRES ? `NOW() - INTERVAL '${days} days'` : `datetime('now', '-${days} days')`;
-        
+
         const result = await query(`
             SELECT ${dateFormat} as date, COUNT(*) as orders, COALESCE(SUM(total), 0) as revenue
             FROM orders WHERE payment_status = 'paid' AND created_at > ${interval}
@@ -194,7 +196,7 @@ export default function(productService, inventoryService) {
         let orders;
         const interval = USE_POSTGRES ? 'NOW() - INTERVAL \'30 days\'' : 'datetime(\'now\', \'-30 days\')';
         orders = (await query(`SELECT items FROM orders WHERE created_at > ${interval}`)).rows;
-        
+
         const productSales = {};
         orders.forEach(order => {
             const items = safeParseJSON(order.items, []);
@@ -211,7 +213,7 @@ export default function(productService, inventoryService) {
     router.get('/analytics/customers', verifyAdminToken, asyncHandler(async (req, res) => {
         const interval = USE_POSTGRES ? 'NOW() - INTERVAL \'30 days\'' : 'datetime(\'now\', \'-30 days\')';
         const interval7 = USE_POSTGRES ? 'NOW() - INTERVAL \'7 days\'' : 'datetime(\'now\', \'-7 days\')';
-        
+
         const result = await query(`
             SELECT
                 COUNT(DISTINCT customer_email) as total_customers,
@@ -250,16 +252,22 @@ export default function(productService, inventoryService) {
 
     router.post('/products', verifyAdminToken, upload.array('images', 5), asyncHandler(async (req, res) => {
         const product = await productService.create({ ...req.body, images: req.files });
+        cacheService.del('products_all');
         res.status(201).json({ success: true, product });
     }));
 
     router.put('/products/:id', verifyAdminToken, upload.array('images', 5), asyncHandler(async (req, res) => {
         const product = await productService.update(req.params.id, { ...req.body, images: req.files });
+        cacheService.del('products_all');
+        cacheService.del(`product_${req.params.id}`);
+        if (product.slug) cacheService.del(`product_${product.slug}`);
         res.json({ success: true, product });
     }));
 
     router.delete('/products/:id', verifyAdminToken, asyncHandler(async (req, res) => {
         const result = await productService.delete(req.params.id);
+        cacheService.del('products_all');
+        cacheService.del(`product_${req.params.id}`);
         res.json({ success: true, ...result });
     }));
 
@@ -281,7 +289,7 @@ export default function(productService, inventoryService) {
         let sql = 'SELECT * FROM inventory_movements';
         const params = [];
         if (productId) { sql += ' WHERE product_id = $1'; params.push(productId); }
-        sql += ' ORDER BY created_at DESC LIMIT ' + (USE_POSTGRES ? `$${params.length + 1}` : '?') + ' OFFSET ' + (USE_POSTGRES ? `$${params.length + 2}` : '?');
+        sql += ` ORDER BY created_at DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
         params.push(parseInt(limit), parseInt(offset));
         const result = await query(sql, params);
         res.json({ success: true, movements: result.rows });
@@ -345,8 +353,8 @@ export default function(productService, inventoryService) {
         const { status, productId } = req.query;
         let sql = 'SELECT r.*, p.name as product_name FROM reviews r JOIN products p ON r.product_id = p.id WHERE 1=1';
         const params = [];
-        if (status) { sql += ' AND r.status = ' + (USE_POSTGRES ? '$1' : '?'); params.push(status); }
-        if (productId) { sql += ' AND r.product_id = ' + (USE_POSTGRES ? `$${params.length + 1}` : '?'); params.push(productId); }
+        if (status) { sql += ` AND r.status = ${USE_POSTGRES ? '$1' : '?'}`; params.push(status); }
+        if (productId) { sql += ` AND r.product_id = ${USE_POSTGRES ? `$${params.length + 1}` : '?'}`; params.push(productId); }
         sql += ' ORDER BY r.created_at DESC';
         const result = await query(sql, params);
         res.json({ success: true, reviews: result.rows.map(r => ({ ...r, photos: safeParseJSON(r.photos, []) })) });
@@ -355,23 +363,23 @@ export default function(productService, inventoryService) {
     router.put('/reviews/:id/status', verifyAdminToken, asyncHandler(async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
-        
+
         // Get the review to find the product_id
         const reviewResult = await query('SELECT product_id FROM reviews WHERE id = $1', [id]);
         if (reviewResult.rows.length === 0) {
             throw new APIError('Review not found', 404, 'NOT_FOUND');
         }
         const productId = reviewResult.rows[0].product_id;
-        
+
         // Update review status
         await query('UPDATE reviews SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, id]);
-        
+
         // Recalculate product rating
         await recalculateProductRating(productId);
-        
+
         res.json({ success: true, message: `Review ${status}` });
     }));
-    
+
     // Helper function to recalculate product rating
     async function recalculateProductRating(productId) {
         const statsResult = await query(`
@@ -381,27 +389,27 @@ export default function(productService, inventoryService) {
             FROM reviews 
             WHERE product_id = $1 AND status = 'approved'
         `, [productId]);
-        
+
         const averageRating = parseFloat(statsResult.rows[0].average_rating) || 0;
         const reviewCount = parseInt(statsResult.rows[0].review_count) || 0;
-        
+
         await query(`
             UPDATE products 
             SET average_rating = $1, review_count = $2 
             WHERE id = $3
         `, [averageRating, reviewCount, productId]);
     }
-    
+
     // Bulk recalculate all product ratings (useful for fixing existing data)
     router.post('/reviews/recalculate-all', verifyAdminToken, asyncHandler(async (req, res) => {
         const productsResult = await query('SELECT id FROM products');
         let updated = 0;
-        
+
         for (const product of productsResult.rows) {
             await recalculateProductRating(product.id);
             updated++;
         }
-        
+
         res.json({ success: true, message: `Recalculated ratings for ${updated} products` });
     }));
 
@@ -424,7 +432,7 @@ export default function(productService, inventoryService) {
         let sql = 'SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value, MAX(created_at) as last_order_date FROM orders';
         const params = [];
         if (search) { sql += ' WHERE customer_email ILIKE $1 OR customer_name ILIKE $1'; params.push(`%${search}%`); }
-        sql += ' GROUP BY customer_email, customer_name, customer_phone ORDER BY last_order_date DESC LIMIT ' + (USE_POSTGRES ? '$' + (params.length + 1) : '?') + ' OFFSET ' + (USE_POSTGRES ? '$' + (params.length + 2) : '?');
+        sql += ` GROUP BY customer_email, customer_name, customer_phone ORDER BY last_order_date DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
         params.push(parseInt(limit), parseInt(offset));
         const result = await query(sql, params);
         res.json({ success: true, customers: result.rows });
@@ -466,10 +474,10 @@ export default function(productService, inventoryService) {
         let sql = 'SELECT * FROM orders WHERE 1=1';
         const params = [];
         if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
-        if (endDate) { sql += ' AND created_at <= $' + (params.length + 1); params.push(endDate); }
+        if (endDate) { sql += ` AND created_at <= $${params.length + 1}`; params.push(endDate); }
         const result = await query(sql, params);
         // Simplified CSV generation
-        const csv = 'Order ID,Customer,Total,Status,Date\n' + result.rows.map(o => `${o.id},${o.customer_name},${o.total},${o.order_status},${o.created_at}`).join('\n');
+        const csv = `Order ID,Customer,Total,Status,Date\n${result.rows.map(o => `${o.id},${o.customer_name},${o.total},${o.order_status},${o.created_at}`).join('\n')}`;
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename=orders.csv');
         res.send(csv);
@@ -481,7 +489,7 @@ export default function(productService, inventoryService) {
         let sql = 'SELECT COUNT(*) as total_orders, COALESCE(SUM(total), 0) as total_revenue, COALESCE(SUM(subtotal), 0) as total_subtotal, COALESCE(SUM(shipping_cost), 0) as total_shipping, COALESCE(SUM(discount), 0) as total_discount, COALESCE(AVG(total), 0) as average_order_value FROM orders WHERE payment_status = \'paid\'';
         const params = [];
         if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
-        if (endDate) { sql += ' AND created_at <= $' + (params.length + 1); params.push(endDate); }
+        if (endDate) { sql += ` AND created_at <= $${params.length + 1}`; params.push(endDate); }
         const result = await query(sql, params);
         res.json({ success: true, report: result.rows[0] });
     }));
@@ -492,7 +500,7 @@ export default function(productService, inventoryService) {
         let sql = `SELECT ${dateFormat} as date, COUNT(*) as orders, COALESCE(SUM(total), 0) as revenue FROM orders WHERE payment_status = 'paid'`;
         const params = [];
         if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
-        if (endDate) { sql += ' AND created_at <= $' + (params.length + 1); params.push(endDate); }
+        if (endDate) { sql += ` AND created_at <= $${params.length + 1}`; params.push(endDate); }
         sql += ` GROUP BY ${dateFormat} ORDER BY date`;
         const result = await query(sql, params);
         res.json({ success: true, daily: result.rows });
@@ -504,7 +512,7 @@ export default function(productService, inventoryService) {
         let sql = 'SELECT items FROM orders WHERE payment_status = \'paid\'';
         const params = [];
         if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
-        if (endDate) { sql += ' AND created_at <= $' + (params.length + 1); params.push(endDate); }
+        if (endDate) { sql += ` AND created_at <= $${params.length + 1}`; params.push(endDate); }
         const orders = (await query(sql, params)).rows;
         const productSales = {};
         orders.forEach(order => {
@@ -525,7 +533,7 @@ export default function(productService, inventoryService) {
         // This is complex due to JSON items, using simplified logic similar to top-products
         const orders = (await query('SELECT items, total FROM orders WHERE payment_status = \'paid\'')).rows;
         const catSales = {};
-        // Note: category isn't in items in original DB, needs join usually. 
+        // Note: category isn't in items in original DB, needs join usually.
         // For now returning empty to avoid crash if join is complex.
         res.json({ success: true, categories: [] });
     }));
@@ -535,7 +543,7 @@ export default function(productService, inventoryService) {
         let sql = 'SELECT * FROM orders WHERE 1=1';
         const params = [];
         if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
-        if (endDate) { sql += ' AND created_at <= $' + (params.length + 1); params.push(endDate); }
+        if (endDate) { sql += ` AND created_at <= $${params.length + 1}`; params.push(endDate); }
         const result = await query(sql, params);
         res.json({ success: true, data: result.rows });
     }));
@@ -548,7 +556,7 @@ export default function(productService, inventoryService) {
         if (entityType) { sql += ` AND entity_type = $${params.length + 1}`; params.push(entityType); }
         if (entityId) { sql += ` AND entity_id = $${params.length + 1}`; params.push(entityId); }
         if (action) { sql += ` AND action = $${params.length + 1}`; params.push(action); }
-        sql += ' ORDER BY created_at DESC LIMIT ' + (USE_POSTGRES ? `$${params.length + 1}` : '?') + ' OFFSET ' + (USE_POSTGRES ? `$${params.length + 2}` : '?');
+        sql += ` ORDER BY created_at DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
         params.push(parseInt(limit), parseInt(offset));
         const result = await query(sql, params);
         res.json({ success: true, logs: result.rows });
@@ -592,7 +600,7 @@ export default function(productService, inventoryService) {
     // Reports Extension
     router.get('/export/products', verifyAdminToken, asyncHandler(async (req, res) => {
         const result = await query('SELECT * FROM products ORDER BY name');
-        const csv = 'ID,Name,Price,Inventory\n' + result.rows.map(p => `${p.id},"${p.name}",${p.price},"${p.inventory}"`).join('\n');
+        const csv = `ID,Name,Price,Inventory\n${result.rows.map(p => `${p.id},"${p.name}",${p.price},"${p.inventory}"`).join('\n')}`;
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename=products.csv');
         res.send(csv);

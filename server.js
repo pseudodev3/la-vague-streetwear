@@ -8,9 +8,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import fs from 'fs';
+import pinoHttp from 'pino-http';
 
 // Import local modules
-import { db, USE_POSTGRES } from './src/config/db.js';
+import { db, USE_POSTGRES, query } from './src/config/db.js';
 import { initDatabase } from './src/services/dbInit.js';
 import { 
     globalErrorHandler, 
@@ -18,12 +19,15 @@ import {
     asyncHandler,
     APIError
 } from './src/middleware/errorHandler.js';
-import { csrfProtection, csrfToken } from './src/middleware/csrf.js';
+import { csrfToken } from './src/middleware/csrf.js';
+
 import {
     initSentry,
     sentryRequestHandler,
-    sentryTracingHandler,
+    sentryTracingHandler
 } from './src/config/sentry.js';
+import logger from './src/utils/logger.js';
+import { generateSitemap, generateRobotsTxt } from './src/services/seoService.js';
 
 // Import Routes
 import productRoutes from './src/routes/products.js';
@@ -52,6 +56,23 @@ app.set('trust proxy', 1);
 const { inventoryService, productService } = await initDatabase();
 
 // ==========================================
+// LOGGING MIDDLEWARE
+// ==========================================
+app.use(pinoHttp({
+    logger,
+    useLevel: 'info',
+    quietReqLogger: true,
+    autoLogging: {
+        ignore: req => req.url === '/api/health' || req.url === '/favicon.ico'
+    },
+    customLogLevel: (req, res, err) => {
+        if (res.statusCode >= 500 || err) return 'error';
+        if (res.statusCode >= 400) return 'warn';
+        return 'info';
+    }
+}));
+
+// ==========================================
 // SECURITY MIDDLEWARE
 // ==========================================
 app.use(sentryRequestHandler());
@@ -60,19 +81,19 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://js.paystack.co", "https://checkout.paystack.com", "https://browser.sentry-cdn.com"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "https:", "data:", "blob:", "res.cloudinary.com"],
-            connectSrc: ["'self'", process.env.FRONTEND_URL || "*", "https://api.paystack.co", "https://browser.sentry-cdn.com", "*.sentry.io", "https://fonts.googleapis.com", "https://res.cloudinary.com"],
-            frameSrc: ["'self'", "https://checkout.paystack.com", "https://js.paystack.co"],
+            scriptSrc: ["'self'", "'unsafe-inline'", 'https://js.paystack.co', 'https://checkout.paystack.com', 'https://browser.sentry-cdn.com'],
+            styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+            fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+            imgSrc: ["'self'", 'https:', 'data:', 'blob:', 'res.cloudinary.com'],
+            connectSrc: ["'self'", process.env.FRONTEND_URL || '*', 'https://api.paystack.co', 'https://browser.sentry-cdn.com', '*.sentry.io', 'https://fonts.googleapis.com', 'https://res.cloudinary.com'],
+            frameSrc: ["'self'", 'https://checkout.paystack.com', 'https://js.paystack.co'],
             objectSrc: ["'none'"],
-            upgradeInsecureRequests: [],
-        },
+            upgradeInsecureRequests: []
+        }
     },
     crossOriginEmbedderPolicy: false, // Required for some third-party scripts like Paystack
-    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
-    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
     hsts: { maxAge: 31536000, includeSubDomains: true, preload: true }
 }));
 
@@ -82,7 +103,21 @@ app.use((req, res, next) => {
     next();
 });
 
-const allowedOrigins = process.env.NODE_ENV === 'production' 
+// ==========================================
+// SEO & ECOMMERCE SPECIFICS
+// ==========================================
+app.get('/robots.txt', (req, res) => {
+    res.type('text/plain');
+    res.send(generateRobotsTxt());
+});
+
+app.get('/sitemap.xml', asyncHandler(async (req, res) => {
+    const sitemap = await generateSitemap();
+    res.type('application/xml');
+    res.send(sitemap);
+}));
+
+const allowedOrigins = process.env.NODE_ENV === 'production'
     ? [process.env.FRONTEND_URL, 'https://la-vague.store', 'https://www.la-vague.store', /https:\/\/.+\.netlify\.app$/].filter(Boolean)
     : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000'];
 
@@ -95,7 +130,7 @@ app.use(cors({
 
 app.use(compression());
 app.use(cookieParser());
-app.use(express.json({ 
+app.use(express.json({
     limit: '10mb',
     verify: (req, res, buf) => {
         if (req.originalUrl.includes('/api/payment/webhook')) {
@@ -126,7 +161,7 @@ app.get(['/', '/*.html'], (req, res, next) => {
             let content = fs.readFileSync(filePath, 'utf8');
             // Automatically replace all ?v=... with the dynamic BUILD_ID
             content = content.replace(/\?v=[0-9.]+/g, `?v=${BUILD_ID}`);
-            
+
             // Set headers to prevent HTML caching
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
             res.setHeader('Pragma', 'no-cache');
@@ -216,10 +251,10 @@ app.post('/api/fix/recalculate-ratings', asyncHandler(async (req, res) => {
     if (secretKey !== process.env.ADMIN_PASSWORD) {
         throw new APIError('Unauthorized', 401, 'AUTH_ERROR');
     }
-    
+
     const productsResult = await query('SELECT id FROM products');
     let updated = 0;
-    
+
     for (const product of productsResult.rows) {
         const statsResult = await query(`
             SELECT 
@@ -228,19 +263,19 @@ app.post('/api/fix/recalculate-ratings', asyncHandler(async (req, res) => {
             FROM reviews 
             WHERE product_id = $1 AND status = 'approved'
         `, [product.id]);
-        
+
         const averageRating = parseFloat(statsResult.rows[0].average_rating) || 0;
         const reviewCount = parseInt(statsResult.rows[0].review_count) || 0;
-        
+
         await query(`
             UPDATE products 
             SET average_rating = $1, review_count = $2 
             WHERE id = $3
         `, [averageRating, reviewCount, product.id]);
-        
+
         updated++;
     }
-    
+
     res.json({ success: true, message: `Recalculated ratings for ${updated} products` });
 }));
 
@@ -257,7 +292,7 @@ app.use('/api/payment', paymentRoutes(inventoryService));
 app.use('/api/admin', adminRoutes(productService, inventoryService));
 
 // Backward Compatibility Aliases
-app.get('/api/inventory/check/:productId', (req, res) => res.redirect(307, `/api/products/inventory/check/${req.params.productId}${req.url.includes('?') ? '?' + req.url.split('?')[1] : ''}`));
+app.get('/api/inventory/check/:productId', (req, res) => res.redirect(307, `/api/products/inventory/check/${req.params.productId}${req.url.includes('?') ? `?${req.url.split('?')[1]}` : ''}`));
 app.post('/api/inventory/check', (req, res) => res.redirect(307, '/api/products/inventory/check'));
 app.post('/api/coupons/validate', (req, res) => res.redirect(307, '/api/orders/validate-coupon'));
 
@@ -276,6 +311,50 @@ if (process.env.NODE_ENV === 'production') {
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+const server = app.listen(PORT, () => {
+    logger.info(`🚀 Server running on port ${PORT}`);
+});
+
+// ==========================================
+// GRACEFUL SHUTDOWN
+// ==========================================
+const shutdown = async signal => {
+    logger.info(`${signal} signal received. Shutting down gracefully...`);
+
+    // Close server first (stop accepting new requests)
+    server.close(() => {
+        logger.info('HTTP server closed.');
+
+        // Close database connections
+        if (db) {
+            if (USE_POSTGRES) {
+                db.end().then(() => {
+                    logger.info('PostgreSQL connection closed.');
+                    process.exit(0);
+                });
+            } else {
+                db.close();
+                logger.info('SQLite connection closed.');
+                process.exit(0);
+            }
+        } else {
+            process.exit(0);
+        }
+    });
+
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+        logger.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+    }, 10000);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error({ reason, promise }, 'Unhandled Rejection at Promise');
+});
+process.on('uncaughtException', error => {
+    logger.error(error, 'Uncaught Exception thrown');
+    shutdown('uncaughtException');
 });
