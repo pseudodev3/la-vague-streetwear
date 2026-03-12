@@ -117,15 +117,16 @@ function transformProduct(dbProduct) {
         inventory: typeof dbProduct.inventory === 'object' ? dbProduct.inventory : JSON.parse(dbProduct.inventory || '{}'),
         tags: Array.isArray(dbProduct.tags) ? dbProduct.tags : JSON.parse(dbProduct.tags || '[]'),
         badge: dbProduct.badge,
-        average_rating: dbProduct.average_rating || 0,
-        review_count: dbProduct.review_count || 0
+        average_rating: parseFloat(dbProduct.average_rating || 0),
+        review_count: parseInt(dbProduct.review_count || 0)
     };
 }
 
 function renderStarRating(rating) {
+    const numericRating = parseFloat(rating);
     let html = '';
     for (let i = 1; i <= 5; i++) {
-        if (i <= Math.round(rating)) {
+        if (i <= Math.round(numericRating)) {
             html += '★';
         } else {
             html += '<span class="empty">★</span>';
@@ -187,10 +188,10 @@ async function renderFeaturedProducts() {
                 <div class="product-price">
                     <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
                 </div>
-                ${product.average_rating ? `
+                ${product.review_count > 0 ? `
                     <div class="product-rating">
                         <span class="star-rating-small">${renderStarRating(product.average_rating)}</span>
-                        <span class="rating-text">(${product.review_count || 0})</span>
+                        <span class="rating-text">(${product.review_count})</span>
                     </div>
                 ` : ''}
             </div>
