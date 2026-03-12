@@ -1700,7 +1700,7 @@ function renderReviewsTable(reviews) {
     
     if (filtered.length === 0) {
         const tr = createElement('tr', {}, 
-            createElement('td', { colspan: 7, className: 'text-center' }, 
+            createElement('td', { colspan: 8, className: 'text-center' }, 
                 filter === 'pending' ? 'No pending reviews' : 'No reviews found'
             )
         );
@@ -1728,6 +1728,14 @@ function renderReviewsTable(reviews) {
         
         // Date
         tr.appendChild(createElement('td', {}, formatDate(review.created_at)));
+        
+        // Verified
+        const verifiedToggle = createElement('input', {
+            type: 'checkbox',
+            checked: review.verified_purchase || review.verifiedPurchase,
+            onchange: (e) => toggleReviewVerified(review.id, e.target.checked)
+        });
+        tr.appendChild(createElement('td', { className: 'text-center' }, verifiedToggle));
         
         // Status
         const statusBadge = createElement('span', { 
@@ -1761,6 +1769,31 @@ function renderReviewsTable(reviews) {
         tr.appendChild(tdActions);
         elements.reviewsTable.appendChild(tr);
     });
+}
+
+async function toggleReviewVerified(reviewId, verified) {
+    try {
+        const response = await fetch(`${API_URL}/admin/reviews/${reviewId}/verified`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ verified })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+        } else {
+            throw new Error(data.error || 'Failed to update verified status');
+        }
+    } catch (error) {
+        console.error('[ADMIN] Toggle verified failed:', error);
+        showToast(error.message, 'error');
+        // Refresh to reset checkbox state if it failed
+        loadReviews();
+    }
 }
 
 async function updateReviewStatus(reviewId, status) {
