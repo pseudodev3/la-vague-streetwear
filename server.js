@@ -60,7 +60,6 @@ const { inventoryService, productService } = await initDatabase();
 // ==========================================
 app.use(pinoHttp({
     logger,
-    useLevel: 'info',
     quietReqLogger: true,
     autoLogging: {
         ignore: req => req.url === '/api/health' || req.url === '/favicon.ico'
