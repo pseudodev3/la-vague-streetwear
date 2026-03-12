@@ -433,12 +433,12 @@ async function seedSettings() {
     if (USE_POSTGRES) {
         for (const s of defaultSettings) {
             await db.query(
-                'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP',
+                'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
                 [s.key, s.value]
             );
         }
     } else {
-        const insert = db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime("now"))');
+        const insert = db.prepare('INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES (?, ?, datetime("now"))');
         for (const s of defaultSettings) {
             insert.run(s.key, s.value);
         }
