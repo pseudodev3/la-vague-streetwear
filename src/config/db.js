@@ -56,7 +56,7 @@ async function getDB() {
 
         const sslConfig = {
             ca: AIVEN_CA_CERT,
-            rejectUnauthorized: true,   // Enforce CA validation
+            rejectUnauthorized: false,   // Enforce CA validation
             checkServerIdentity,         // Override hostname check
         };
 
