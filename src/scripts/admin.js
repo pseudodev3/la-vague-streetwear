@@ -615,7 +615,7 @@ function renderProductsTable(products) {
     
     filtered.forEach(product => {
         const variantCount = (product.colors?.length || 1) * (product.sizes?.length || 1);
-        const imageUrl = product.images?.[0]?.src || 'https://via.placeholder.com/50';
+       const imageUrl = product.images?.[0]?.src || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\' viewBox=\'0 0 50 50\'%3E%3Crect width=\'50\' height=\'50\' fill=\'%23f3f4f6\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' font-size=\'10\' fill=\'%239ca3af\' text-anchor=\'middle\' dy=\'.3em\'%3EImg%3C/text%3E%3C/svg%3E';
         
         const tr = createElement('tr');
         
