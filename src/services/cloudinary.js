@@ -70,17 +70,17 @@ export async function uploadImage(fileBuffer, folder = 'products', publicId = nu
             uploadOptions.public_id = publicId;
         }
 
-        const uploadStream = cloudinary.uploader.upload_stream(
-            uploadOptions,
-            (error, result) => {
-                if (error) {
-                    console.error('[CLOUDINARY] Upload error:', error);
-                    reject(new Error('Failed to upload image'));
-                } else {
-                    resolve(result);
-                }
-            }
-        );
+      const uploadStream = cloudinary.uploader.upload_stream(
+    uploadOptions,
+    (error, result) => {
+        if (error) {
+            console.error('[CLOUDINARY] Upload error details:', JSON.stringify(error, null, 2));
+            reject(new Error(`Cloudinary upload failed: ${error.message}`));
+        } else {
+            resolve(result);
+        }
+    }
+);
 
         streamifier.createReadStream(fileBuffer).pipe(uploadStream);
     });
