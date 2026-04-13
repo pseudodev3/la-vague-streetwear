@@ -1,6 +1,12 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const USE_POSTGRES = !!process.env.DATABASE_URL;
 
@@ -12,9 +18,27 @@ async function getDB() {
     if (USE_POSTGRES) {
         const { default: pkg } = await import('pg');
         const { Pool } = pkg;
+
+        // Build SSL configuration
+        let sslConfig = { rejectUnauthorized: false }; // fallback
+        const caPath = path.join(__dirname, '../../ca.pem'); // adjust path if needed
+
+        if (fs.existsSync(caPath)) {
+            try {
+                sslConfig = {
+                    ca: fs.readFileSync(caPath).toString(),
+                };
+                console.log('✅ Using Aiven CA certificate for secure connection');
+            } catch (err) {
+                console.warn('⚠️ CA certificate found but could not be read, falling back to rejectUnauthorized: false');
+            }
+        } else {
+            console.warn('⚠️ CA certificate not found. Using rejectUnauthorized: false (INSECURE – for development only)');
+        }
+
         db = new Pool({
             connectionString: process.env.DATABASE_URL,
-            ssl: { rejectUnauthorized: false },
+            ssl: sslConfig,
             max: 10,
             idleTimeoutMillis: 30000,
             connectionTimeoutMillis: 2000,
@@ -40,7 +64,7 @@ export async function query(sql, params = []) {
         if (!/^\s*(SELECT|INSERT|UPDATE|DELETE)\s/i.test(sql)) {
             throw new Error('Invalid query type');
         }
-        
+
         if (USE_POSTGRES) {
             const result = await dbInstance.query(sql, params);
             return result;
@@ -49,7 +73,7 @@ export async function query(sql, params = []) {
             if (placeholderCount !== params.length) {
                 throw new Error(`Parameter mismatch: expected ${placeholderCount}, got ${params.length}`);
             }
-            
+
             const stmt = dbInstance.prepare(sql);
             if (sql.trim().toLowerCase().startsWith('select')) {
                 // Heuristic to decide between get() and all()
