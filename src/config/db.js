@@ -19,21 +19,25 @@ async function getDB() {
         const { default: pkg } = await import('pg');
         const { Pool } = pkg;
 
-        // Build SSL configuration
-        let sslConfig = { rejectUnauthorized: false }; // fallback
-        const caPath = path.join(__dirname, '../../ca.pem'); // adjust path if needed
+        // Determine the correct path to ca.pem (project root)
+        const caPath = path.join(__dirname, '../../ca.pem');
 
+        let sslConfig;
         if (fs.existsSync(caPath)) {
             try {
+                const caContent = fs.readFileSync(caPath).toString();
                 sslConfig = {
-                    ca: fs.readFileSync(caPath).toString(),
+                    ca: caContent,
+                    rejectUnauthorized: true, // Enforce proper validation
                 };
-                console.log('✅ Using Aiven CA certificate for secure connection');
+                console.log('✅ Using Aiven CA certificate (secure SSL)');
             } catch (err) {
-                console.warn('⚠️ CA certificate found but could not be read, falling back to rejectUnauthorized: false');
+                console.warn('⚠️ CA certificate file exists but could not be read:', err.message);
+                sslConfig = { rejectUnauthorized: false };
             }
         } else {
             console.warn('⚠️ CA certificate not found. Using rejectUnauthorized: false (INSECURE – for development only)');
+            sslConfig = { rejectUnauthorized: false };
         }
 
         db = new Pool({
@@ -43,7 +47,17 @@ async function getDB() {
             idleTimeoutMillis: 30000,
             connectionTimeoutMillis: 2000,
         });
-        console.log('✅ Using PostgreSQL database');
+
+        // Test connection on startup
+        try {
+            const client = await db.connect();
+            const res = await client.query('SELECT NOW()');
+            client.release();
+            console.log('✅ PostgreSQL connected successfully at', res.rows[0].now);
+        } catch (err) {
+            console.error('❌ PostgreSQL connection failed:', err.message);
+            throw err;
+        }
     } else {
         const { default: Database } = await import('better-sqlite3');
         db = new Database('database.sqlite');
@@ -76,7 +90,6 @@ export async function query(sql, params = []) {
 
             const stmt = dbInstance.prepare(sql);
             if (sql.trim().toLowerCase().startsWith('select')) {
-                // Heuristic to decide between get() and all()
                 if (sql.includes('LIMIT 1') || (sql.includes('WHERE') && sql.includes('= ?') && !sql.includes('IN'))) {
                     const res = stmt.get(...params);
                     return { rows: res ? [res] : [] };
