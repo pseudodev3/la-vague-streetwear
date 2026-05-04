@@ -1129,8 +1129,10 @@ elements.saveProductBtn.addEventListener('click', async () => {
         keepImages: keepImages
     };
     
-    // Get new image files
-    const newImageFiles = Array.from(elements.productImages.files);
+    // Get new image files from state (handles dropped files + multiple selections)
+    const newImageFiles = state.productForm.images
+        .filter(img => img.isNew && img.file)
+        .map(img => img.file);
     
     setLoading(elements.saveProductBtn, true);
     

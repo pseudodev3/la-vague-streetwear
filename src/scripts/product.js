@@ -298,8 +298,18 @@ function updateStockStatus() {
 
 function renderGallery() {
     const images = state.product.images || [];
-    if (images.length === 0) return;
-    const currentImage = images[state.currentImageIndex] || images[0];
+    const fallbackImage = {
+        src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000"><rect fill="%231f2937" width="800" height="1000"/><text fill="%239ca3af" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="32" dy=".3em">No Image</text></svg>',
+        alt: state.product.name
+    };
+    
+    if (images.length === 0) {
+        elements.mainImage.src = fallbackImage.src;
+        elements.galleryThumbs.innerHTML = '';
+        return;
+    }
+    
+    const currentImage = images[state.currentImageIndex] || images[0] || fallbackImage;
     elements.mainImage.src = currentImage.src;
     elements.galleryThumbs.innerHTML = images.map((img, i) => `
         <img src="${img.src}" class="gallery-thumb ${i === state.currentImageIndex ? 'active' : ''}" onclick="window.setImage(${i})">

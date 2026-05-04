@@ -136,6 +136,15 @@ export class ProductService {
      * Create a new product
      */
     async create(productData, imageFiles = []) {
+        // Helper to handle JSON strings or objects
+        const safeParse = (val, fallback = []) => {
+            if (!val) return fallback;
+            if (typeof val === 'string') {
+                try { return JSON.parse(val); } catch (e) { return fallback; }
+            }
+            return val;
+        };
+
         const {
             name,
             category,
@@ -186,12 +195,12 @@ export class ProductService {
             price: sanitizedPrice,
             compare_at_price: sanitizedCompareAtPrice,
             description,
-            features: JSON.stringify(features),
+            features: JSON.stringify(safeParse(features)),
             images: JSON.stringify(images),
-            colors: JSON.stringify(colors),
-            sizes: JSON.stringify(sizes),
-            inventory: JSON.stringify(inventory),
-            tags: JSON.stringify(tags),
+            colors: JSON.stringify(safeParse(colors)),
+            sizes: JSON.stringify(safeParse(sizes)),
+            inventory: JSON.stringify(safeParse(inventory, {})),
+            tags: JSON.stringify(safeParse(tags)),
             badge
         };
 
@@ -243,6 +252,13 @@ export class ProductService {
             return val;
         };
 
+        // If imagesToDelete is empty but keepImages is provided, calculate which images were removed
+        const parsedKeepImages = safeParse(keepImages);
+        if (imagesToDelete.length === 0 && parsedKeepImages.length >= 0) {
+            const currentImages = existing.images.map(img => img.src);
+            imagesToDelete = currentImages.filter(src => !parsedKeepImages.includes(src));
+        }
+
         // Delete removed images from Cloudinary
         if (imagesToDelete.length > 0) {
             const publicIds = imagesToDelete
@@ -257,8 +273,8 @@ export class ProductService {
         let images = [];
         
         // Keep existing images that weren't deleted
-        if (keepImages.length > 0) {
-            images = existing.images.filter(img => keepImages.includes(img.src));
+        if (parsedKeepImages.length > 0) {
+            images = existing.images.filter(img => parsedKeepImages.includes(img.src));
         }
 
         // Add new images

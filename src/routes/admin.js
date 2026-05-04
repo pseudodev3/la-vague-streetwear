@@ -251,13 +251,13 @@ export default function (productService, inventoryService) {
 
 
     router.post('/products', verifyAdminToken, upload.array('images', 5), asyncHandler(async (req, res) => {
-        const product = await productService.create({ ...req.body, images: req.files });
+        const product = await productService.create(req.body, req.files);
         cacheService.del('products_all');
         res.status(201).json({ success: true, product });
     }));
 
     router.put('/products/:id', verifyAdminToken, upload.array('images', 5), asyncHandler(async (req, res) => {
-        const product = await productService.update(req.params.id, { ...req.body, images: req.files });
+        const product = await productService.update(req.params.id, req.body, req.files);
         cacheService.del('products_all');
         cacheService.del(`product_${req.params.id}`);
         if (product.slug) cacheService.del(`product_${product.slug}`);
