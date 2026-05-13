@@ -8,10 +8,6 @@ import { test, expect } from '@playwright/test';
 test.describe('Admin Authentication', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/admin.html');
-    await page.evaluate(() => {
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('adminUser');
-    });
   });
 
   test.describe('Login Page', () => {

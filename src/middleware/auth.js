@@ -15,7 +15,7 @@ export async function verifyAdminToken(req, res, next) {
             const result = await query('SELECT * FROM admin_sessions WHERE session_key = $1 AND expires_at > CURRENT_TIMESTAMP', [token]);
             session = result.rows[0];
         } else {
-            session = (await query('SELECT * FROM admin_sessions WHERE session_key = ? AND expires_at > datetime("now")', [token])).rows[0];
+            session = (await query("SELECT * FROM admin_sessions WHERE session_key = ? AND expires_at > datetime('now')", [token])).rows[0];
         }
 
         if (!session) {

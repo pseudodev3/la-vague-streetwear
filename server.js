@@ -241,7 +241,7 @@ app.get('/api/debug/routes', (req, res) => {
 });
 
 app.get('/api/db-test', asyncHandler(async (req, res) => {
-    const result = await (USE_POSTGRES ? db.query('SELECT NOW() as time') : db.prepare('SELECT datetime("now") as time').get());
+    const result = await (USE_POSTGRES ? db.query('SELECT NOW() as time') : db.prepare("SELECT datetime('now') as time").get());
     res.json({ success: true, server_time: result.rows?.[0]?.time || result.time });
 }));
 

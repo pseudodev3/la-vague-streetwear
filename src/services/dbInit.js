@@ -438,7 +438,7 @@ async function seedSettings() {
             );
         }
     } else {
-        const insert = db.prepare('INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES (?, ?, datetime("now"))');
+        const insert = db.prepare("INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))");
         for (const s of defaultSettings) {
             insert.run(s.key, s.value);
         }

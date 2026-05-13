@@ -9,7 +9,6 @@ test.describe('Checkout Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to shop and add items to cart
     await page.goto('/shop.html');
-    await page.evaluate(() => localStorage.clear());
     
     // Add item to cart
     const firstProduct = page.locator('.product-card').first();

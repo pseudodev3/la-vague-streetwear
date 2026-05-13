@@ -16,6 +16,12 @@ const orderLimiter = rateLimit({
     message: { success: false, error: 'Too many orders, please try again later.' }
 });
 
+const lookupLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    message: { success: false, error: 'Too many lookup attempts, please try again later.' }
+});
+
 const safeParseJSON = (str, defaultValue = null) => {
     if (!str || str === 'null' || str === 'undefined') return defaultValue;
     try { return JSON.parse(str); } catch (e) { return defaultValue; }
@@ -46,13 +52,13 @@ export default function(productService, inventoryService) {
         res.json({ success: true, ...result });
     }));
 
-    router.post('/lookup', asyncHandler(async (req, res) => {
+    router.post('/lookup', lookupLimiter, asyncHandler(async (req, res) => {
         const { orderId, email } = req.body;
         const order = await lookupOrder(orderId, email);
         res.json({ success: true, order });
     }));
 
-    router.post('/validate-coupon', csrfProtection, asyncHandler(async (req, res) => {
+    router.post('/validate-coupon', orderLimiter, csrfProtection, asyncHandler(async (req, res) => {
         const { code, cartTotal, customerEmail } = req.body;
         const result = await query('SELECT * FROM coupons WHERE code = $1 AND is_active = true', [code.toUpperCase()]);
         if (result.rows.length === 0) return res.status(400).json({ valid: false, error: 'Invalid coupon code' });

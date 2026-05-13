@@ -7,9 +7,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Shopping Cart', () => {
   test.beforeEach(async ({ page }) => {
-    // Clear localStorage before each test
     await page.goto('/shop.html');
-    await page.evaluate(() => localStorage.clear());
   });
 
   test.describe('Add to Cart', () => {

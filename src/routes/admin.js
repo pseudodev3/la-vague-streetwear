@@ -309,7 +309,7 @@ export default function (productService, inventoryService) {
             if (USE_POSTGRES) {
                 await query('INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP', [key, value]);
             } else {
-                await query('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime("now"))', [key, value]);
+                await query("INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))", [key, value]);
             }
         }
         res.json({ success: true, message: 'Settings updated' });

@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Product Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.evaluate(() => localStorage.clear());
+    // Isolated context handles this
   });
 
   test.describe('Product Detail Page', () => {

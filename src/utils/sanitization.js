@@ -3,14 +3,17 @@
  */
 
 /**
- * Sanitize HTML to prevent XSS
+ * Sanitize HTML to prevent XSS (Works in both Browser and Node.js)
  */
 export function sanitizeHTML(input) {
     if (typeof input !== 'string') return '';
     
-    const div = document.createElement('div');
-    div.textContent = input;
-    return div.innerHTML;
+    return input
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 /**
@@ -19,10 +22,18 @@ export function sanitizeHTML(input) {
 export function sanitizeString(input, maxLength = 255) {
     if (typeof input !== 'string') return '';
     
-    return input
+    // Remove scripts, styles, and event handlers
+    let sanitized = input
         .trim()
         .slice(0, maxLength)
-        .replace(/[<>]/g, ''); // Basic HTML tag stripping
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+        .replace(/on\w+="[^"]*"/gi, '')
+        .replace(/on\w+='[^']*'/gi, '')
+        .replace(/on\w+=\S+/gi, '');
+
+    // Strip remaining HTML tags
+    return sanitized.replace(/<[^>]*>?/gm, '');
 }
 
 /**

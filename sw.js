@@ -1,12 +1,12 @@
 /**
  * LA VAGUE - Service Worker
  * Provides offline support and caching for PWA functionality
- * Version: 1.0.1
+ * Version: 1.1.0
  */
 
-const CACHE_NAME = 'la-vague-v1';
-const STATIC_CACHE = 'la-vague-static-v1';
-const IMAGE_CACHE = 'la-vague-images-v1';
+const CACHE_NAME = 'la-vague-v2';
+const STATIC_CACHE = 'la-vague-static-v2';
+const IMAGE_CACHE = 'la-vague-images-v2';
 
 // Assets to cache on install (same-origin only)
 const STATIC_ASSETS = [
