@@ -1575,11 +1575,29 @@ button {
     }
     
     .collections-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
     }
     
     .collection-card.featured {
-        grid-column: span 1;
+        grid-column: span 2;
+    }
+
+    .collection-info {
+        padding: 1rem 0;
+    }
+
+    .collection-info h3 {
+        font-size: 1rem;
+    }
+
+    .collection-info p {
+        font-size: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .collection-link {
+        font-size: 0.75rem;
     }
     
     .lookbook-grid {
