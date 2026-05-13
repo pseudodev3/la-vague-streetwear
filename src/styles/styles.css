@@ -1497,15 +1497,45 @@ button {
     }
     
     .lookbook-grid {
-        grid-template-columns: 1fr;
-        grid-auto-rows: 300px;
+        grid-template-columns: repeat(2, 1fr);
+        grid-auto-rows: 250px;
+        gap: 1rem;
     }
-    
+
     .lookbook-item.large {
-        grid-column: span 1;
+        grid-column: span 2;
+        grid-row: span 1;
     }
-    
+
+    .lookbook-item:nth-child(2) {
+        grid-row: span 2;
+    }
+
+    .lookbook-item:nth-child(3) {
+        grid-row: span 1;
+    }
+
+    .lookbook-item:nth-child(4) {
+        grid-row: span 2;
+    }
+
+    .lookbook-info {
+        opacity: 1;
+        transform: translateY(0);
+        padding: 1.25rem;
+        background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+    }
+
+    .lookbook-number {
+        font-size: 0.75rem;
+    }
+
+    .lookbook-info h3 {
+        font-size: 1.1rem;
+    }
+
     .about-stats {
+
         flex-direction: column;
         gap: 1.5rem;
     }
