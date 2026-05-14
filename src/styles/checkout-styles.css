@@ -596,6 +596,7 @@
         min-height: 48px;
         font-size: 0.9375rem;
         letter-spacing: 0.02em;
+        margin-bottom: 2rem; /* Add breathing room at bottom */
     }
     
     .order-summary {
