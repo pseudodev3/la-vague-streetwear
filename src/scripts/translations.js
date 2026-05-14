@@ -40,7 +40,7 @@ const TRANSLATIONS = {
             quantity: 'Quantity',
             freeShipping: 'Free shipping over {{threshold}}',
             shipsIn: 'Ships within 24 hours',
-            returns: '30-day returns',
+            returns: 'All Sales Final',
             youMayAlsoLike: 'You May Also Like'
         },
         announcement: {
@@ -145,9 +145,10 @@ const TRANSLATIONS = {
             quantity: 'Quantité',
             freeShipping: 'Livraison gratuite dès {{threshold}}',
             shipsIn: 'Expédié sous 24h',
-            returns: 'Retours sous 30 jours',
-            youMayAlsoLike: 'Vous Aimerez Aussi'
-        },
+            returns: 'Toutes les ventes sont finales',
+            youMayAlsoLike: 'Vous pourriez aussi aimer'
+            },
+
         announcement: {
             freeShipping: 'LIVRAISON GRATUITE DÈS {{threshold}}',
             newDrop: 'NOUVELLE COLLECTION DISPONIBLE'
@@ -248,11 +249,12 @@ const TRANSLATIONS = {
             size: 'المقاس',
             select: 'اختيار',
             quantity: 'الكمية',
-            freeShipping: 'شحن مجاني للطلبات فوق {{threshold}}',
-            shipsIn: 'الش خلال 24 ساعة',
-            returns: 'إرجاع خلال 30 يوم',
+            freeShipping: 'شحن مجاني لأكثر من {{threshold}}',
+            shipsIn: 'يتم الشحن خلال 24 ساعة',
+            returns: 'جميع المبيعات نهائية',
             youMayAlsoLike: 'قد يعجبك أيضاً'
-        },
+            },
+
         announcement: {
             freeShipping: 'شحن مجاني للطلبات فوق {{threshold}}',
             newDrop: 'تشكيلة جديدة متوفرة الآن'
