@@ -241,6 +241,14 @@ async function initAuditTables() {
         await db.query(`CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code)`);
         await db.query(`CREATE INDEX IF NOT EXISTS idx_coupons_active ON coupons(is_active)`);
         
+        // Ensure is_active column exists if table was created earlier
+        try {
+            await db.query('ALTER TABLE coupons ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true');
+        } catch (e) {
+            // Some PG versions don't support IF NOT EXISTS in ALTER TABLE
+            // We ignore errors if the column already exists
+        }
+        
         await db.query(`
             CREATE TABLE IF NOT EXISTS reviews (
                 id TEXT PRIMARY KEY,
@@ -365,6 +373,12 @@ async function initAuditTables() {
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        // SQLite migration: ensure is_active column exists
+        const couponTableInfo = db.prepare("PRAGMA table_info(coupons)").all();
+        if (!couponTableInfo.find(col => col.name === 'is_active')) {
+            db.exec('ALTER TABLE coupons ADD COLUMN is_active BOOLEAN DEFAULT 1');
+        }
         db.exec(`
             CREATE TABLE IF NOT EXISTS reviews (
                 id TEXT PRIMARY KEY,
