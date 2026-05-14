@@ -24,7 +24,7 @@ export async function createOrder(orderData, productService, inventoryService, o
 
     let calculatedDiscount = 0;
     if (discountCode) {
-        const coupon = (await query('SELECT * FROM coupons WHERE code = $1 AND is_active = true', [discountCode.toUpperCase()])).rows[0];
+        const coupon = (await query('SELECT * FROM coupons WHERE code = $1 AND is_active = 1', [discountCode.toUpperCase()])).rows[0];
         if (coupon) {
             const now = new Date();
             const isWithinDates = (!coupon.start_date || new Date(coupon.start_date) <= now) && 

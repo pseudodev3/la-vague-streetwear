@@ -66,18 +66,19 @@ export async function query(sql, params = []) {
             const result = await dbInstance.query(sql, params);
             return result;
         } else {
-            const placeholderCount = (sql.match(/\?/g) || []).length;
+            // Convert $1, $2, ... to ? for SQLite
+            let sqliteSql = sql.replace(/\$\d+/g, '?');
+            
+            const placeholderCount = (sqliteSql.match(/\?/g) || []).length;
             if (placeholderCount !== params.length) {
+                console.error('[DB ERROR] Parameter mismatch:', { sql, sqliteSql, paramsCount: params.length, placeholderCount });
                 throw new Error(`Parameter mismatch: expected ${placeholderCount}, got ${params.length}`);
             }
 
-            const stmt = dbInstance.prepare(sql);
-            if (sql.trim().toLowerCase().startsWith('select')) {
-                if (sql.includes('LIMIT 1') || (sql.includes('WHERE') && sql.includes('= ?') && !sql.includes('IN'))) {
-                    const res = stmt.get(...params);
-                    return { rows: res ? [res] : [] };
-                }
-                return { rows: stmt.all(...params) };
+            const stmt = dbInstance.prepare(sqliteSql);
+            if (sqliteSql.trim().toLowerCase().startsWith('select')) {
+                const res = stmt.all(...params);
+                return { rows: res };
             } else {
                 return stmt.run(...params);
             }

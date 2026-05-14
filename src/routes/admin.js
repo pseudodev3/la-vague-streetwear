@@ -330,8 +330,8 @@ export default function (productService, inventoryService) {
         const { code, type, value, min_order_amount, max_discount_amount, usage_limit, per_customer_limit, start_date, end_date, applicable_categories, applicable_products } = req.body;
         const id = `cpn-${Date.now()}`;
         await query(`
-            INSERT INTO coupons (id, code, type, value, min_order_amount, max_discount_amount, usage_limit, per_customer_limit, start_date, end_date, applicable_categories, applicable_products)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            INSERT INTO coupons (id, code, type, value, min_order_amount, max_discount_amount, usage_limit, per_customer_limit, start_date, end_date, applicable_categories, applicable_products, is_active)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 1)
         `, [id, code.toUpperCase(), type, value, min_order_amount || 0, max_discount_amount || null, usage_limit || null, per_customer_limit || 1, start_date || null, end_date || null, JSON.stringify(applicable_categories || []), JSON.stringify(applicable_products || [])]);
         await logAudit('CREATE_COUPON', 'coupon', id, null, { code, type, value }, req);
         res.json({ success: true, coupon: { id, code: code.toUpperCase() } });
