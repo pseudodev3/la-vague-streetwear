@@ -60,7 +60,8 @@ export default function(productService, inventoryService) {
 
     router.post('/validate-coupon', orderLimiter, csrfProtection, asyncHandler(async (req, res) => {
         const { code, cartTotal, customerEmail } = req.body;
-        const result = await query('SELECT * FROM coupons WHERE code = $1 AND is_active = 1', [code.toUpperCase()]);
+        const isActive = USE_POSTGRES ? true : 1;
+        const result = await query('SELECT * FROM coupons WHERE code = $1 AND is_active = $2', [code.toUpperCase(), isActive]);
         if (result.rows.length === 0) return res.status(400).json({ valid: false, error: 'Invalid coupon code' });
         
         const coupon = result.rows[0];
