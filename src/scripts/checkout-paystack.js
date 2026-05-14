@@ -186,6 +186,11 @@
             styles.textContent = `
                 .paystack-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 1rem; animation: paystack-modal-fade-in 0.3s ease; }
                 .paystack-modal-container { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; max-width: 480px; width: 100%; padding: 3rem 2.5rem; text-align: center; box-shadow: 0 25px 80px rgba(0,0,0,0.6); }
+                @media (max-width: 480px) {
+                    .paystack-modal-container { padding: 2rem 1.5rem; }
+                    .paystack-modal-title { font-size: 1.5rem; }
+                    .paystack-modal-btn { width: 100%; justify-content: center; }
+                }
                 .paystack-modal-icon { width: 80px; height: 80px; margin: 0 auto 1.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
                 .paystack-modal-icon--pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; animation: paystack-pulse 2s ease-in-out infinite; }
                 .paystack-modal-icon--success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }

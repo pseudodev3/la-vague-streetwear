@@ -601,6 +601,14 @@ button {
     transition: var(--transition-medium);
     position: relative;
     overflow: hidden;
+    min-height: 44px; /* Minimum touch target size */
+}
+
+@media (max-width: 768px) {
+    .btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 0.8125rem;
+    }
 }
 
 .btn-primary {
@@ -1223,6 +1231,7 @@ button {
     width: 100%;
     max-width: 420px;
     height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile */
     background: var(--color-bg);
     border-left: 1px solid var(--color-border);
     z-index: 1002;
@@ -1246,7 +1255,7 @@ button {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
+    padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--color-border);
 }
 
@@ -1274,7 +1283,7 @@ button {
 .cart-items {
     flex: 1;
     overflow-y: auto;
-    padding: 1.5rem;
+    padding: 1.25rem 1.5rem;
 }
 
 .cart-empty {
@@ -1289,7 +1298,9 @@ button {
 
 .cart-footer {
     padding: 1.5rem;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); /* Account for iOS home bar */
     border-top: 1px solid var(--color-border);
+    background: var(--color-bg);
 }
 
 .cart-subtotal {
