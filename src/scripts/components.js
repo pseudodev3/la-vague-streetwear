@@ -168,7 +168,7 @@ window.Components = {
                     <circle cx="11" cy="11" r="8"></circle>
                     <path d="m21 21-4.35-4.35"></path>
                 </svg>
-                <input type="text" id="searchInput" placeholder="Search products..." autocomplete="off" data-i18n-placeholder="search.placeholder">
+                <input type="text" id="searchInput" placeholder="Search products..." autocomplete="off">
             </div>
             <div class="search-results" id="searchResults"></div>
         </div>

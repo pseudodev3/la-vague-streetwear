@@ -201,12 +201,6 @@ const I18n = {
         // Update announcement bar
         this.updateAnnouncementBar();
         
-        // Update search placeholder
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.placeholder = this.getTranslation('search.placeholder');
-        }
-        
         // Update product page specific elements
         this.updateProductPageElements();
         
