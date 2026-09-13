@@ -1,12 +1,10 @@
 import crypto from 'crypto';
-import Paystack from 'paystack-api';
 import { query } from '../config/db.js';
 import { logWebhookEvent } from '../utils/audit.js';
 import { sendOrderConfirmation, isEmailConfigured } from '../../email-templates/index.js';
 import { captureException, captureMessage } from '../config/sentry.js';
 
 const secretKey = process.env.PAYSTACK_SECRET_KEY;
-const paystack = secretKey ? Paystack(secretKey) : null;
 
 const EMAIL_ENABLED = process.env.EMAIL_TEST_MODE !== 'true' && isEmailConfigured();
 const EMAIL_TEST_MODE = process.env.EMAIL_TEST_MODE === 'true';
@@ -46,6 +44,32 @@ function affectedRows(result) {
     return Number(result?.rowCount ?? result?.changes ?? 0);
 }
 
+async function paystackRequest(path, options = {}) {
+    if (!secretKey) throw new Error('Paystack not configured');
+
+    const response = await fetch(`https://api.paystack.co${path}`, {
+        ...options,
+        headers: {
+            Authorization: `Bearer ${secretKey}`,
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+
+    let payload;
+    try {
+        payload = await response.json();
+    } catch {
+        throw new Error(`Paystack returned an invalid response (${response.status})`);
+    }
+
+    if (!response.ok || !payload?.status) {
+        throw new Error(payload?.message || `Paystack request failed (${response.status})`);
+    }
+
+    return payload;
+}
+
 export function verifyPaystackSignature(body, signature) {
     if (!secretKey || !signature) return false;
 
@@ -58,19 +82,14 @@ export function verifyPaystackSignature(body, signature) {
 }
 
 export async function verifyTransaction(reference) {
-    if (!secretKey) throw new Error('Paystack not configured');
     if (!reference) throw new Error('Payment reference is required');
 
-    const response = await fetch(
-        `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-        { headers: { Authorization: `Bearer ${secretKey}` } }
+    const payload = await paystackRequest(
+        `/transaction/verify/${encodeURIComponent(reference)}`,
+        { method: 'GET' }
     );
-    const payload = await response.json();
 
-    if (!response.ok || !payload?.status || !payload?.data) {
-        throw new Error(payload?.message || 'Unable to verify Paystack transaction');
-    }
-
+    if (!payload.data) throw new Error('Paystack verification response is missing transaction data');
     return payload.data;
 }
 
@@ -256,8 +275,6 @@ async function handleRefundProcessed(data) {
 }
 
 export async function initializeTransaction(orderId, email, amount, origin) {
-    if (!paystack) throw new Error('Paystack not configured');
-
     const amountInKobo = Math.round(Number(amount) * 100);
     if (!Number.isSafeInteger(amountInKobo) || amountInKobo <= 0) {
         throw new Error('Invalid transaction amount');
@@ -266,31 +283,35 @@ export async function initializeTransaction(orderId, email, amount, origin) {
     const frontendOrigin = process.env.FRONTEND_URL || origin;
     if (!frontendOrigin) throw new Error('Frontend URL is not configured');
 
-    const paystackResponse = await paystack.transaction.initialize({
-        email,
-        amount: amountInKobo,
-        currency: 'NGN',
-        reference: String(orderId),
-        callback_url: `${frontendOrigin.replace(/\/$/, '')}/order-confirmation?order=${encodeURIComponent(orderId)}&status=success`,
-        metadata: {
-            order_id: orderId,
-            custom_fields: [
-                { display_name: 'Order ID', variable_name: 'order_id', value: orderId }
-            ]
-        }
+    const payload = await paystackRequest('/transaction/initialize', {
+        method: 'POST',
+        body: JSON.stringify({
+            email,
+            amount: amountInKobo,
+            currency: 'NGN',
+            reference: String(orderId),
+            callback_url: `${frontendOrigin.replace(/\/$/, '')}/order-confirmation?order=${encodeURIComponent(orderId)}&status=success`,
+            metadata: {
+                order_id: orderId,
+                custom_fields: [
+                    { display_name: 'Order ID', variable_name: 'order_id', value: orderId }
+                ]
+            }
+        })
     });
 
-    if (paystackResponse?.status && paystackResponse?.data?.reference) {
-        await query('UPDATE orders SET payment_reference = $1 WHERE id = $2', [
-            paystackResponse.data.reference,
-            orderId
-        ]);
-        return {
-            access_code: paystackResponse.data.access_code,
-            authorization_url: paystackResponse.data.authorization_url,
-            publicKey: process.env.PAYSTACK_PUBLIC_KEY
-        };
+    if (!payload.data?.reference) {
+        throw new Error('Paystack initialization response is missing transaction data');
     }
 
-    throw new Error(paystackResponse?.message || 'Paystack initialization failed');
+    await query('UPDATE orders SET payment_reference = $1 WHERE id = $2', [
+        payload.data.reference,
+        orderId
+    ]);
+
+    return {
+        access_code: payload.data.access_code,
+        authorization_url: payload.data.authorization_url,
+        publicKey: process.env.PAYSTACK_PUBLIC_KEY
+    };
 }
