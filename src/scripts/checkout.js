@@ -2,10 +2,7 @@
  * LA VAGUE - Checkout Page JavaScript
  */
 
-// API Configuration
-const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3000/api' 
-    : 'https://la-vague-api.onrender.com/api';
+const API_URL = '/api';
 
 const state = {
     cart: JSON.parse(localStorage.getItem('cart')) || [],
@@ -14,18 +11,24 @@ const state = {
     discountCode: null,
     isFreeShippingCoupon: false,
     settings: {
-        shippingRate: 0,
-        expressShippingRate: 0,
-        freeShippingThreshold: 0
+        shippingRate: 10000,
+        expressShippingRate: 25000,
+        freeShippingThreshold: 150000
     }
 };
 
 let elements = {};
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
 async function initCheckout() {
-    // ==========================================
-    // DOM ELEMENTS (RE-QUERY AFTER INJECTION)
-    // ==========================================
     elements = {
         nav: document.getElementById('nav'),
         summaryItems: document.getElementById('summaryItems'),
@@ -47,44 +50,52 @@ async function initCheckout() {
         window.location.href = 'shop.html';
         return;
     }
-    
+
     await loadSettings();
     updateShippingState();
     render();
     bindEvents();
 
-    // Nav scroll effect
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-            elements.nav?.classList.add('scrolled');
-        } else {
-            elements.nav?.classList.remove('scrolled');
-        }
-    }, { passive: true });
+    window.addEventListener(
+        'scroll',
+        () => {
+            if (window.scrollY > 50) elements.nav?.classList.add('scrolled');
+            else elements.nav?.classList.remove('scrolled');
+        },
+        { passive: true }
+    );
 }
 
 function render() {
     if (!elements.summaryItems) return;
-    
-    elements.summaryItems.innerHTML = state.cart.map(item => `
+
+    elements.summaryItems.innerHTML = state.cart
+        .map(
+            item => `
         <div class="summary-item">
             <div class="summary-item-image">
-                <img src="${item.image}" alt="${item.name}">
-                <span class="summary-item-qty">${item.quantity}</span>
+                <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">
+                <span class="summary-item-qty">${Number(item.quantity) || 0}</span>
             </div>
             <div class="summary-item-details">
-                <p class="summary-item-name">${item.name}</p>
-                <p class="summary-item-variant">${item.color} / ${item.size}</p>
+                <p class="summary-item-name">${escapeHtml(item.name)}</p>
+                <p class="summary-item-variant">${escapeHtml(item.color)} / ${escapeHtml(item.size)}</p>
             </div>
-            <span class="summary-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
+            <span class="summary-item-price">${CurrencyConfig.formatPrice(Number(item.price) * Number(item.quantity))}</span>
         </div>
-    `).join('');
+    `
+        )
+        .join('');
 
-    const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subtotal = state.cart.reduce(
+        (sum, item) => sum + Number(item.price) * Number(item.quantity),
+        0
+    );
     const total = subtotal + state.shipping - state.discount;
-    
+
     elements.summarySubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
-    elements.summaryShipping.textContent = state.shipping === 0 ? 'FREE' : CurrencyConfig.formatPrice(state.shipping);
+    elements.summaryShipping.textContent =
+        state.shipping === 0 ? 'FREE' : CurrencyConfig.formatPrice(state.shipping);
     elements.summaryTotal.textContent = CurrencyConfig.formatPrice(total);
 
     if (state.discount > 0) {
@@ -97,33 +108,31 @@ function render() {
     if (state.isFreeShippingCoupon || subtotal >= state.settings.freeShippingThreshold) {
         elements.standardShippingPrice.textContent = 'FREE';
     } else {
-        elements.standardShippingPrice.textContent = CurrencyConfig.formatPrice(state.settings.shippingRate);
+        elements.standardShippingPrice.textContent = CurrencyConfig.formatPrice(
+            state.settings.shippingRate
+        );
     }
-    
-    if (state.isFreeShippingCoupon) {
-        elements.expressShippingPrice.textContent = 'FREE';
-    } else {
-        elements.expressShippingPrice.textContent = CurrencyConfig.formatPrice(state.settings.expressShippingRate);
-    }
+
+    elements.expressShippingPrice.textContent = state.isFreeShippingCoupon
+        ? 'FREE'
+        : CurrencyConfig.formatPrice(state.settings.expressShippingRate);
 }
 
 function updateShippingState() {
-    const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const selectedShipping = document.querySelector('input[name="shipping"]:checked')?.value || 'standard';
+    const subtotal = state.cart.reduce(
+        (sum, item) => sum + Number(item.price) * Number(item.quantity),
+        0
+    );
+    const selectedShipping =
+        document.querySelector('input[name="shipping"]:checked')?.value || 'standard';
 
     if (state.isFreeShippingCoupon) {
         state.shipping = 0;
-        return;
-    }
-
-    if (selectedShipping === 'express') {
+    } else if (selectedShipping === 'express') {
         state.shipping = state.settings.expressShippingRate;
     } else {
-        if (subtotal >= state.settings.freeShippingThreshold) {
-            state.shipping = 0;
-        } else {
-            state.shipping = state.settings.shippingRate;
-        }
+        state.shipping =
+            subtotal >= state.settings.freeShippingThreshold ? 0 : state.settings.shippingRate;
     }
 }
 
@@ -131,11 +140,12 @@ async function loadSettings() {
     try {
         const response = await fetch(`${API_URL}/config/settings`);
         const data = await response.json();
-        if (data.success && data.settings) {
-            state.settings.shippingRate = data.settings.shippingRate || 10000;
-            state.settings.expressShippingRate = data.settings.expressShippingRate || 25000;
-            state.settings.freeShippingThreshold = data.settings.freeShippingThreshold || 150000;
-        }
+        if (!response.ok || !data.success || !data.settings) return;
+
+        state.settings.shippingRate = Number(data.settings.shippingRate) || 10000;
+        state.settings.expressShippingRate = Number(data.settings.expressShippingRate) || 25000;
+        state.settings.freeShippingThreshold =
+            Number(data.settings.freeShippingThreshold) || 150000;
     } catch (error) {
         console.error('[CHECKOUT] Failed to load settings:', error);
     }
@@ -149,90 +159,125 @@ function bindEvents() {
             render();
         });
     });
-    
+
     elements.applyDiscount?.addEventListener('click', applyDiscountCode);
-    elements.discountCode?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') applyDiscountCode();
+    elements.discountCode?.addEventListener('keypress', event => {
+        if (event.key === 'Enter') applyDiscountCode();
     });
-    
     elements.placeOrderBtn?.addEventListener('click', handlePlaceOrder);
+}
+
+async function getCsrfToken() {
+    const response = await fetch(`${API_URL}/csrf-token`, { credentials: 'include' });
+    const data = await response.json();
+    if (!response.ok || !data.csrfToken) throw new Error('Could not start secure checkout');
+    return data.csrfToken;
 }
 
 async function applyDiscountCode() {
     const code = elements.discountCode.value.trim().toUpperCase();
-    if (!code) { showToast('Please enter a discount code', 'error'); return; }
-    
-    const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    if (!code) {
+        showToast('Please enter a discount code', 'error');
+        return;
+    }
+
+    const subtotal = state.cart.reduce(
+        (sum, item) => sum + Number(item.price) * Number(item.quantity),
+        0
+    );
     const cartTotal = subtotal + state.shipping;
-    
+
     try {
-        const csrfResponse = await fetch(`${API_URL}/csrf-token`, { credentials: 'include' });
-        const csrfData = await csrfResponse.json();
-        
+        const csrfToken = await getCsrfToken();
         const response = await fetch(`${API_URL}/orders/validate-coupon`, {
             method: 'POST',
             credentials: 'include',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
-            body: JSON.stringify({ code: code, cartTotal: cartTotal, items: state.cart })
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ code, cartTotal })
         });
-        
         const data = await response.json();
-        if (!response.ok || !data.valid) { showToast(data.error || 'Invalid code', 'error'); return; }
-        
-        state.discount = data.coupon.discount;
-        state.isFreeShippingCoupon = data.coupon.type === 'free_shipping';
-        
-        if (state.isFreeShippingCoupon) {
-            state.shipping = 0;
-            showToast('Free shipping applied!', 'success');
-        } else {
-            showToast(`Coupon applied! ₦${state.discount.toLocaleString()} off`, 'success');
+
+        if (!response.ok || !data.valid) {
+            showToast(data.error || 'Invalid code', 'error');
+            return;
         }
-        
+
+        state.discount = Number(data.coupon.discount) || 0;
+        state.isFreeShippingCoupon = data.coupon.type === 'free_shipping';
         state.discountCode = code;
         updateShippingState();
         render();
         elements.discountCode.value = '';
+
+        showToast(
+            state.isFreeShippingCoupon
+                ? 'Free shipping applied!'
+                : `Coupon applied! ₦${state.discount.toLocaleString()} off`,
+            'success'
+        );
     } catch (error) {
+        console.error('[CHECKOUT] Coupon validation failed:', error);
         showToast('Failed to validate coupon', 'error');
     }
 }
 
-async function handlePlaceOrder(e) {
-    e.preventDefault();
-    const requiredFields = ['email', 'firstName', 'lastName', 'address', 'city', 'state', 'zip', 'phone'];
+async function handlePlaceOrder(event) {
+    event.preventDefault();
+    const requiredFields = [
+        'email',
+        'firstName',
+        'lastName',
+        'address',
+        'city',
+        'state',
+        'zip',
+        'phone'
+    ];
     let isValid = true;
-    
+
     requiredFields.forEach(field => {
         const input = document.getElementById(field);
-        if (!input || !input.value.trim()) {
+        if (!input?.value.trim()) {
             isValid = false;
             input?.classList.add('error');
         } else {
-            input?.classList.remove('error');
+            input.classList.remove('error');
         }
     });
-    
-    if (!isValid) { showToast('Please fill in all required fields', 'error'); return; }
-    
-    const selectedPayment = document.querySelector('input[name="payment"]:checked')?.value || 'manual';
+
+    if (!isValid) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    const selectedPayment =
+        document.querySelector('input[name="payment"]:checked')?.value || 'manual';
+    const subtotal = state.cart.reduce(
+        (sum, item) => sum + Number(item.price) * Number(item.quantity),
+        0
+    );
+
     const orderData = {
-        customerEmail: document.getElementById('email').value,
-        customerName: `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`,
-        customerPhone: document.getElementById('phone').value,
+        customerEmail: document.getElementById('email').value.trim(),
+        customerName: `${document.getElementById('firstName').value.trim()} ${document.getElementById('lastName').value.trim()}`,
+        customerPhone: document.getElementById('phone').value.trim(),
         shippingAddress: {
-            address: document.getElementById('address').value,
-            apartment: document.getElementById('apartment')?.value || '',
-            city: document.getElementById('city').value,
-            state: document.getElementById('state').value,
-            zip: document.getElementById('zip').value
+            address: document.getElementById('address').value.trim(),
+            apartment: document.getElementById('apartment')?.value.trim() || '',
+            city: document.getElementById('city').value.trim(),
+            state: document.getElementById('state').value.trim(),
+            zip: document.getElementById('zip').value.trim()
         },
-        shippingMethod: document.querySelector('input[name="shipping"]:checked')?.value || 'standard',
+        shippingMethod:
+            document.querySelector('input[name="shipping"]:checked')?.value || 'standard',
         shippingCost: state.shipping,
-        subtotal: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        subtotal,
         discount: state.discount,
         discountCode: state.discountCode,
-        total: state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) + state.shipping - state.discount,
+        total: subtotal + state.shipping - state.discount,
         items: state.cart,
         paymentMethod: selectedPayment
     };
@@ -240,38 +285,44 @@ async function handlePlaceOrder(e) {
     elements.placeOrderBtn.textContent = 'Processing...';
     elements.placeOrderBtn.disabled = true;
 
-    // Use Paystack if selected and configured
-    if ((selectedPayment === 'paystack' || selectedPayment === 'card') && window.PaystackCheckout?.isConfigured()) {
+    if (
+        (selectedPayment === 'paystack' || selectedPayment === 'card') &&
+        window.PaystackCheckout?.isConfigured()
+    ) {
         try {
             await window.PaystackCheckout.processOrder(orderData);
-            elements.placeOrderBtn.textContent = 'Complete Order';
-            elements.placeOrderBtn.disabled = false;
             return;
         } catch (error) {
             console.error('[CHECKOUT] Paystack error:', error);
             showToast(error.message || 'Payment initialization failed. Please try again.', 'error');
+        } finally {
             elements.placeOrderBtn.textContent = 'Complete Order';
             elements.placeOrderBtn.disabled = false;
-            return;
         }
+        return;
     }
-    
+
     try {
-        const csrfResponse = await fetch(`${API_URL}/csrf-token`, { credentials: 'include' });
-        const csrfData = await csrfResponse.json();
+        const csrfToken = await getCsrfToken();
         const response = await fetch(`${API_URL}/orders`, {
             method: 'POST',
             credentials: 'include',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
             body: JSON.stringify(orderData)
         });
         const result = await response.json();
-        if (result.success) {
-            localStorage.removeItem('cart');
-            window.location.href = `/order-confirmation?order=${result.orderId}`;
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Could not place order');
         }
+
+        localStorage.removeItem('cart');
+        window.location.href = `/order-confirmation?order=${encodeURIComponent(result.orderId)}`;
     } catch (error) {
-        showToast('API Error: ' + error.message, 'error');
+        showToast(error.message || 'Could not place order', 'error');
         elements.placeOrderBtn.disabled = false;
         elements.placeOrderBtn.textContent = 'Complete Order';
     }
@@ -279,12 +330,22 @@ async function handlePlaceOrder(e) {
 
 function showToast(message, type = 'success') {
     if (!elements.toastContainer) return;
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span class="toast-message">${message}</span>`;
+    const span = document.createElement('span');
+    span.className = 'toast-message';
+    span.textContent = String(message);
+    toast.appendChild(span);
     elements.toastContainer.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 3000);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 window.addEventListener('componentsLoaded', initCheckout);
-if (document.readyState === 'complete' && window.Components && document.getElementById('nav')?.innerHTML) initCheckout();
+if (
+    document.readyState === 'complete' &&
+    window.Components &&
+    document.getElementById('nav')?.innerHTML
+) {
+    initCheckout();
+}
