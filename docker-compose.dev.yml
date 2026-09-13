@@ -1,36 +1,28 @@
-# LA VAGUE - Docker Compose for Development
-# Includes hot reloading and debugging features
-
-version: '3.8'
-
 services:
-  app:
+  api:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: la-vague-dev
+    container_name: la-vague-dev-api
     restart: unless-stopped
     ports:
-      - "3000:3000"
-      - "9229:9229"  # Node.js debugger
+      - "3001:3001"
     environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/la_vague
-      - ADMIN_PASSWORD=admin123
-      - EMAIL_TEST_MODE=true
-      - FRONTEND_URL=http://localhost:3000
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/la_vague
+      PG_SSL: 'false'
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      EMAIL_TEST_MODE: 'true'
+      FRONTEND_URL: http://localhost:3000
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
+      PAYSTACK_PUBLIC_KEY: ${PAYSTACK_PUBLIC_KEY:-}
     volumes:
-      # Mount source code for hot reloading
       - .:/app
-      # Exclude node_modules
       - /app/node_modules
-      - dev-data:/app/data
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - la-vague-dev-network
     command: npm run dev:server
 
   db:
@@ -38,22 +30,19 @@ services:
     container_name: la-vague-dev-db
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=la_vague
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: la_vague
     volumes:
       - dev-postgres-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    networks:
-      - la-vague-dev-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d la_vague"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Adminer for database management
   adminer:
     image: adminer:latest
     container_name: la-vague-adminer
@@ -61,16 +50,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - ADMINER_DEFAULT_SERVER=db
+      ADMINER_DEFAULT_SERVER: db
     depends_on:
       - db
-    networks:
-      - la-vague-dev-network
 
 volumes:
   dev-postgres-data:
-  dev-data:
-
-networks:
-  la-vague-dev-network:
-    driver: bridge
