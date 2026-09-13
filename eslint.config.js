@@ -42,6 +42,18 @@ const browserAppGlobals = {
     viewCustomer: 'readonly'
 };
 
+const testGlobals = {
+    describe: 'readonly',
+    it: 'readonly',
+    test: 'readonly',
+    expect: 'readonly',
+    beforeAll: 'readonly',
+    afterAll: 'readonly',
+    beforeEach: 'readonly',
+    afterEach: 'readonly',
+    vi: 'readonly'
+};
+
 export default [
     js.configs.recommended,
     {
@@ -80,7 +92,7 @@ export default [
             globals: {
                 ...globals.browser,
                 ...globals.node,
-                ...globals.vitest,
+                ...testGlobals,
                 ...browserAppGlobals
             }
         }
