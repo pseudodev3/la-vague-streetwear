@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import Paystack from 'paystack-api';
 import { query } from '../config/db.js';
 import { logWebhookEvent } from '../utils/audit.js';
-import { sendOrderConfirmation, sendOrderStatusUpdate, isEmailConfigured } from '../../email-templates/index.js';
+import { sendOrderConfirmation, isEmailConfigured } from '../../email-templates/index.js';
 import { captureException, captureMessage } from '../config/sentry.js';
 
 const secretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -11,12 +11,11 @@ const paystack = secretKey ? Paystack(secretKey) : null;
 const EMAIL_ENABLED = process.env.EMAIL_TEST_MODE !== 'true' && isEmailConfigured();
 const EMAIL_TEST_MODE = process.env.EMAIL_TEST_MODE === 'true';
 
-async function sendOrderEmailSafely(order, type = 'confirmation', status = null) {
+async function sendOrderEmailSafely(order) {
     if (EMAIL_TEST_MODE) {
         console.log('[EMAIL TEST MODE] Would send email:', {
             to: order.customer_email || order.customerEmail,
-            type,
-            status,
+            type: 'confirmation',
             orderId: order.id
         });
         return { success: true, testMode: true };
@@ -25,13 +24,26 @@ async function sendOrderEmailSafely(order, type = 'confirmation', status = null)
     if (!EMAIL_ENABLED) return { success: false, reason: 'email_not_configured' };
 
     try {
-        if (type === 'confirmation') await sendOrderConfirmation(order);
-        else if (type === 'status_update') await sendOrderStatusUpdate(order, status);
+        await sendOrderConfirmation(order);
         return { success: true };
     } catch (error) {
         console.error('[EMAIL] Failed to send:', error.message);
         return { success: false, error: error.message };
     }
+}
+
+function parseOrderItems(order) {
+    return typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [];
+}
+
+function parseShippingAddress(order) {
+    return typeof order.shipping_address === 'string'
+        ? JSON.parse(order.shipping_address)
+        : order.shipping_address || {};
+}
+
+function affectedRows(result) {
+    return Number(result?.rowCount ?? result?.changes ?? 0);
 }
 
 export function verifyPaystackSignature(body, signature) {
@@ -49,9 +61,10 @@ export async function verifyTransaction(reference) {
     if (!secretKey) throw new Error('Paystack not configured');
     if (!reference) throw new Error('Payment reference is required');
 
-    const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-        headers: { Authorization: `Bearer ${secretKey}` }
-    });
+    const response = await fetch(
+        `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+        { headers: { Authorization: `Bearer ${secretKey}` } }
+    );
     const payload = await response.json();
 
     if (!response.ok || !payload?.status || !payload?.data) {
@@ -68,8 +81,10 @@ export function transactionMatchesOrder(transaction, order) {
     const paidAmount = Number(transaction.amount);
     const metadataOrderId = transaction.metadata?.order_id;
     const referenceMatches =
-        transaction.reference === order.payment_reference || transaction.reference === String(order.id);
-    const metadataMatches = !metadataOrderId || String(metadataOrderId) === String(order.id);
+        transaction.reference === order.payment_reference ||
+        transaction.reference === String(order.id);
+    const metadataMatches =
+        !metadataOrderId || String(metadataOrderId) === String(order.id);
     const amountMatches = Number.isFinite(expectedAmount) && paidAmount === expectedAmount;
     const currencyMatches = String(transaction.currency || '').toUpperCase() === 'NGN';
 
@@ -80,6 +95,44 @@ export function transactionMatchesOrder(transaction, order) {
         amountMatches &&
         currencyMatches
     );
+}
+
+/**
+ * Commit a paid order's reserved inventory exactly once.
+ * If a pending Paystack reservation expired before payment completed, try to
+ * re-reserve the original items before committing stock. Existing paid orders
+ * never re-reserve, which keeps retries idempotent.
+ */
+export async function finalizeInventoryForPayment(order, inventoryService) {
+    const items = parseOrderItems(order);
+    let confirmation = await inventoryService.confirmReservation(order.id);
+
+    if (confirmation?.alreadyConfirmed && order.payment_status !== 'paid') {
+        await inventoryService.reserveItems(items, order.id);
+        confirmation = await inventoryService.confirmReservation(order.id);
+    }
+
+    return { items, confirmation };
+}
+
+export async function markOrderPaid(order, reference, inventoryService) {
+    const { items } = await finalizeInventoryForPayment(order, inventoryService);
+
+    const updateResult = await query(
+        `UPDATE orders
+         SET payment_status = 'paid',
+             payment_reference = $1,
+             order_status = CASE WHEN order_status = 'pending' THEN 'processing' ELSE order_status END,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2 AND payment_status <> 'paid'`,
+        [reference, order.id]
+    );
+
+    return {
+        transitioned: affectedRows(updateResult) > 0,
+        items,
+        shippingAddress: parseShippingAddress(order)
+    };
 }
 
 export async function processWebhook(event, inventoryService) {
@@ -111,7 +164,10 @@ async function findOrderForTransaction(reference, metadataOrderId) {
         if (byId.rows.length > 0) return byId.rows[0];
     }
 
-    const byReference = await query('SELECT * FROM orders WHERE payment_reference = $1', [reference]);
+    const byReference = await query(
+        'SELECT * FROM orders WHERE payment_reference = $1',
+        [reference]
+    );
     return byReference.rows[0] || null;
 }
 
@@ -142,37 +198,19 @@ async function handleChargeSuccess(data, inventoryService) {
         return;
     }
 
-    if (order.payment_status === 'paid') return;
-
     try {
-        await query(
-            `UPDATE orders
-             SET payment_status = 'paid',
-                 payment_reference = $1,
-                 order_status = CASE WHEN order_status = 'pending' THEN 'processing' ELSE order_status END,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $2`,
-            [reference, order.id]
-        );
+        const result = await markOrderPaid(order, reference, inventoryService);
 
-        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-        const shippingAddress =
-            typeof order.shipping_address === 'string'
-                ? JSON.parse(order.shipping_address)
-                : order.shipping_address;
-
-        await inventoryService.confirmReservation(order.id, items);
-        await sendOrderEmailSafely(
-            {
+        if (result.transitioned) {
+            await sendOrderEmailSafely({
                 ...order,
-                items,
-                shipping_address: shippingAddress,
-                payment_status: 'paid'
-            },
-            'confirmation'
-        );
-
-        captureMessage(`Payment confirmed for order ${order.id}`, { level: 'info' });
+                items: result.items,
+                shipping_address: result.shippingAddress,
+                payment_status: 'paid',
+                payment_reference: reference
+            });
+            captureMessage(`Payment confirmed for order ${order.id}`, { level: 'info' });
+        }
     } catch (error) {
         captureException(error, { extra: { orderId: order.id, reference } });
         throw error;
@@ -185,7 +223,7 @@ async function handleChargeFailed(data, inventoryService) {
     if (!order || order.payment_status === 'paid') return;
 
     await query(
-        "UPDATE orders SET payment_status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+        "UPDATE orders SET payment_status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND payment_status <> 'paid'",
         [order.id]
     );
     await inventoryService.cancelReservation(order.id);
@@ -193,7 +231,10 @@ async function handleChargeFailed(data, inventoryService) {
 
 async function handleRefundProcessed(data) {
     const { reference, transaction_reference } = data;
-    const orderResult = await query('SELECT * FROM orders WHERE payment_reference = $1', [transaction_reference]);
+    const orderResult = await query(
+        'SELECT * FROM orders WHERE payment_reference = $1',
+        [transaction_reference]
+    );
     if (orderResult.rows.length === 0) return;
     const order = orderResult.rows[0];
 
@@ -215,15 +256,20 @@ export async function initializeTransaction(orderId, email, amount, origin) {
         throw new Error('Invalid transaction amount');
     }
 
+    const frontendOrigin = process.env.FRONTEND_URL || origin;
+    if (!frontendOrigin) throw new Error('Frontend URL is not configured');
+
     const paystackResponse = await paystack.transaction.initialize({
         email,
         amount: amountInKobo,
         currency: 'NGN',
         reference: String(orderId),
-        callback_url: `${process.env.FRONTEND_URL || origin}/order-confirmation?order=${encodeURIComponent(orderId)}&status=success`,
+        callback_url: `${frontendOrigin.replace(/\/$/, '')}/order-confirmation?order=${encodeURIComponent(orderId)}&status=success`,
         metadata: {
             order_id: orderId,
-            custom_fields: [{ display_name: 'Order ID', variable_name: 'order_id', value: orderId }]
+            custom_fields: [
+                { display_name: 'Order ID', variable_name: 'order_id', value: orderId }
+            ]
         }
     });
 
