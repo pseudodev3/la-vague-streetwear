@@ -1,0 +1,55 @@
+/* Shared announcement bar sizing and mobile behavior.
+   Imported by fonts.css so every storefront page gets the same rules. */
+
+body .announcement-bar {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body .announcement-content {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+body .nav:not(.scrolled) {
+    top: 40px;
+}
+
+@media (max-width: 768px) {
+    body .announcement-bar {
+        height: 32px;
+        min-height: 32px;
+        padding: 0 0.75rem;
+        font-size: 0.625rem;
+        letter-spacing: 0.08em;
+        line-height: 1;
+    }
+
+    body .announcement-content {
+        gap: 0;
+        overflow: hidden;
+    }
+
+    body .announcement-content .dynamic-free-shipping {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Keep the mobile header compact. The secondary promo is repeated
+       elsewhere on storefront pages and should not force a second row. */
+    body .announcement-content .announcement-divider,
+    body .announcement-content .announcement-divider + span {
+        display: none;
+    }
+
+    body .nav:not(.scrolled) {
+        top: 32px;
+    }
+}
