@@ -1,364 +1,191 @@
-# LA VAGUE - Deployment Guide
+# LA VAGUE — Deployment Guide
 
-Complete guide for deploying LA VAGUE to production using **Netlify (Frontend)** + **Render (Backend)**.
+Current production architecture:
 
-## 📋 Prerequisites
+- **Frontend:** Netlify
+- **Backend API:** Render
+- **Database:** PostgreSQL
+- **Payments:** Paystack
+- **Email:** Brevo API or SMTP
+- **Frontend API access:** same-origin `/api` through the Netlify proxy
 
-- GitHub account
-- Netlify account (free)
-- Render account (free)
-- Paystack account (for payments)
-- Gmail account (for email notifications)
+## Frontend — Netlify
 
----
+Netlify is configured by `netlify.toml`.
 
-## 🚀 Step 1: Prepare Your Code
+### Build settings
 
-### 1. Push to GitHub
-
-```bash
-# Your code should already be on GitHub
-# If not:
-git add -A
-git commit -m "Production ready"
-git push origin main
+```text
+Build command: npm run build
+Publish directory: dist
 ```
 
-### 2. Update Configuration Files
+Do **not** publish the repository root. Vite builds the storefront and `scripts/copy-static-assets.js` copies the required runtime assets into `dist`.
 
-#### `netlify.toml` (Frontend)
-```toml
-# Line 24: Update with your Render URL
-[[redirects]]
-  from = "/api/*"
-  to = "https://la-vague-api.onrender.com/api/:splat"
+### API routing
+
+Browser code should call the backend using:
+
+```js
+const API_URL = '/api';
 ```
 
-#### `checkout-api.js` (API Client)
-```javascript
-// Line 12: Update with your Render URL
-const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3000/api' 
-    : 'https://la-vague-api.onrender.com/api';
+Netlify proxies `/api/*` to the Render API. Do not hard-code the Render hostname inside storefront scripts.
+
+The Render URL in `netlify.toml` is intentional because Netlify needs a real upstream target for that proxy.
+
+## Backend — Render
+
+The service configuration is described by `render.yaml`.
+
+### Runtime
+
+```text
+Node: 20.20.2
+Build: npm ci --omit=dev
+Start: node server.js
+Health check: /api/health
 ```
 
----
+The Render service is API-only. A request to `/` may return `404`; this is expected. Monitoring services should use:
 
-## 🎨 Step 2: Deploy Frontend to Netlify
-
-### Option A: GitHub Integration (Recommended)
-
-1. **Go to Netlify Dashboard**
-   - Visit [app.netlify.com](https://app.netlify.com)
-
-2. **Add New Site**
-   - Click "Add new site" → "Import an existing project"
-   - Choose "GitHub" and authorize Netlify
-   - Select your `la-vague-streetwear` repository
-
-3. **Configure Build Settings**
-   ```
-   Build command: (leave empty)
-   Publish directory: .
-   ```
-
-4. **Environment Variables**
-   - Go to Site Settings → Environment Variables
-   - Add:
-     ```
-     API_URL = https://la-vague-api.onrender.com
-     ```
-
-5. **Deploy**
-   - Click "Deploy site"
-   - Netlify will give you a URL like `https://la-vague-123.netlify.app`
-
-6. **Custom Domain (Optional)**
-   - Site Settings → Domain Management
-   - Add your custom domain
-   - Follow DNS configuration instructions
-
-### Option B: Manual Deploy
-
-```bash
-# Install Netlify CLI
-npm install -g netlify-cli
-
-# Deploy
-netlify deploy --prod --dir=.
+```text
+https://la-vague-api.onrender.com/api/health
 ```
 
----
+### Required environment variables
 
-## ⚙️ Step 3: Deploy Backend to Render
+Configure secrets in the Render dashboard. Do not commit them to the repository.
 
-### 1. Create Web Service
-
-1. **Go to Render Dashboard**
-   - Visit [dashboard.render.com](https://dashboard.render.com)
-
-2. **New Web Service**
-   - Click "New" → "Web Service"
-   - Connect your GitHub repository
-   - Select the `la-vague` repository
-
-3. **Configure Service**
-   ```
-   Name: la-vague-api
-   Environment: Node
-   Build Command: npm install
-   Start Command: npm start
-   Plan: Free
-   ```
-
-4. **Environment Variables**
-   
-   Go to "Environment" tab and add:
-
-   ```env
-   # Server
-   NODE_ENV=production
-   FRONTEND_URL=https://la-vague-123.netlify.app
-   
-   # Paystack (Get from dashboard.paystack.com)
-   PAYSTACK_SECRET_KEY=sk_live_your_live_secret_key
-   PAYSTACK_PUBLIC_KEY=pk_live_your_live_public_key
-   
-   # Email (Gmail example)
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USER=your-email@gmail.com
-   SMTP_PASS=your-gmail-app-password
-   
-   # Admin
-   ADMIN_API_KEY=your-secure-random-key-here
-   ```
-
-### 2. Create Database Disk
-
-1. In your service, go to "Disks" tab
-2. Click "Add Disk"
-   ```
-   Name: database
-   Mount Path: /data
-   Size: 1 GB
-   ```
-3. Update `server.js` to use `/data/database.sqlite` in production
-
-### 3. Deploy
-
-Click "Create Web Service"
-
-Render will:
-- Install dependencies
-- Start your server
-- Give you a URL like `https://la-vague-api.onrender.com`
-
----
-
-## 💳 Step 4: Configure Paystack
-
-### 1. Create Paystack Account
-
-1. Go to [paystack.com](https://paystack.com)
-2. Sign up and complete business verification
-3. Get your API keys from Settings → API Keys
-
-### 2. Update Environment Variables
-
-In Render dashboard, update:
 ```env
-PAYSTACK_SECRET_KEY=sk_live_...
-PAYSTACK_PUBLIC_KEY=pk_live_...
+NODE_ENV=production
+FRONTEND_URL=https://la-vague.store
+DATABASE_URL=...
+ADMIN_PASSWORD=...
+PAYSTACK_SECRET_KEY=...
+PAYSTACK_PUBLIC_KEY=...
 ```
 
-### 3. Webhook Setup (Optional but Recommended)
+PostgreSQL TLS is enabled in production. Use the environment overrides in `src/config/db.js` only when your database provider requires them.
 
-1. In Paystack Dashboard → Settings → Webhooks
-2. Add webhook URL:
-   ```
-   https://la-vague-api.onrender.com/api/payment/webhook
-   ```
-3. Select events: `charge.success`, `charge.failed`
+## Email
 
----
+The application supports Brevo and SMTP.
 
-## 📧 Step 5: Configure Email
+### Brevo API
 
-### Gmail Setup
-
-1. **Enable 2-Factor Authentication**
-   - Google Account → Security → 2-Step Verification
-
-2. **Generate App Password**
-   - Security → App passwords
-   - Select "Mail" and your device
-   - Copy the generated password
-
-3. **Update Render Environment**
-   ```env
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USER=your-email@gmail.com
-   SMTP_PASS=xxxx-xxxx-xxxx-xxxx  # App password, not your Gmail password
-   ```
-
-### Alternative: SendGrid
-
-1. Create account at [sendgrid.com](https://sendgrid.com)
-2. Create API key
-3. Update environment:
-   ```env
-   SMTP_HOST=smtp.sendgrid.net
-   SMTP_PORT=587
-   SMTP_USER=apikey
-   SMTP_PASS=your-sendgrid-api-key
-   ```
-
----
-
-## 🔐 Step 6: Security Checklist
-
-### Update Admin Password
-
-In `admin.js`, line 10:
-```javascript
-const ADMIN_PASSWORD = 'your-secure-password-here';
-```
-
-### Update Admin API Key
-
-In Render dashboard, set a secure random string:
 ```env
-ADMIN_API_KEY=sk_live_256_random_characters_here
+EMAIL_PROVIDER=brevo
+BREVO_API_KEY=...
+EMAIL_FROM=verified-sender@your-domain.com
+SMTP_FROM_NAME=LA VAGUE
 ```
 
-### Enable HTTPS
+The Brevo API key must be enabled in the Brevo dashboard and the sender address must be verified.
 
-- Netlify: Automatic HTTPS ✓
-- Render: Automatic HTTPS ✓
+### SMTP fallback / SMTP provider
 
----
-
-## ✅ Step 7: Testing
-
-### Test Frontend
-```
-https://la-vague-123.netlify.app
-```
-
-### Test Backend
-```bash
-curl https://la-vague-api.onrender.com/api/health
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...
+EMAIL_FROM=...
+SMTP_FROM_NAME=LA VAGUE
 ```
 
-### Test Payment (Paystack Test Mode)
-1. Use test card: `4084 0840 8408 4081`
-2. Any future expiry date
-3. CVV: `000`
-4. PIN: `1234`
+For Gmail, use an App Password rather than the normal account password.
 
-### Test Admin Panel
-1. Visit: `https://la-vague-123.netlify.app/admin.html`
-2. Login with your admin password
-3. Check orders are displaying
+## Paystack
 
----
+Set the live or test keys in Render:
 
-## 🔄 Step 8: Continuous Deployment
-
-### GitHub → Netlify
-- Already configured ✓
-- Push to main branch → Auto deploy
-
-### GitHub → Render
-- Already configured ✓
-- Push to main branch → Auto deploy
-
----
-
-## 📊 Monitoring
-
-### Render Dashboard
-- Logs: Real-time application logs
-- Metrics: CPU, memory usage
-- Database: Check disk usage
-
-### Netlify Dashboard
-- Analytics: Visitor statistics
-- Forms: Form submissions
-- Edge: CDN performance
-
----
-
-## 🆘 Troubleshooting
-
-### CORS Errors
+```env
+PAYSTACK_SECRET_KEY=...
+PAYSTACK_PUBLIC_KEY=...
 ```
-Access-Control-Allow-Origin error
+
+Webhook URL:
+
+```text
+https://la-vague-api.onrender.com/api/payment/webhook
 ```
-**Fix**: Update `FRONTEND_URL` in Render to match your Netlify URL exactly
 
-### Database Disappears
-**Issue**: Render free tier resets disk on redeploy
-**Solutions**:
-1. Upgrade to paid plan ($7/month)
-2. Use external database (Supabase/PlanetScale)
-3. Accept data loss on deploy (demo only)
+Payment completion is verified server-side. The browser must not be treated as the source of truth for payment success.
 
-### Emails Not Sending
-**Check**:
-1. SMTP credentials correct?
-2. Gmail "Less secure apps" enabled?
-3. Using App Password (not regular password)?
+## Admin panel
 
-### Payment Fails
-**Check**:
-1. Using live keys (not test keys)?
-2. Paystack account verified?
-3. Callback URL correct?
+Admin login is available at:
 
----
+```text
+https://la-vague.store/admin.html
+```
 
-## 💰 Costs Summary
+The admin password is validated by the backend and is configured through `ADMIN_PASSWORD` in Render. It is **not** stored in frontend JavaScript.
 
-| Service | Free Tier | Paid Tier |
-|---------|-----------|-----------|
-| Netlify | Free forever | Pro $19/mo |
-| Render | Free (sleeps) | Starter $7/mo |
-| Paystack | 1.5% + ₦100 per transaction | Same |
-| Gmail | Free | Workspace $6/mo |
+Admin browser requests use the same-origin `/api` route and the authenticated admin session token is stored in `sessionStorage`.
 
-**Recommended for Production:**
-- Render Starter: $7/month (always on)
-- Total: ~$7/month
+## Database
 
----
+Production uses PostgreSQL via `DATABASE_URL`. The old SQLite-on-Render-disk deployment model is obsolete and should not be used for production.
 
-## 🚀 Going Live Checklist
+## Local development
 
-- [ ] Frontend deployed to Netlify
-- [ ] Backend deployed to Render
-- [ ] Paystack live keys configured
-- [ ] Email service configured
-- [ ] Admin password changed
-- [ ] Admin API key set
-- [ ] CORS URLs updated
-- [ ] Test order placed successfully
-- [ ] Email confirmation received
-- [ ] Admin panel accessible
-- [ ] Custom domain configured (optional)
-- [ ] SSL certificates active
-- [ ] 404 page working
+The default local layout is:
 
----
+```text
+Vite frontend: http://localhost:3000
+API backend:   http://localhost:3001
+```
 
-## 📞 Support
+Vite proxies `/api` to the local backend, so frontend code should still use `/api` locally.
 
-**Render**: https://render.com/docs
-**Netlify**: https://docs.netlify.com
-**Paystack**: https://paystack.com/docs
+## Deployment flow
 
----
+1. Push a validated change to `main`.
+2. GitHub Actions runs quality checks, tests, and the frontend build.
+3. Netlify builds and deploys `dist`.
+4. Render deploys the API service.
+5. Verify `/api/health`, storefront product loading, checkout, and admin login.
 
-**Ready to ride the wave! 🌊**
+## Production smoke test
+
+After deployment, verify:
+
+- Storefront loads without console asset errors.
+- `/api/products` returns `200` through the storefront domain.
+- `/api/config/settings` returns `200`.
+- `/api/health` returns healthy status.
+- Admin login works.
+- Inventory updates are reflected correctly.
+- Test checkout can create an order.
+- Paystack webhook returns `200`.
+- Confirmation email is delivered.
+
+## Intentional direct backend references
+
+A few direct Render references are expected:
+
+- `netlify.toml` — Netlify proxy upstream.
+- `openapi.yaml` — public API server documentation.
+- Paystack webhook configuration — Paystack must call the backend directly.
+
+Browser storefront scripts should otherwise use `/api`.
+
+## Troubleshooting
+
+### Render `/` returns 404
+
+Expected. The backend is API-only. Use `/api/health` for uptime checks.
+
+### Email logs show `Brevo API Error: API Key is not enabled`
+
+Replace or enable `BREVO_API_KEY` in Render and confirm the sender is verified in Brevo.
+
+### Frontend API calls fail
+
+Confirm the Netlify `/api/*` redirect exists and points to the Render service, then verify `FRONTEND_URL` and CORS settings.
+
+### Netlify build fails after dependency updates
+
+Use the Node version defined by the project. Current Vite dependencies require a sufficiently recent Node 20 release; production is standardized on Node `20.20.2`.
