@@ -24,22 +24,31 @@ body .login-screen {
     position: relative;
     min-height: 100svh;
     padding: clamp(1rem, 4vw, 3rem);
+    overflow: hidden;
     background:
-        radial-gradient(circle at 15% 15%, rgba(220, 38, 38, .16), transparent 32%),
-        radial-gradient(circle at 85% 85%, rgba(255, 255, 255, .05), transparent 30%),
-        linear-gradient(160deg, #0a0a0a 0%, #111 48%, #080808 100%);
+        radial-gradient(ellipse at 8% 12%, rgba(230, 35, 38, .17) 0%, rgba(230, 35, 38, .055) 27%, transparent 52%),
+        radial-gradient(ellipse at 88% 78%, rgba(255, 255, 255, .035) 0%, transparent 38%),
+        linear-gradient(145deg, #080808 0%, #0c0c0d 48%, #111113 100%);
 }
 
 body .login-screen::before {
     content: '';
     position: absolute;
+    inset: -20%;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 38% 44%, rgba(255,255,255,.035), transparent 24%),
+        radial-gradient(circle at 68% 34%, rgba(230,35,38,.055), transparent 21%);
+    filter: blur(32px);
+    opacity: .85;
+}
+
+body .login-screen::after {
+    content: '';
+    position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-    background-size: 34px 34px;
-    mask-image: linear-gradient(to bottom, #000, transparent 85%);
+    background: linear-gradient(180deg, rgba(255,255,255,.018), transparent 24%, rgba(0,0,0,.18));
 }
 
 body .login-box {
@@ -50,9 +59,9 @@ body .login-box {
     padding: clamp(1.5rem, 5vw, 3rem);
     border: 1px solid var(--color-border-light);
     border-radius: 18px;
-    background: rgba(18,18,18,.92);
-    box-shadow: 0 24px 80px rgba(0,0,0,.48);
-    backdrop-filter: blur(18px);
+    background: linear-gradient(180deg, rgba(20,20,21,.965), rgba(12,12,13,.965));
+    box-shadow: 0 26px 90px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.035);
+    backdrop-filter: blur(22px);
 }
 
 body .login-logo {

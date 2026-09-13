@@ -2267,7 +2267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (document.getElementById('settingsSection')) {
+    if (document.getElementById('settingsSection') && sessionStorage.getItem('adminToken')) {
         loadAdminSettings();
     }
     
