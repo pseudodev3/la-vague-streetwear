@@ -4,7 +4,11 @@ import { asyncHandler, APIError } from '../middleware/errorHandler.js';
 import { csrfProtection } from '../middleware/csrf.js';
 import { validateCreateOrder } from '../middleware/validation.js';
 import { createOrder, lookupOrder } from '../services/orderService.js';
-import { verifyTransaction, transactionMatchesOrder } from '../services/paymentService.js';
+import {
+    markOrderPaid,
+    verifyTransaction,
+    transactionMatchesOrder
+} from '../services/paymentService.js';
 import { query, USE_POSTGRES } from '../config/db.js';
 import { sendOrderConfirmation, isEmailConfigured } from '../../email-templates/index.js';
 
@@ -21,16 +25,6 @@ const lookupLimiter = rateLimit({
     max: 20,
     message: { success: false, error: 'Too many lookup attempts, please try again later.' }
 });
-
-const safeParseJSON = (value, defaultValue = null) => {
-    if (!value || value === 'null' || value === 'undefined') return defaultValue;
-    if (typeof value === 'object') return value;
-    try {
-        return JSON.parse(value);
-    } catch {
-        return defaultValue;
-    }
-};
 
 const EMAIL_ENABLED = process.env.EMAIL_TEST_MODE !== 'true' && isEmailConfigured();
 const EMAIL_TEST_MODE = process.env.EMAIL_TEST_MODE === 'true';
@@ -95,7 +89,7 @@ export default function orderRoutes(productService, inventoryService) {
             const isActive = USE_POSTGRES ? true : 1;
             const result = await query(
                 'SELECT * FROM coupons WHERE code = $1 AND is_active = $2',
-                [String(code).toUpperCase(), isActive]
+                [String(code).trim().toUpperCase(), isActive]
             );
 
             if (result.rows.length === 0) {
@@ -105,8 +99,11 @@ export default function orderRoutes(productService, inventoryService) {
             const coupon = result.rows[0];
             const numericCartTotal = Number(cartTotal);
 
-            if (coupon.usage_limit && coupon.usage_count >= coupon.usage_limit) {
-                return res.status(400).json({ valid: false, error: 'Coupon usage limit has been reached' });
+            if (coupon.usage_limit && Number(coupon.usage_count) >= Number(coupon.usage_limit)) {
+                return res.status(400).json({
+                    valid: false,
+                    error: 'Coupon usage limit has been reached'
+                });
             }
 
             const now = new Date();
@@ -124,18 +121,25 @@ export default function orderRoutes(productService, inventoryService) {
                 });
             }
 
-            let discount =
-                coupon.type === 'percentage'
-                    ? Math.round(numericCartTotal * (Number(coupon.value) / 100))
-                    : Number(coupon.value);
+            let discount = 0;
+            if (coupon.type === 'percentage') {
+                discount = Math.round(numericCartTotal * (Number(coupon.value) / 100));
+            } else if (coupon.type !== 'free_shipping') {
+                discount = Number(coupon.value) || 0;
+            }
 
-            if (coupon.max_discount_amount && discount > Number(coupon.max_discount_amount)) {
-                discount = Number(coupon.max_discount_amount);
+            if (coupon.max_discount_amount) {
+                discount = Math.min(discount, Number(coupon.max_discount_amount));
             }
 
             res.json({
                 valid: true,
-                coupon: { id: coupon.id, code: coupon.code, type: coupon.type, discount }
+                coupon: {
+                    id: coupon.id,
+                    code: coupon.code,
+                    type: coupon.type,
+                    discount: Math.max(0, discount)
+                }
             });
         })
     );
@@ -150,17 +154,7 @@ export default function orderRoutes(productService, inventoryService) {
 
             const orderResult = await query('SELECT * FROM orders WHERE id = $1', [orderId]);
             const order = orderResult.rows[0];
-
             if (!order) throw new APIError('Order not found', 404);
-            if (order.payment_status === 'paid') {
-                return res.json({
-                    success: true,
-                    status: 'paid',
-                    orderId: order.id,
-                    verified: true,
-                    message: 'Payment confirmed'
-                });
-            }
 
             if (!process.env.PAYSTACK_SECRET_KEY) {
                 return res.json({
@@ -172,19 +166,17 @@ export default function orderRoutes(productService, inventoryService) {
                 });
             }
 
-            const paystackRef = reference || order.payment_reference;
-            if (!paystackRef) {
-                return res.json({
-                    success: true,
-                    status: order.payment_status,
-                    orderId: order.id,
-                    verified: false,
-                    message: 'No payment reference'
-                });
-            }
-
-            if (order.payment_reference && paystackRef !== order.payment_reference && paystackRef !== String(order.id)) {
-                throw new APIError('Payment reference does not belong to this order', 400, 'PAYMENT_MISMATCH');
+            const paystackRef = reference || order.payment_reference || String(order.id);
+            if (
+                order.payment_reference &&
+                paystackRef !== order.payment_reference &&
+                paystackRef !== String(order.id)
+            ) {
+                throw new APIError(
+                    'Payment reference does not belong to this order',
+                    400,
+                    'PAYMENT_MISMATCH'
+                );
             }
 
             let transaction;
@@ -192,7 +184,11 @@ export default function orderRoutes(productService, inventoryService) {
                 transaction = await verifyTransaction(paystackRef);
             } catch (error) {
                 console.error('[PAYMENT VERIFY] Paystack verification failed:', error.message);
-                throw new APIError('Payment verification failed', 502, 'PAYMENT_VERIFY_ERROR');
+                throw new APIError(
+                    'Payment verification failed',
+                    502,
+                    'PAYMENT_VERIFY_ERROR'
+                );
             }
 
             if (!transactionMatchesOrder(transaction, order)) {
@@ -203,26 +199,21 @@ export default function orderRoutes(productService, inventoryService) {
                 );
             }
 
-            await query(
-                `UPDATE orders
-                 SET payment_status = 'paid',
-                     payment_reference = $1,
-                     order_status = CASE WHEN order_status = 'pending' THEN 'processing' ELSE order_status END,
-                     updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $2 AND payment_status <> 'paid'`,
-                [transaction.reference, order.id]
+            const result = await markOrderPaid(
+                order,
+                transaction.reference,
+                inventoryService
             );
 
-            const items = safeParseJSON(order.items, []);
-            const shippingAddress = safeParseJSON(order.shipping_address, {});
-            await inventoryService.confirmReservation(order.id, items);
-            await sendOrderConfirmationSafely({
-                ...order,
-                items,
-                shipping_address: shippingAddress,
-                payment_status: 'paid',
-                payment_reference: transaction.reference
-            });
+            if (result.transitioned) {
+                await sendOrderConfirmationSafely({
+                    ...order,
+                    items: result.items,
+                    shipping_address: result.shippingAddress,
+                    payment_status: 'paid',
+                    payment_reference: transaction.reference
+                });
+            }
 
             return res.json({
                 success: true,
