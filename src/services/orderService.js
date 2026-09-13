@@ -16,6 +16,25 @@ async function getCheckoutSettings() {
     };
 }
 
+async function countCompletedCouponUses(couponId, customerEmail = null) {
+    let sql = `
+        SELECT COUNT(*) AS count
+        FROM coupon_usage cu
+        JOIN orders o ON o.id = cu.order_id
+        WHERE cu.coupon_id = $1
+          AND (o.payment_method <> 'paystack' OR o.payment_status = 'paid')
+    `;
+    const params = [couponId];
+
+    if (customerEmail) {
+        sql += ' AND cu.customer_email = $2';
+        params.push(customerEmail);
+    }
+
+    const result = await query(sql, params);
+    return Number(result.rows[0]?.count || 0);
+}
+
 async function getValidCoupon(discountCode, subtotal, customerEmail) {
     if (!discountCode) return null;
 
@@ -34,20 +53,25 @@ async function getValidCoupon(discountCode, subtotal, customerEmail) {
     if (coupon.end_date && new Date(coupon.end_date) < now) {
         throw new APIError('Coupon has expired.', 400, 'INVALID_COUPON');
     }
-    if (coupon.usage_limit && Number(coupon.usage_count) >= Number(coupon.usage_limit)) {
-        throw new APIError('Coupon usage limit has been reached.', 400, 'INVALID_COUPON');
-    }
     if (subtotal < Number(coupon.min_order_amount || 0)) {
         throw new APIError('Order does not meet the coupon minimum.', 400, 'INVALID_COUPON');
     }
 
+    if (coupon.usage_limit) {
+        const completedUses = await countCompletedCouponUses(coupon.id);
+        if (completedUses >= Number(coupon.usage_limit)) {
+            throw new APIError('Coupon usage limit has been reached.', 400, 'INVALID_COUPON');
+        }
+    }
+
     if (coupon.per_customer_limit) {
-        const usage = await query(
-            'SELECT COUNT(*) AS count FROM coupon_usage WHERE coupon_id = $1 AND customer_email = $2',
-            [coupon.id, customerEmail]
-        );
-        if (Number(usage.rows[0]?.count || 0) >= Number(coupon.per_customer_limit)) {
-            throw new APIError('Coupon usage limit reached for this customer.', 400, 'INVALID_COUPON');
+        const customerUses = await countCompletedCouponUses(coupon.id, customerEmail);
+        if (customerUses >= Number(coupon.per_customer_limit)) {
+            throw new APIError(
+                'Coupon usage limit reached for this customer.',
+                400,
+                'INVALID_COUPON'
+            );
         }
     }
 
@@ -57,9 +81,10 @@ async function getValidCoupon(discountCode, subtotal, customerEmail) {
 function calculateCouponDiscount(coupon, subtotal) {
     if (!coupon || coupon.type === 'free_shipping') return 0;
 
-    let discount = coupon.type === 'percentage'
-        ? Math.round(subtotal * (Number(coupon.value) / 100))
-        : Number(coupon.value);
+    let discount =
+        coupon.type === 'percentage'
+            ? Math.round(subtotal * (Number(coupon.value) / 100))
+            : Number(coupon.value);
 
     if (coupon.max_discount_amount) {
         discount = Math.min(discount, Number(coupon.max_discount_amount));
@@ -68,11 +93,11 @@ function calculateCouponDiscount(coupon, subtotal) {
     return Math.max(0, Math.min(discount, subtotal));
 }
 
-async function rollbackCreatedOrder(orderId, couponId, inventoryService) {
+async function rollbackCreatedOrder(orderId, couponId, couponCountIncremented, inventoryService) {
     await inventoryService.cancelReservation(orderId).catch(() => {});
+    await query('DELETE FROM coupon_usage WHERE order_id = $1', [orderId]).catch(() => {});
 
-    if (couponId) {
-        await query('DELETE FROM coupon_usage WHERE order_id = $1', [orderId]).catch(() => {});
+    if (couponId && couponCountIncremented) {
         await query(
             'UPDATE coupons SET usage_count = CASE WHEN usage_count > 0 THEN usage_count - 1 ELSE 0 END WHERE id = $1',
             [couponId]
@@ -130,17 +155,25 @@ export async function createOrder(orderData, productService, inventoryService, o
     } else if (normalizedShippingMethod === 'express') {
         calculatedShipping = settings.expressShippingRate;
     } else {
-        calculatedShipping = calculatedSubtotal >= settings.freeShippingThreshold
-            ? 0
-            : settings.standardShippingRate;
+        calculatedShipping =
+            calculatedSubtotal >= settings.freeShippingThreshold
+                ? 0
+                : settings.standardShippingRate;
     }
 
-    const calculatedTotal = Math.max(0, calculatedSubtotal + calculatedShipping - calculatedDiscount);
+    const calculatedTotal = Math.max(
+        0,
+        calculatedSubtotal + calculatedShipping - calculatedDiscount
+    );
     if (Number(requestTotal) !== calculatedTotal) {
-        throw new APIError('Price mismatch detected. Please refresh checkout.', 400, 'PRICE_MISMATCH');
+        throw new APIError(
+            'Price mismatch detected. Please refresh checkout.',
+            400,
+            'PRICE_MISMATCH'
+        );
     }
 
-    let couponUsageRecorded = false;
+    let couponCountIncremented = false;
 
     try {
         await inventoryService.reserveItems(validatedItems, orderId);
@@ -166,20 +199,30 @@ export async function createOrder(orderData, productService, inventoryService, o
             ]
         );
 
-        let paystackData = null;
-        if (paymentMethod === 'paystack') {
-            paystackData = await initializeTransaction(orderId, customerEmail, calculatedTotal, origin);
-        } else {
-            await inventoryService.confirmReservation(orderId);
-        }
-
         if (coupon) {
-            await query('UPDATE coupons SET usage_count = usage_count + 1 WHERE id = $1', [coupon.id]);
             await query(
                 'INSERT INTO coupon_usage (coupon_id, order_id, customer_email, discount_amount) VALUES ($1, $2, $3, $4)',
                 [coupon.id, orderId, customerEmail, calculatedDiscount]
             );
-            couponUsageRecorded = true;
+        }
+
+        let paystackData = null;
+        if (paymentMethod === 'paystack') {
+            paystackData = await initializeTransaction(
+                orderId,
+                customerEmail,
+                calculatedTotal,
+                origin
+            );
+        } else {
+            await inventoryService.confirmReservation(orderId);
+            if (coupon) {
+                await query(
+                    'UPDATE coupons SET usage_count = usage_count + 1 WHERE id = $1',
+                    [coupon.id]
+                );
+                couponCountIncremented = true;
+            }
         }
 
         return {
@@ -195,7 +238,8 @@ export async function createOrder(orderData, productService, inventoryService, o
     } catch (error) {
         await rollbackCreatedOrder(
             orderId,
-            couponUsageRecorded ? coupon?.id : null,
+            coupon?.id || null,
+            couponCountIncremented,
             inventoryService
         );
         throw error;
@@ -204,7 +248,10 @@ export async function createOrder(orderData, productService, inventoryService, o
 
 export async function lookupOrder(orderId, email) {
     const order = (
-        await query('SELECT * FROM orders WHERE id = $1 AND customer_email = $2', [orderId, email])
+        await query(
+            'SELECT * FROM orders WHERE id = $1 AND customer_email = $2',
+            [orderId, email]
+        )
     ).rows[0];
 
     if (!order) throw new APIError('Order not found.', 404, 'ORDER_NOT_FOUND');
