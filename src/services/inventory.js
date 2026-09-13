@@ -396,16 +396,24 @@ export class InventoryService {
         for (const product of products) {
             const inventory = this.parseInventory(product.inventory);
             for (const [variantKey, rawQuantity] of Object.entries(inventory)) {
-                const quantity = Number(rawQuantity);
-                if (quantity <= threshold) {
-                    const [color, size] = variantKey.split('-');
+                const total = Number(rawQuantity);
+                const reserved = await this.getReservedCount(product.id, variantKey);
+                const available = Math.max(0, total - reserved);
+
+                if (available <= threshold) {
+                    const separator = variantKey.lastIndexOf('-');
+                    const color = separator >= 0 ? variantKey.slice(0, separator) : variantKey;
+                    const size = separator >= 0 ? variantKey.slice(separator + 1) : '';
                     lowStock.push({
                         productId: product.id,
                         productName: product.name,
                         variantKey,
                         color,
                         size,
-                        quantity,
+                        quantity: available,
+                        total,
+                        reserved,
+                        available,
                         threshold
                     });
                 }

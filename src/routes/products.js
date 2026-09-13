@@ -154,35 +154,45 @@ router.post('/:id/waitlist', csrfProtection, asyncHandler(async (req, res) => {
     res.json({ success: true, message: 'Added to waitlist' });
 }));
 
+async function getStockSnapshot(productIdOrSlug, color, size) {
+    const result = await query('SELECT id, inventory FROM products WHERE id = $1 OR slug = $1', [productIdOrSlug]);
+    if (result.rows.length === 0) throw new APIError('Product not found', 404);
+
+    const product = result.rows[0];
+    const inventory = safeParseJSON(product.inventory, {});
+    const variantKey = `${color}-${size}`;
+    const total = Number(inventory[variantKey] || 0);
+    let reserved = 0;
+
+    // Production reservations live in PostgreSQL. SQLite reservations are in-memory
+    // inside InventoryService and remain a local-development concern only.
+    if (USE_POSTGRES) {
+        const reservedResult = await query(
+            `SELECT COALESCE(SUM(quantity), 0) AS reserved
+             FROM inventory_reservations
+             WHERE product_id = $1 AND variant_key = $2 AND expires_at > NOW()`,
+            [product.id, variantKey]
+        );
+        reserved = Number(reservedResult.rows[0]?.reserved || 0);
+    }
+
+    const available = Math.max(0, total - reserved);
+    return { total, reserved, available };
+}
+
 // Check stock availability (GET)
 router.get('/inventory/check/:productId', asyncHandler(async (req, res) => {
     const { productId } = req.params;
     const { color, size } = req.query;
-
-    // Support both ID and slug for inventory check
-    const result = await query('SELECT inventory FROM products WHERE id = $1 OR slug = $1', [productId]);
-    if (result.rows.length === 0) throw new APIError('Product not found', 404);
-
-    const inventory = safeParseJSON(result.rows[0].inventory, {});
-    const variantKey = `${color}-${size}`;
-    const available = inventory[variantKey] || 0;
-
-    res.json({ success: true, available, inStock: available > 0 });
+    const stock = await getStockSnapshot(productId, color, size);
+    res.json({ success: true, ...stock, inStock: stock.available > 0 });
 }));
 
-// Check stock availability (POST) - used by checkout-api.js
+// Check stock availability (POST)
 router.post('/inventory/check', asyncHandler(async (req, res) => {
     const { productId, color, size } = req.body;
-
-    // Support both ID and slug for inventory check
-    const result = await query('SELECT inventory FROM products WHERE id = $1 OR slug = $1', [productId]);
-    if (result.rows.length === 0) throw new APIError('Product not found', 404);
-
-    const inventory = safeParseJSON(result.rows[0].inventory, {});
-    const variantKey = `${color}-${size}`;
-    const available = inventory[variantKey] || 0;
-
-    res.json({ success: true, available, inStock: available > 0 });
+    const stock = await getStockSnapshot(productId, color, size);
+    res.json({ success: true, ...stock, inStock: stock.available > 0 });
 }));
 
 

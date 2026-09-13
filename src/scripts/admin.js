@@ -6,9 +6,7 @@
 // ==========================================
 // CONFIG
 // ==========================================
-const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3000/api' 
-    : 'https://la-vague-api.onrender.com/api';
+const API_URL = '/api';
 
 // ==========================================
 // SECURITY UTILITIES
@@ -671,38 +669,19 @@ async function loadInventory() {
     showLoading(true);
     
     try {
-        // Load products and get inventory for each variant
-        const [productsData, lowStockData] = await Promise.all([
-            fetchAPI('/admin/products'),
-            fetchAPI('/admin/inventory/low-stock?threshold=1000') // Get all
-        ]);
-        
-        const products = productsData.products || [];
-        const inventoryList = [];
-        
-        for (const product of products) {
-            const colors = product.colors || [{ name: 'Default' }];
-            const sizes = product.sizes || ['OS'];
-            const inventory = product.inventory || {};
-            
-            for (const color of colors) {
-                for (const size of sizes) {
-                    const variantKey = `${color.name}-${size}`;
-                    const quantity = inventory[variantKey] || 0;
-                    
-                    inventoryList.push({
-                        productId: product.id,
-                        productName: product.name,
-                        color: color.name,
-                        size,
-                        variantKey,
-                        total: quantity,
-                        reserved: 0, // Will be fetched from API
-                        available: quantity
-                    });
-                }
-            }
-        }
+        // Ask the inventory service for every variant so reserved/available values
+        // match the same reservation rules used by checkout.
+        const data = await fetchAPI('/admin/inventory/low-stock?threshold=2147483647');
+        const inventoryList = (data.lowStock || []).map(item => ({
+            productId: item.productId,
+            productName: item.productName,
+            color: item.color,
+            size: item.size,
+            variantKey: item.variantKey,
+            total: Number(item.total ?? item.quantity ?? 0),
+            reserved: Number(item.reserved || 0),
+            available: Number(item.available ?? item.quantity ?? 0)
+        }));
         
         state.inventory = inventoryList;
         renderInventoryTable(inventoryList);

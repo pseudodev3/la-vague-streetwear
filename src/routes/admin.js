@@ -195,7 +195,7 @@ export default function (productService, inventoryService) {
         const { limit = 10 } = req.query;
         let orders;
         const interval = USE_POSTGRES ? 'NOW() - INTERVAL \'30 days\'' : 'datetime(\'now\', \'-30 days\')';
-        orders = (await query(`SELECT items FROM orders WHERE created_at > ${interval}`)).rows;
+        orders = (await query(`SELECT items FROM orders WHERE payment_status = 'paid' AND created_at > ${interval}`)).rows;
 
         const productSales = {};
         orders.forEach(order => {
