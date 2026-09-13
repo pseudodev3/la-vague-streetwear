@@ -27,9 +27,7 @@ const CurrencyConfig = {
     
     // API base URL
     get API_BASE_URL() {
-        return window.location.hostname === 'localhost' 
-            ? 'http://localhost:3000/api' 
-            : 'https://la-vague-api.onrender.com/api';
+        return '/api';
     },
     
     // Load rates using storage or defaults
@@ -217,7 +215,7 @@ const CartState = {
 
         // 2. Fallback to API check
         try {
-            const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+            const API_URL = '/api';
             const response = await fetch(`${API_URL}/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
             
             if (response.ok) {
@@ -447,7 +445,7 @@ const CartState = {
                 if (typeof ProductAPI !== 'undefined') product = ProductAPI.getById(productId);
                 if (!product && !apiProducts) {
                     try {
-                        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+                        const API_URL = '/api';
                         const response = await fetch(`${API_URL}/products`);
                         const data = await response.json();
                         apiProducts = data.products || [];

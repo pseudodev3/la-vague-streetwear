@@ -2,9 +2,7 @@
  * LA VAGUE - Track Order Page Logic
  */
 (function() {
-    const API_BASE_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3000/api' 
-        : 'https://la-vague-api.onrender.com/api';
+    const API_BASE_URL = '/api';
     
     const trackForm = document.getElementById('trackOrderForm');
     const trackBtn = document.getElementById('trackBtn');

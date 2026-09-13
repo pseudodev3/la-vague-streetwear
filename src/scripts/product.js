@@ -6,9 +6,7 @@
 const ProductDetailAPI = {
     async getProductBySlug(slug) {
         try {
-            const API_URL = window.location.hostname === 'localhost' 
-                ? 'http://localhost:3000/api' 
-                : 'https://la-vague-api.onrender.com/api';
+            const API_URL = '/api';
             const response = await fetch(`${API_URL}/products/${encodeURIComponent(slug)}`);
             if (!response.ok) throw new Error('Product not found');
             const data = await response.json();
@@ -21,9 +19,7 @@ const ProductDetailAPI = {
     
     async getAllProducts() {
         try {
-            const API_URL = window.location.hostname === 'localhost' 
-                ? 'http://localhost:3000/api' 
-                : 'https://la-vague-api.onrender.com/api';
+            const API_URL = '/api';
             const response = await fetch(`${API_URL}/products`);
             const data = await response.json();
             return data.products || [];
@@ -34,9 +30,7 @@ const ProductDetailAPI = {
     
     async checkStock(productId, color, size) {
         try {
-            const API_URL = window.location.hostname === 'localhost' 
-                ? 'http://localhost:3000/api' 
-                : 'https://la-vague-api.onrender.com/api';
+            const API_URL = '/api';
             const response = await fetch(`${API_URL}/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
             const data = await response.json();
             return data;
@@ -367,9 +361,7 @@ function bindEvents() {
         let isAvailable = true;
         if (!state.usingStaticData) {
             try {
-                const API_URL = window.location.hostname === 'localhost' 
-                    ? 'http://localhost:3000/api' 
-                    : 'https://la-vague-api.onrender.com/api';
+                const API_URL = '/api';
                 const response = await fetch(`${API_URL}/products/inventory/check/${state.product.id}?color=${encodeURIComponent(state.selectedColor)}&size=${encodeURIComponent(size)}`);
                 
                 if (response.ok) {
@@ -476,7 +468,7 @@ async function handleReviewSubmit(e) {
         submitBtn.textContent = 'Submitting...';
     }
 
-    const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+    const API_URL = '/api';
     
     // Always refresh token before sensitive POST actions for mobile compatibility
     if (window.CSRFProtection) {
@@ -531,7 +523,7 @@ async function handleReviewSubmit(e) {
 // REVIEWS LOADING
 async function loadReviews(productId) {
     try {
-        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://la-vague-api.onrender.com/api';
+        const API_URL = '/api';
         const response = await fetch(`${API_URL}/products/${productId}/reviews?status=approved`);
         if (!response.ok) { displayReviews([], { total: 0, average: 0 }); return; }
         const data = await response.json();

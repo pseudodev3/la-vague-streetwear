@@ -83,9 +83,7 @@ async function initHome() {
 // FEATURED PRODUCTS
 // ==========================================
 
-const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3000/api' 
-    : 'https://la-vague-api.onrender.com/api';
+const API_URL = '/api';
 
 const HomeAPI = {
     async getProducts() {
