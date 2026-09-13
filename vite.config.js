@@ -1,96 +1,69 @@
-/**
- * LA VAGUE - Vite Configuration
- * Build tool for modern development with backward compatibility
- */
-
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const page = filename => resolve(__dirname, filename);
 
 export default defineConfig({
-  // Root directory for Vite
   root: '.',
-  
-  // Public directory for static assets
-  publicDir: 'public',
-  
-  // Build configuration
+  publicDir: false,
   build: {
-    // Output directory
     outDir: 'dist',
-    
-    // Clean output directory before build
     emptyOutDir: true,
-    
-    // Generate source maps for debugging
     sourcemap: true,
-    
-    // Minify for production
     minify: 'terser',
-    
-    // Rollup options for multi-page application
     rollupOptions: {
       input: {
-        // Main pages
-        main: resolve(__dirname, 'index.html'),
-        shop: resolve(__dirname, 'shop.html'),
-        product: resolve(__dirname, 'product.html'),
-        checkout: resolve(__dirname, 'checkout.html'),
-        cart: resolve(__dirname, 'cart.html'),
-        admin: resolve(__dirname, 'admin.html'),
-        // Info pages
-        faq: resolve(__dirname, 'faq.html'),
-        shipping: resolve(__dirname, 'shipping.html'),
-        returns: resolve(__dirname, 'returns.html'),
-        contact: resolve(__dirname, 'contact.html'),
-        orderConfirmation: resolve(__dirname, 'order-confirmation.html'),
-        '404': resolve(__dirname, '404.html'),
-      },
-    },
+        main: page('index.html'),
+        shop: page('shop.html'),
+        product: page('product.html'),
+        checkout: page('checkout.html'),
+        admin: page('admin.html'),
+        faq: page('faq.html'),
+        shipping: page('shipping.html'),
+        returns: page('returns.html'),
+        contact: page('contact.html'),
+        orderConfirmation: page('order-confirmation.html'),
+        trackOrder: page('track-order.html'),
+        privacyPolicy: page('privacy-policy.html'),
+        refundPolicy: page('refund-policy.html'),
+        termsOfService: page('terms-of-service.html'),
+        apiDocs: page('api-docs.html'),
+        notFound: page('404.html')
+      }
+    }
   },
-  
-  // Development server configuration
   server: {
-    // Port for dev server
     port: 3000,
-    
-    // Open browser on start
+    strictPort: true,
     open: true,
-    
-    // Hot Module Replacement
     hmr: true,
-    
-    // Proxy API requests to backend
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
-        secure: false,
-      },
-    },
+        secure: false
+      }
+    }
   },
-  
-  // CSS configuration
+  preview: {
+    port: 4173,
+    strictPort: true
+  },
   css: {
-    devSourcemap: true,
+    devSourcemap: true
   },
-  
-  // Resolve aliases for cleaner imports
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
       '@js': resolve(__dirname, 'src/scripts'),
       '@css': resolve(__dirname, 'src/styles'),
-      '@assets': resolve(__dirname, 'public/assets'),
-    },
+      '@assets': resolve(__dirname, 'assets')
+    }
   },
-  
-  // Optimize dependencies
-  optimizeDeps: {
-    include: [],
-  },
-  
-  // Esbuild target
   esbuild: {
-    target: 'es2020',
-  },
+    target: 'es2020'
+  }
 });
