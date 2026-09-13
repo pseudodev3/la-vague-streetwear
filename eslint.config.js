@@ -1,6 +1,47 @@
 import globals from 'globals';
 import js from '@eslint/js';
 
+const browserAppGlobals = {
+    PRODUCTS: 'readonly',
+    CATEGORIES: 'readonly',
+    SIZE_GUIDES: 'readonly',
+    ProductAPI: 'readonly',
+    CartState: 'readonly',
+    LaVagueAPI: 'readonly',
+    LoadingManager: 'readonly',
+    Toast: 'readonly',
+    Validator: 'readonly',
+    CurrencyConfig: 'readonly',
+    I18n: 'readonly',
+    TRANSLATIONS: 'readonly',
+    LANGUAGE_METADATA: 'readonly',
+    InputMasks: 'readonly',
+    FormValidation: 'readonly',
+    ButtonState: 'readonly',
+    SearchHelper: 'readonly',
+    initRevealAnimations: 'readonly',
+    applyTranslations: 'readonly',
+    t: 'readonly',
+    Sentry: 'readonly',
+    SwaggerUIBundle: 'readonly',
+    SwaggerUIStandalonePreset: 'readonly',
+
+    // Classic-script admin actions are attached to window and referenced by name
+    // from generated inline handlers.
+    viewOrder: 'readonly',
+    saveOrderStatus: 'readonly',
+    editProduct: 'readonly',
+    deleteProduct: 'readonly',
+    editInventory: 'readonly',
+    closeProductModal: 'readonly',
+    removeImage: 'readonly',
+    removeColor: 'readonly',
+    removeSize: 'readonly',
+    updateInventoryValue: 'readonly',
+    closeInventoryModal: 'readonly',
+    viewCustomer: 'readonly'
+};
+
 export default [
     js.configs.recommended,
     {
@@ -10,18 +51,7 @@ export default [
             globals: {
                 ...globals.browser,
                 ...globals.node,
-                PRODUCTS: 'readonly',
-                CATEGORIES: 'readonly',
-                SIZE_GUIDES: 'readonly',
-                ProductAPI: 'readonly',
-                CartState: 'readonly',
-                LaVagueAPI: 'readonly',
-                LoadingManager: 'readonly',
-                Toast: 'readonly',
-                Validator: 'readonly',
-                CurrencyConfig: 'readonly',
-                SwaggerUIBundle: 'readonly',
-                SwaggerUIStandalonePreset: 'readonly'
+                ...browserAppGlobals
             }
         },
         rules: {
@@ -36,10 +66,23 @@ export default [
             ],
             'no-undef': 'error',
             'no-debugger': 'warn',
+            'no-empty': ['warn', { allowEmptyCatch: true }],
+            'no-useless-escape': 'warn',
             eqeqeq: ['error', 'always', { null: 'ignore' }],
             'no-var': 'warn',
             'prefer-const': 'warn',
             'no-throw-literal': 'error'
+        }
+    },
+    {
+        files: ['tests/**/*.js'],
+        languageOptions: {
+            globals: {
+                ...globals.browser,
+                ...globals.node,
+                ...globals.vitest,
+                ...browserAppGlobals
+            }
         }
     },
     {
@@ -54,6 +97,7 @@ export default [
         ignores: [
             'node_modules/**',
             'dist/**',
+            '**/*.d.ts',
             'database.sqlite',
             '*.min.js',
             '.git/**'
