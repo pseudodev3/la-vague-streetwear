@@ -93,7 +93,7 @@ const HomeAPI = {
             const data = await response.json();
             return data.products || [];
         } catch (error) {
-            console.warn('API unavailable, using static data');
+            console.warn('API unavailable; live products cannot be loaded');
             return null;
         }
     }
@@ -145,9 +145,19 @@ async function renderFeaturedProducts() {
         featured = products.filter(p => p.tags.includes('bestseller')).slice(0, 4);
     }
     
-    // Fallback to static data if API fails or no bestsellers found
+    if (apiProducts === null) {
+        elements.featuredProducts.innerHTML = '<div class="store-unavailable-state"><h3>Store temporarily unavailable</h3><p>We could not load live products right now. Please refresh in a moment.</p></div>';
+        return;
+    }
+
+    // If no products are explicitly tagged as bestsellers, use live API products only.
+    if (featured.length === 0 && apiProducts.length > 0) {
+        featured = apiProducts.map(transformProduct).slice(0, 4);
+    }
+
     if (featured.length === 0) {
-        featured = ProductAPI.getFeatured().slice(0, 4);
+        elements.featuredProducts.innerHTML = '<div class="store-unavailable-state"><p>No products are available right now.</p></div>';
+        return;
     }
     
     elements.featuredProducts.innerHTML = featured.map(product => {
@@ -228,33 +238,57 @@ function closeSearch() {
     document.body.style.overflow = '';
 }
 
-function handleSearch(query) {
-    if (!query.trim()) {
+let liveSearchProducts = null;
+let liveSearchPromise = null;
+
+async function getLiveSearchProducts() {
+    if (liveSearchProducts) return liveSearchProducts;
+    if (!liveSearchPromise) {
+        liveSearchPromise = HomeAPI.getProducts().then(products => {
+            liveSearchProducts = Array.isArray(products) ? products.map(transformProduct) : null;
+            return liveSearchProducts;
+        });
+    }
+    return liveSearchPromise;
+}
+
+async function handleSearch(query) {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) {
         if (elements.searchResults) elements.searchResults.innerHTML = '';
         return;
     }
-    
-    const results = ProductAPI.search(query);
-    
-    if (results.length === 0) {
-        elements.searchResults.innerHTML = `
-            <div style="text-align: center; padding: 3rem; color: var(--color-text-muted);">
-                No products found for "${query}"
-            </div>
-        `;
+
+    const products = await getLiveSearchProducts();
+    if (!products) {
+        elements.searchResults.innerHTML = '<div class="search-message">Search is temporarily unavailable. Please try again shortly.</div>';
         return;
     }
-    
-    elements.searchResults.innerHTML = results.map(product => `
-        <div class="search-result-item" onclick="window.location.href='product.html?slug=${product.slug}'">
-            <img src="${product.images[0].src}" alt="${product.name}">
-            <div class="search-result-info">
-                <h4>${product.name}</h4>
-                <p>${CATEGORIES.find(c => c.id === product.category)?.name}</p>
+
+    const results = products.filter(product => {
+        const tags = Array.isArray(product.tags) ? product.tags.join(' ') : '';
+        return [product.name, product.category, tags].join(' ').toLowerCase().includes(normalized);
+    }).slice(0, 8);
+
+    if (results.length === 0) {
+        elements.searchResults.innerHTML = '<div class="search-message">No products found.</div>';
+        return;
+    }
+
+    elements.searchResults.innerHTML = results.map(product => {
+        const image = product.images?.[0]?.src || '';
+        const category = CATEGORIES.find(c => c.id === product.category)?.name || product.category || '';
+        return `
+            <div class="search-result-item" onclick="window.location.href='product.html?slug=${encodeURIComponent(product.slug)}'">
+                <img src="${image}" alt="${product.name}">
+                <div class="search-result-info">
+                    <h4>${product.name}</h4>
+                    <p>${category}</p>
+                </div>
+                <span class="search-result-price">${CurrencyConfig.formatPrice(product.price)}</span>
             </div>
-            <span class="search-result-price">${CurrencyConfig.formatPrice(product.price)}</span>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // ==========================================

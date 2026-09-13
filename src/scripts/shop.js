@@ -17,7 +17,7 @@ const ShopAPI = {
             const data = await response.json();
             return data.products || [];
         } catch (error) {
-            console.warn('API unavailable, using static data');
+            console.warn('API unavailable; live products cannot be loaded');
             return null;
         }
     },
@@ -39,7 +39,7 @@ const ShopAPI = {
             const data = await response.json();
             return data;
         } catch (error) {
-            return { available: 999, inStock: true }; // Default to available on error
+            return { available: 0, inStock: false, unavailable: true };
         }
     }
 };
@@ -161,12 +161,15 @@ async function initShop() {
     // Try to load from API first
     const apiProducts = await ShopAPI.getProducts();
     
-    if (apiProducts && apiProducts.length > 0) {
+    if (Array.isArray(apiProducts)) {
         state.products = apiProducts.map(transformProduct);
         state.usingStaticData = false;
     } else {
-        state.products = ProductAPI.getAll();
-        state.usingStaticData = true;
+        state.products = [];
+        state.usingStaticData = false;
+        if (elements.emptyState) {
+            elements.emptyState.innerHTML = '<h3>Store temporarily unavailable</h3><p>We could not load live products right now. Please refresh in a moment.</p>';
+        }
     }
     
     state.filteredProducts = [...state.products];
