@@ -3,7 +3,7 @@
  * Handles product CRUD operations with database
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import { uploadMultipleImages, deleteMultipleImages, getPublicIdFromUrl } from './cloudinary.js';
 
 export class ProductService {
@@ -165,7 +165,7 @@ export class ProductService {
             throw new Error('Invalid price: must be a positive number');
         }
 
-        const id = `lv-${uuidv4().slice(0, 8)}`;
+        const id = `lv-${randomUUID().slice(0, 8)}`;
         const slug = await this.ensureUniqueSlug(this.generateSlug(name));
 
         // Upload images to Cloudinary
