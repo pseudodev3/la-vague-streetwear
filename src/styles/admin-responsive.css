@@ -90,6 +90,22 @@ body .login-box .btn-primary {
     min-height: 50px;
     font-weight: 700;
     letter-spacing: .02em;
+    color: #fff;
+}
+
+body .login-box .btn-primary .btn-text {
+    display: inline !important;
+    color: #fff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+body .login-box .btn-primary:disabled .btn-text {
+    display: none !important;
+}
+
+body .login-box .btn-primary .btn-loading {
+    color: #fff;
 }
 
 body .login-note {
