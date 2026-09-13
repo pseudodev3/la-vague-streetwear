@@ -23,10 +23,5 @@ export default function(inventoryService) {
         res.json({ received: true });
     }));
 
-    router.post('/webhook-test', express.json(), (req, res) => {
-        console.log('[WEBHOOK TEST] Received:', req.body);
-        res.json({ received: true, timestamp: new Date().toISOString() });
-    });
-
     return router;
 }
