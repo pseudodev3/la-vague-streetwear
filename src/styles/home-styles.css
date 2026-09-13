@@ -2,18 +2,6 @@
    LA VAGUE - Homepage Specific Styles
    ============================================ */
 
-    border-radius: 50%;
-    font-size: 0.65rem;
-    font-weight: 600;
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
-
-.wishlist-count.active {
-    display: flex;
-}
-
 /* Hero Updates */
 .hero-content {
     position: relative;
