@@ -1778,7 +1778,7 @@ async function toggleReviewVerified(reviewId, verified) {
         const response = await fetch(`${API_URL}/admin/reviews/${reviewId}/verified`, {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ verified })
@@ -1848,7 +1848,7 @@ async function recalculateRatings() {
         const response = await fetch(`${API_URL}/admin/reviews/recalculate-all`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`
             }
         });
         
