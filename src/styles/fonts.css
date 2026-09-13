@@ -3,6 +3,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap');
 @import url('./announcement.css');
 @import url('./admin-responsive.css');
+@import url('./storefront-polish.css');
 
 /* Checkout selection states */
 .checkbox-label input[type="checkbox"],
