@@ -1,16 +1,16 @@
 import dotenv from 'dotenv';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const USE_POSTGRES = !!process.env.DATABASE_URL;
-
+const USE_POSTGRES = Boolean(process.env.DATABASE_URL);
 let db;
+
+function getPostgresSSLConfig() {
+    if (process.env.PG_SSL === 'false') return false;
+
+    const rejectUnauthorized = process.env.PG_SSL_REJECT_UNAUTHORIZED !== 'false';
+    return { rejectUnauthorized };
+}
 
 async function getDB() {
     if (db) return db;
@@ -19,33 +19,27 @@ async function getDB() {
         const { default: pkg } = await import('pg');
         const { Pool } = pkg;
 
-        // TEMPORARY: Bypass certificate validation to allow deployment
-        const sslConfig = { rejectUnauthorized: false };
-        console.warn('⚠️ SSL certificate validation DISABLED (temporary)');
-
         db = new Pool({
             connectionString: process.env.DATABASE_URL,
-            ssl: sslConfig,
+            ssl: getPostgresSSLConfig(),
             max: 10,
             idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 2000,
+            connectionTimeoutMillis: 5000
         });
 
-        // Test connection
+        const client = await db.connect();
         try {
-            const client = await db.connect();
-            const res = await client.query('SELECT NOW()');
+            const result = await client.query('SELECT NOW()');
+            console.log('✅ PostgreSQL connected successfully at', result.rows[0].now);
+        } finally {
             client.release();
-            console.log('✅ PostgreSQL connected successfully at', res.rows[0].now);
-        } catch (err) {
-            console.error('❌ PostgreSQL connection failed:', err.message);
-            throw err;
         }
     } else {
         const { default: Database } = await import('better-sqlite3');
         db = new Database('database.sqlite');
         console.log('✅ Using SQLite database (local)');
     }
+
     return db;
 }
 
@@ -53,36 +47,33 @@ const dbInstance = await getDB();
 
 export { dbInstance as db, USE_POSTGRES };
 
-/**
- * Secure database query helper with SQL injection protection
- */
 export async function query(sql, params = []) {
     try {
         if (!/^\s*(SELECT|INSERT|UPDATE|DELETE)\s/i.test(sql)) {
             throw new Error('Invalid query type');
         }
 
-        if (USE_POSTGRES) {
-            const result = await dbInstance.query(sql, params);
-            return result;
-        } else {
-            // Convert $1, $2, ... to ? for SQLite
-            let sqliteSql = sql.replace(/\$\d+/g, '?');
-            
-            const placeholderCount = (sqliteSql.match(/\?/g) || []).length;
-            if (placeholderCount !== params.length) {
-                console.error('[DB ERROR] Parameter mismatch:', { sql, sqliteSql, paramsCount: params.length, placeholderCount });
-                throw new Error(`Parameter mismatch: expected ${placeholderCount}, got ${params.length}`);
-            }
+        if (USE_POSTGRES) return dbInstance.query(sql, params);
 
-            const stmt = dbInstance.prepare(sqliteSql);
-            if (sqliteSql.trim().toLowerCase().startsWith('select')) {
-                const res = stmt.all(...params);
-                return { rows: res };
-            } else {
-                return stmt.run(...params);
-            }
+        const sqliteSql = sql.replace(/\$\d+/g, '?');
+        const placeholderCount = (sqliteSql.match(/\?/g) || []).length;
+
+        if (placeholderCount !== params.length) {
+            console.error('[DB ERROR] Parameter mismatch:', {
+                sql,
+                sqliteSql,
+                paramsCount: params.length,
+                placeholderCount
+            });
+            throw new Error(`Parameter mismatch: expected ${placeholderCount}, got ${params.length}`);
         }
+
+        const stmt = dbInstance.prepare(sqliteSql);
+        if (sqliteSql.trim().toLowerCase().startsWith('select')) {
+            return { rows: stmt.all(...params) };
+        }
+
+        return stmt.run(...params);
     } catch (error) {
         console.error('[DB ERROR] Query failed:', sql.substring(0, 100), 'Error:', error.message);
         throw error;
