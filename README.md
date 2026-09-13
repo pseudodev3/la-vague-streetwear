@@ -1,256 +1,266 @@
-# LA VAGUE - Premium Streetwear Website
+# LA VAGUE
 
-A professional, full-featured e-commerce website for the LA VAGUE streetwear brand.
+Production e-commerce platform for **LA VAGUE**, a Nigerian streetwear brand.
 
-## 🌐 Live Demo
+- Storefront: https://la-vague.store
+- Frontend hosting: Netlify
+- API hosting: Render
+- Database: PostgreSQL in production, SQLite fallback for local development
+- Payments: Paystack
+- Media: Cloudinary
+- Email: Brevo API/SMTP, generic SMTP, Gmail, or SendGrid
+- Error tracking: Sentry
 
-Open `index.html` in your browser to see the website.
+## Architecture
 
-## 📁 Project Structure
+The production app is split deliberately:
 
-```
-la vague/
-├── index.html              # Homepage
-├── shop.html               # Shop page with filters
-├── product.html            # Product detail page
-├── checkout.html           # Checkout page
-├── faq.html                # FAQ page
-├── shipping.html           # Shipping info page
-├── returns.html            # Returns policy page
-├── contact.html            # Contact page
-├── order-confirmation.html # Order success page
-├── 404.html                # 404 error page
-├── products.js             # Product catalog data
-├── styles.css              # Base styles
-├── home-styles.css         # Homepage specific styles
-├── shop-styles.css         # Shop page styles
-├── product-styles.css      # Product detail styles
-├── checkout-styles.css     # Checkout styles
-├── page-styles.css         # Content pages styles
-├── home.js                 # Homepage JavaScript
-├── shop.js                 # Shop page JavaScript
-├── product.js              # Product detail JavaScript
-├── checkout.js             # Checkout JavaScript
-├── checkout-api.js         # API integration
-├── page.js                 # Shared page JavaScript
-├── server.js               # Node.js backend
-├── package.json            # Dependencies
-├── .env.example            # Environment variables template
-├── .gitignore              # Git ignore rules
-├── la-vague-red-wordmark.png  # Brand logo
-└── README.md               # This file
+```text
+Browser
+  |
+  |  HTML / CSS / JS
+  v
+Netlify (dist/)
+  |
+  |  /api/* proxy
+  v
+Render API (server.js)
+  |
+  +--> PostgreSQL
+  +--> Paystack
+  +--> Cloudinary
+  +--> Email provider
+  +--> Sentry
 ```
 
-## 🚀 Quick Start (Frontend Only)
+The Render service is **API-only**. Frontend source files and repository files are not served by Express in production.
 
-1. Open `index.html` in your browser
-2. Navigate through the site using the menu
-3. Shop page shows all products with filters
-4. Click any product to see detail page
-5. Add items to cart
-6. Cart persists across page refreshes (localStorage)
+## Requirements
 
-## 🖥️ Backend Setup (For Full Functionality)
+- Node.js **20.20.2** recommended
+- npm 10+
+- PostgreSQL for production
+- Paystack account for live checkout
 
-### Prerequisites
-- Node.js 16+ installed
-- Paystack account (for payments)
-- SMTP email service (Gmail, SendGrid, etc.)
+Node version files are included for local tooling and deployment consistency.
 
-### Installation
+## Local Development
 
-1. **Install dependencies:**
 ```bash
-cd "la vague"
-npm install
-```
-
-2. **Set up environment variables:**
-```bash
+npm ci
 cp .env.example .env
-# Edit .env with your credentials
-```
-
-3. **Configure .env file:**
-```env
-# Server
-NODE_ENV=development
-PORT=3000
-FRONTEND_URL=http://localhost:3000
-
-# Paystack (Get from https://dashboard.paystack.com)
-PAYSTACK_SECRET_KEY=sk_test_your_secret_key_here
-PAYSTACK_PUBLIC_KEY=pk_test_your_public_key_here
-
-# Email (Gmail example)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-```
-
-4. **Start the server:**
-```bash
-npm start
-# or for development with auto-reload:
 npm run dev
 ```
 
-5. **Open in browser:**
-Navigate to `http://localhost:3000`
+This starts:
 
-## ✨ Features
+- Vite frontend on `http://localhost:3000`
+- API server on `http://localhost:3001`
+- Vite proxies `/api` requests to the local API
 
-### Frontend Features
-- Responsive design (mobile-first)
-- Product catalog with 11 products
-- Product filtering by category
-- Product sorting (price, name, newest)
-- Quick view modal
-- Image gallery on product pages
-- Size guide modal
-- Cart sidebar with persistent storage
-- Wishlist functionality
-- Search overlay (Cmd/Ctrl + K)
-- Toast notifications
-- Loading skeletons
-- Lazy loading images
-- Smooth scroll animations
+When `DATABASE_URL` is not configured, local development can use SQLite.
 
-### Backend Features (With Server)
-- **Real Payments:** Paystack integration for Nigerian payments
-- **Order Management:** Database-backed orders with SQLite
-- **Email Notifications:** Order confirmations via email
-- **Inventory Tracking:** Real-time stock management
-- **API Endpoints:** RESTful API for products and orders
-- **Security:** Helmet.js, rate limiting, CORS
-- **Compression:** Gzip compression for responses
+### Useful commands
 
-## 🛍️ Product Categories
-
-- **Hoodies** - Classic Oversized, Zip Hoodies
-- **T-Shirts** - Box Logo, Vintage Wash, Long Sleeve
-- **Bottoms** - Cargo Pants, Denim Jeans, Sweatpants
-- **Accessories** - Caps, Tote Bags, Socks
-
-## 💳 Payment Integration
-
-The checkout supports **Paystack** for Nigerian payments:
-
-1. Card payments (Visa, Mastercard, Verve)
-2. Bank transfers
-3. USSD
-4. Mobile money
-
-Test cards for Paystack:
-- Card: 4084 0840 8408 4081
-- Expiry: Any future date
-- CVV: 000
-- PIN: 1234
-
-## 📧 Email Configuration
-
-### Gmail Setup:
-1. Enable 2-factor authentication
-2. Generate an "App Password"
-3. Use the app password in SMTP_PASS
-
-### SendGrid Setup:
-1. Create account at sendgrid.com
-2. Create an API key
-3. Use API key as SMTP_PASS
-
-## 🔒 Security Features
-
-- **Helmet.js:** Security headers (CSP, HSTS, etc.)
-- **Rate Limiting:** API abuse prevention
-- **Input Validation:** SQL injection protection via prepared statements
-- **CORS:** Configured for frontend domain
-- **Content Security Policy:** XSS protection
-
-## 📝 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/health` | Health check |
-| GET | `/api/products` | List all products |
-| GET | `/api/products/:slug` | Get single product |
-| POST | `/api/inventory/check` | Check stock |
-| POST | `/api/payment/initialize` | Start payment |
-| GET | `/api/payment/verify/:ref` | Verify payment |
-| POST | `/api/orders` | Create order |
-| GET | `/api/orders/:id` | Get order details |
-
-## 🎨 Design System
-
-### Colors
-- **Background:** `#0a0a0a` (dark)
-- **Text:** `#ffffff` (white)
-- **Accent:** `#dc2626` (red)
-- **Muted:** `#888888` (gray)
-
-### Typography
-- **Headings:** Oswald (bold, uppercase)
-- **Body:** Inter (clean, modern)
-
-## 🖼️ Image Requirements
-
-- **Product Images:** 800x1000px or 3:4 aspect ratio
-- **Collection Images:** 800x800px or 1:1 aspect ratio
-- **Lookbook Images:** 1200x800px or 3:2 aspect ratio
-- **Format:** JPG or WebP for photos, PNG for logos
-
-## 🔧 Customization
-
-### Change Brand Colors
-Edit CSS variables in `styles.css`:
-```css
-:root {
-    --color-bg: #0a0a0a;
-    --color-accent: #dc2626;
-    /* ... */
-}
+```bash
+npm run dev          # frontend + backend
+npm run dev:client   # Vite only
+npm run dev:server   # API only
+npm run build        # production frontend build
+npm run lint
+npm run type-check
+npm run test:ci
+npm run check        # lint + type-check + tests + build
 ```
 
-### Update Announcement Bar
-Edit in `index.html`:
-```html
-<div class="announcement-bar">
-    <span>YOUR MESSAGE HERE</span>
-</div>
+## Environment Variables
+
+Use `.env.example` as the source of truth. Never commit real credentials.
+
+Important production variables include:
+
+```env
+NODE_ENV=production
+FRONTEND_URL=https://la-vague.store
+DATABASE_URL=postgresql://...
+
+ADMIN_PASSWORD=...
+
+PAYSTACK_SECRET_KEY=...
+PAYSTACK_PUBLIC_KEY=...
+
+EMAIL_PROVIDER=brevo
+BREVO_API_KEY=...
+EMAIL_FROM=...
+SMTP_FROM_NAME=LA VAGUE
+
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+
+SENTRY_DSN=...
 ```
 
-## 📱 Browser Support
+Brevo SMTP, Gmail, generic SMTP, and SendGrid are also supported. See `.env.example` and `DEPLOYMENT.md` for the full configuration.
 
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers (iOS Safari, Chrome Android)
+## Production Deployment
 
-## ⚡ Performance Tips
+### Netlify
 
-1. Compress all images
-2. Use WebP format with JPG fallback
-3. Enable browser caching
-4. Use a CDN for images
-5. Minify CSS/JS for production
+Production frontend settings are stored in `netlify.toml`:
 
-## 🚢 Deployment
+```text
+Node:    20.20.2
+Build:   npm ci --include=optional && npm run build
+Publish: dist
+```
 
-### Static Hosting (Netlify/Vercel)
-1. Connect GitHub repo
-2. Build command: (none for static)
-3. Publish directory: `/`
+All storefront browser API traffic should use same-origin paths such as:
 
-### Full Stack (Heroku/Railway/Render)
-1. Set environment variables
-2. Build command: `npm install`
-3. Start command: `npm start`
+```js
+fetch('/api/products')
+```
 
-## 📄 License
+Netlify proxies `/api/*` to the Render backend.
 
-This is a proprietary website for LA VAGUE brand.
+### Render
+
+The API configuration is documented in `render.yaml`:
+
+```text
+Build: npm ci --omit=dev
+Start: node server.js
+Health: /api/health
+```
+
+Production secrets should be configured in the Render dashboard rather than committed to the repository.
+
+## Payments
+
+Checkout uses Paystack with server-side verification.
+
+The backend verifies payment status and binds successful payments to the server-created order before finalizing inventory. A successful browser callback by itself is not treated as proof of payment.
+
+The production Paystack webhook endpoint is:
+
+```text
+POST /api/payment/webhook
+```
+
+After verified payment, the cart is cleared. Pending or failed payments leave the cart intact.
+
+## Inventory
+
+Inventory is reserved during checkout and committed after verified payment.
+
+Production PostgreSQL paths use transactions and row locking to reduce race conditions. Storefront availability and admin inventory views account for active reservations.
+
+## Admin Panel
+
+The admin panel is available through the storefront deployment and authenticates against the API.
+
+Admin credentials are server-side environment variables. The browser does not contain the admin password.
+
+Admin sessions use browser session storage and protected API routes. The panel includes:
+
+- overview and revenue metrics
+- orders and order status management
+- products and inventory
+- coupons
+- reviews
+- store settings
+
+## Security
+
+Current hardening includes:
+
+- server-side Paystack verification
+- order-bound payment references and amount checks
+- HMAC verification for Paystack webhooks
+- server-owned prices, shipping totals, and coupon calculations
+- CSRF protection on state-changing browser requests
+- CORS allow-listing for the storefront
+- Helmet security headers
+- API rate limiting
+- PostgreSQL parameterized queries
+- transactional inventory reservation/finalization
+- admin authentication enforced server-side
+- HTTPS enforcement in production
+- Netlify CSP, HSTS, referrer, framing, and MIME-sniffing headers
+- no Express static serving of the repository root
+- production secrets excluded through `.gitignore`
+- Sentry error reporting
+
+No web application should be described as perfectly secure. Keep dependencies patched, rotate production credentials when necessary, review logs, and keep Paystack/Brevo/Cloudinary/Sentry credentials out of source control.
+
+## Health Check
+
+Use:
+
+```text
+GET /api/health
+```
+
+Monitoring services should check this endpoint rather than `/` on the Render API service, because the API root intentionally does not serve the storefront.
+
+## Testing and CI
+
+GitHub Actions runs the core validation pipeline:
+
+- ESLint
+- TypeScript checking
+- unit tests
+- Vite production build
+- security audit reporting
+- Docker/deployment stages where applicable
+
+Before deploying substantial changes locally, run:
+
+```bash
+npm run check
+```
+
+## Main Project Layout
+
+```text
+.
+├── index.html
+├── shop.html
+├── product.html
+├── checkout.html
+├── order-confirmation.html
+├── admin.html
+├── server.js
+├── src/
+│   ├── config/
+│   ├── middleware/
+│   ├── routes/
+│   ├── services/
+│   ├── scripts/
+│   └── styles/
+├── email-templates/
+├── scripts/
+├── tests/
+├── assets/
+├── vite.config.js
+├── netlify.toml
+├── render.yaml
+├── Dockerfile
+└── .github/workflows/ci-cd.yml
+```
+
+## Documentation
+
+- `DEPLOYMENT.md` — current Netlify/Render deployment setup
+- `DEVELOPMENT.md` — development notes
+- `PWA.md` — service-worker/PWA notes
+- `openapi.yaml` — API documentation
+- `.env.example` — environment variable template
+
+## License
+
+Proprietary software for LA VAGUE.
 
 ---
 
-**Built with passion. Ride the wave.** 🌊
+**LA VAGUE — Ride the Wave.**
