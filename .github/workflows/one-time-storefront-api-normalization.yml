@@ -1,0 +1,98 @@
+name: One-time Storefront API Normalization
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Normalize storefront API base URLs
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const files = [
+            'src/scripts/home.js',
+            'src/scripts/shop.js',
+            'src/scripts/product.js',
+            'src/scripts/cart.js',
+            'src/scripts/track-order.js'
+          ];
+
+          const legacyApiBase = /window\.location\.hostname === 'localhost'\s*\?\s*'http:\/\/localhost:3000\/api'\s*:\s*'https:\/\/la-vague-api\.onrender\.com\/api'/g;
+
+          for (const file of files) {
+            const before = fs.readFileSync(file, 'utf8');
+            const after = before.replace(legacyApiBase, "'/api'");
+            if (after === before && before.includes('la-vague-api.onrender.com')) {
+              throw new Error(`Legacy API URL remains in ${file} but did not match the expected safe pattern`);
+            }
+            fs.writeFileSync(file, after);
+          }
+          NODE
+
+          if grep -n "la-vague-api.onrender.com\|http://localhost:3000/api" \
+            src/scripts/home.js \
+            src/scripts/shop.js \
+            src/scripts/product.js \
+            src/scripts/cart.js \
+            src/scripts/track-order.js; then
+            echo "Legacy storefront API URL still present"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run quality checks
+        run: |
+          npm run lint
+          npm run type-check
+
+      - name: Run unit tests
+        run: npm run test:ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Remove one-time workflow
+        run: rm .github/workflows/one-time-storefront-api-normalization.yml
+
+      - name: Commit normalized storefront routing
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A \
+            src/scripts/home.js \
+            src/scripts/shop.js \
+            src/scripts/product.js \
+            src/scripts/cart.js \
+            src/scripts/track-order.js \
+            .github/workflows/one-time-storefront-api-normalization.yml
+          if git diff --cached --quiet; then
+            echo "No storefront routing changes to commit"
+            exit 0
+          fi
+          git commit -m "fix: route storefront API requests through same origin"
+          git push origin HEAD:main
