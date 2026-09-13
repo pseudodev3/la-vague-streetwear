@@ -97,12 +97,6 @@ export function transactionMatchesOrder(transaction, order) {
     );
 }
 
-/**
- * Commit a paid order's reserved inventory exactly once.
- * If a pending Paystack reservation expired before payment completed, try to
- * re-reserve the original items before committing stock. Existing paid orders
- * never re-reserve, which keeps retries idempotent.
- */
 export async function finalizeInventoryForPayment(order, inventoryService) {
     const items = parseOrderItems(order);
     let confirmation = await inventoryService.confirmReservation(order.id);
@@ -128,8 +122,21 @@ export async function markOrderPaid(order, reference, inventoryService) {
         [reference, order.id]
     );
 
+    const transitioned = affectedRows(updateResult) > 0;
+
+    if (transitioned && order.payment_method === 'paystack') {
+        await query(
+            `UPDATE coupons
+             SET usage_count = usage_count + 1
+             WHERE id IN (
+                 SELECT coupon_id FROM coupon_usage WHERE order_id = $1
+             )`,
+            [order.id]
+        );
+    }
+
     return {
-        transitioned: affectedRows(updateResult) > 0,
+        transitioned,
         items,
         shippingAddress: parseShippingAddress(order)
     };
