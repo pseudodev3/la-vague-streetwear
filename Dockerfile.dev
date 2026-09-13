@@ -1,28 +1,20 @@
-# LA VAGUE - Development Dockerfile
-# Optimized for local development with hot reloading
-
-FROM node:20-alpine
-
-# Install development tools
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    git
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 make g++ git \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install all dependencies (including devDependencies)
-RUN npm install
+COPY package.json package-lock.json ./
+COPY scripts/setup-husky.js ./scripts/setup-husky.js
+RUN CI=true npm ci
 
-# Copy the rest of the application
 COPY . .
 
-# Expose ports for app and debugger
-EXPOSE 3000 9229
+ENV NODE_ENV=development \
+    PORT=3001
 
-# Start in development mode with hot reloading
-CMD ["npm", "run", "dev"]
+EXPOSE 3001
+
+CMD ["npm", "run", "dev:server"]

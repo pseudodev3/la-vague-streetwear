@@ -1,4 +1,4 @@
-import { db, USE_POSTGRES, query } from '../src/config/db.js';
+import { query } from '../src/config/db.js';
 import { cacheService } from '../src/utils/cache.js';
 
 async function recalculateAll() {

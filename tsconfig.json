@@ -1,72 +1,43 @@
 {
   "compilerOptions": {
-    // Target modern JavaScript
     "target": "ES2020",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    
-    // Module system
     "module": "ESNext",
-    "skipLibCheck": true,
     "moduleResolution": "bundler",
+    "types": ["vite/client", "node"],
+    "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    
-    // JSX support (for future React migration if needed)
     "jsx": "preserve",
-    
-    // Strict type checking (gradual adoption)
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": false,
-    
-    // Allow JavaScript files (backward compatibility)
     "allowJs": true,
     "checkJs": false,
-    
-    // Path mapping
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
       "@js/*": ["src/scripts/*"],
       "@css/*": ["src/styles/*"],
-      "@assets/*": ["src/assets/*"]
+      "@assets/*": ["assets/*"]
     },
-    
-    // Output configuration
-    "outDir": "./dist",
-    "rootDir": ".",
-    
-    // Source maps
-    "sourceMap": true,
-    
-    // Decorators (for future use)
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    
-    // Interoperability
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true
   },
-  
-  // Files to include
   "include": [
     "src/**/*",
+    "scripts/**/*",
     "*.js",
     "*.ts",
     "*.d.ts"
   ],
-  
-  // Files to exclude
   "exclude": [
     "node_modules",
     "dist",
     "database.sqlite"
-  ],
-  
-  // Type definitions
-  "types": ["vite/client"]
+  ]
 }

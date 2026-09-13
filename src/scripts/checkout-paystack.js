@@ -1,12 +1,9 @@
 /**
  * LA VAGUE - Paystack Payment Integration
- * Handles Paystack popup payment flow with Mobile Redirect Fallback
- * Version: 4.6 (Restored Processing Modal & Progress Bar)
+ * Handles Paystack popup payment flow with mobile redirect fallback.
  */
-(function() {
-    const API_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3000/api' 
-        : 'https://la-vague-api.onrender.com/api';
+(function () {
+    const API_URL = '/api';
 
     let PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || '';
     let configLoaded = false;
@@ -17,13 +14,16 @@
     let pollAttempts = 0;
     const MAX_POLL_ATTEMPTS = 40;
 
-    const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isMobile = () =>
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+        );
 
     function prewarmPaystack() {
         if (window.PaystackPop && !paystackInstance && !isMobile()) {
             try {
                 paystackInstance = new window.PaystackPop();
-            } catch (e) {
+            } catch {
                 console.warn('[PAYSTACK] Prewarm failed');
             }
         }
@@ -31,33 +31,38 @@
 
     async function loadPaystackConfig() {
         if (configLoaded) return true;
+
         try {
-            const response = await fetch(`${API_URL}/config/paystack`, { credentials: 'include' });
+            const response = await fetch(`${API_URL}/config/paystack`, {
+                credentials: 'include'
+            });
             const data = await response.json();
-            if (data.success && data.configured) {
+            if (response.ok && data.success && data.configured) {
                 PAYSTACK_PUBLIC_KEY = data.publicKey;
                 window.PAYSTACK_PUBLIC_KEY = data.publicKey;
                 configLoaded = true;
                 return true;
             }
-            return false;
         } catch (error) {
-            return false;
+            console.warn('[PAYSTACK] Could not load configuration:', error.message);
         }
+
+        return false;
     }
 
     function isPaystackConfigured() {
-        return !!PAYSTACK_PUBLIC_KEY && PAYSTACK_PUBLIC_KEY.startsWith('pk_');
+        return Boolean(PAYSTACK_PUBLIC_KEY && PAYSTACK_PUBLIC_KEY.startsWith('pk_'));
     }
 
     function loadPaystackScript() {
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
             if (window.PaystackPop) {
                 isPaystackAvailable = true;
                 prewarmPaystack();
                 resolve();
                 return;
             }
+
             const script = document.createElement('script');
             script.src = 'https://js.paystack.co/v2/inline.js';
             script.async = true;
@@ -76,28 +81,59 @@
 
     function redirectToConfirmation(orderId) {
         localStorage.removeItem('cart');
-        window.location.href = `order-confirmation.html?order=${orderId}&status=success`;
+        window.location.href = `order-confirmation.html?order=${encodeURIComponent(orderId)}&status=success`;
+    }
+
+    async function getCsrfToken() {
+        const response = await fetch(`${API_URL}/csrf-token`, { credentials: 'include' });
+        const data = await response.json();
+        if (!response.ok || !data.csrfToken) {
+            throw new Error('Could not start secure payment verification');
+        }
+        return data.csrfToken;
+    }
+
+    async function verifyPayment(orderId, reference) {
+        const csrfToken = await getCsrfToken();
+        const response = await fetch(`${API_URL}/orders/verify-payment`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ orderId, reference })
+        });
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Payment verification failed');
+        }
+
+        return result;
     }
 
     async function checkPaymentStatus(orderId) {
         try {
             const response = await fetch(`${API_URL}/orders/lookup`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, email: currentOrderData?.customerEmail })
+                body: JSON.stringify({
+                    orderId,
+                    email: currentOrderData?.customerEmail
+                })
             });
             const result = await response.json();
-            return (result.success && result.order) ? result.order.payment_status : 'pending';
-        } catch (error) {
+            return result.success && result.order ? result.order.payment_status : 'pending';
+        } catch {
             return 'pending';
         }
     }
 
-    /**
-     * Show Payment Pending Modal with Progress Bar
-     */
     function showPaymentPendingMessage(orderId) {
         pollAttempts = 0;
+        const safeOrderId = String(orderId).toUpperCase();
         const content = `
             <div class="paystack-modal-icon paystack-modal-icon--pending" id="paystack-status-icon">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
@@ -106,7 +142,7 @@
             <p class="paystack-modal-text" id="paystack-status-text">Verifying your payment. Please wait...</p>
             <div class="paystack-modal-order">
                 <span class="paystack-modal-label">Order ID</span>
-                <span class="paystack-modal-value">#${orderId.toUpperCase()}</span>
+                <span class="paystack-modal-value">#${safeOrderId}</span>
             </div>
             <div class="paystack-modal-progress">
                 <div class="paystack-modal-progress-bar" id="paystack-progress-bar"></div>
@@ -124,7 +160,7 @@
         if (pollInterval) clearInterval(pollInterval);
         checkAndUpdateStatus(orderId);
         pollInterval = setInterval(() => {
-            pollAttempts++;
+            pollAttempts += 1;
             const progressBar = document.getElementById('paystack-progress-bar');
             if (progressBar) {
                 const progress = Math.min((pollAttempts / MAX_POLL_ATTEMPTS) * 100, 100);
@@ -135,27 +171,29 @@
     }
 
     async function checkAndUpdateStatus(orderId) {
-        try {
-            const status = await checkPaymentStatus(orderId);
-            if (status === 'paid') {
-                clearInterval(pollInterval);
-                showPaymentSuccess(orderId);
-            } else if (status === 'failed') {
-                clearInterval(pollInterval);
-                updateModalToFailed();
-            } else if (pollAttempts >= MAX_POLL_ATTEMPTS) {
-                clearInterval(pollInterval);
-                const hint = document.getElementById('paystack-status-hint');
-                if (hint) hint.textContent = 'Verification is taking longer than usual. Please check your email for confirmation.';
+        const status = await checkPaymentStatus(orderId);
+        if (status === 'paid') {
+            clearInterval(pollInterval);
+            showPaymentSuccess(orderId);
+        } else if (status === 'failed') {
+            clearInterval(pollInterval);
+            updateModalToFailed();
+        } else if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+            clearInterval(pollInterval);
+            const hint = document.getElementById('paystack-status-hint');
+            if (hint) {
+                hint.textContent =
+                    'Verification is taking longer than usual. Please check your email for confirmation.';
             }
-        } catch (e) {}
+        }
     }
 
     function showPaymentSuccess(orderId) {
         const icon = document.getElementById('paystack-status-icon');
         if (icon) {
             icon.className = 'paystack-modal-icon paystack-modal-icon--success';
-            icon.innerHTML = `<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="20 6 9 17 4 12"/></svg>`;
+            icon.innerHTML =
+                '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="20 6 9 17 4 12"/></svg>';
         }
         const title = document.getElementById('paystack-status-title');
         if (title) title.textContent = 'Payment Successful!';
@@ -163,39 +201,38 @@
         if (text) text.textContent = 'Your order has been confirmed.';
         const progress = document.querySelector('.paystack-modal-progress');
         if (progress) progress.style.display = 'none';
-        
-        setTimeout(() => redirectToConfirmation(orderId), 2000);
+
+        setTimeout(() => redirectToConfirmation(orderId), 1200);
     }
 
     function updateModalToFailed() {
         const title = document.getElementById('paystack-status-title');
         if (title) title.textContent = 'Payment Failed';
+        const text = document.getElementById('paystack-status-text');
+        if (text) text.textContent = 'Your payment was not completed. Your card was not accepted.';
         const icon = document.getElementById('paystack-status-icon');
         if (icon) {
-            icon.innerHTML = `<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+            icon.innerHTML =
+                '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
         }
     }
 
     function showStyledModal(content) {
         const existing = document.getElementById('paystack-modal');
         if (existing) existing.remove();
-        
+
         if (!document.getElementById('paystack-modal-styles')) {
             const styles = document.createElement('style');
             styles.id = 'paystack-modal-styles';
             styles.textContent = `
                 .paystack-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 1rem; animation: paystack-modal-fade-in 0.3s ease; }
                 .paystack-modal-container { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; max-width: 480px; width: 100%; padding: 3rem 2.5rem; text-align: center; box-shadow: 0 25px 80px rgba(0,0,0,0.6); }
-                @media (max-width: 480px) {
-                    .paystack-modal-container { padding: 2rem 1.5rem; }
-                    .paystack-modal-title { font-size: 1.5rem; }
-                    .paystack-modal-btn { width: 100%; justify-content: center; }
-                }
+                @media (max-width: 480px) { .paystack-modal-container { padding: 2rem 1.5rem; } .paystack-modal-title { font-size: 1.5rem; } .paystack-modal-btn { width: 100%; justify-content: center; } }
                 .paystack-modal-icon { width: 80px; height: 80px; margin: 0 auto 1.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-                .paystack-modal-icon--pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; animation: paystack-pulse 2s ease-in-out infinite; }
-                .paystack-modal-icon--success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+                .paystack-modal-icon--pending { background: rgba(245,158,11,0.1); color: #f59e0b; animation: paystack-pulse 2s ease-in-out infinite; }
+                .paystack-modal-icon--success { background: rgba(34,197,94,0.1); color: #22c55e; }
                 .paystack-modal-progress { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin: 1.5rem 0; overflow: hidden; }
-                .paystack-modal-progress-bar { height: 100%; background: linear-gradient(90deg, #dc2626, #ef4444); width: 0%; transition: width 0.4s ease; }
+                .paystack-modal-progress-bar { height: 100%; background: linear-gradient(90deg,#dc2626,#ef4444); width: 0%; transition: width 0.4s ease; }
                 .paystack-modal-title { font-family: 'Oswald', sans-serif; font-size: 1.75rem; color: #fff; margin-bottom: 1rem; text-transform: uppercase; }
                 .paystack-modal-text { color: rgba(255,255,255,0.7); margin-bottom: 1.5rem; }
                 .paystack-modal-order { background: rgba(255,255,255,0.05); padding: 1rem; display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
@@ -207,21 +244,19 @@
             `;
             document.head.appendChild(styles);
         }
+
         const modal = document.createElement('div');
         modal.id = 'paystack-modal';
         modal.innerHTML = `<div class="paystack-modal-overlay"><div class="paystack-modal-container">${content}</div></div>`;
         document.body.appendChild(modal);
     }
 
-    window.closePaystackModal = function() {
+    window.closePaystackModal = function () {
         if (pollInterval) clearInterval(pollInterval);
         const modal = document.getElementById('paystack-modal');
         if (modal) modal.remove();
     };
 
-    /**
-     * Primary Payment Handler
-     */
     async function initializePaystackPayment(orderId, paystackData) {
         if (!paystackData || (!paystackData.access_code && !paystackData.authorization_url)) {
             throw new Error('Payment initialization data missing');
@@ -235,17 +270,20 @@
         if (window.PaystackPop && paystackData.access_code) {
             const popup = paystackInstance || new window.PaystackPop();
             popup.resumeTransaction(paystackData.access_code, {
-                onSuccess: (transaction) => {
-                    showPaymentSuccess(orderId);
+                onSuccess: async transaction => {
+                    showPaymentPendingMessage(orderId);
+                    try {
+                        const result = await verifyPayment(orderId, transaction?.reference);
+                        if (result.verified && result.status === 'paid') {
+                            clearInterval(pollInterval);
+                            showPaymentSuccess(orderId);
+                        }
+                    } catch (error) {
+                        console.warn('[PAYSTACK] Server verification pending:', error.message);
+                    }
                 },
                 onCancel: () => {
-                    // Professional delay: Wait 2s before showing pending msg
-                    // to give the webhook a chance to redirect them first
-                    console.log('[PAYSTACK] Modal closed, checking status in 2s...');
-                    setTimeout(() => {
-                        // Only show if we haven't redirected yet
-                        showPaymentPendingMessage(orderId);
-                    }, 2000);
+                    setTimeout(() => showPaymentPendingMessage(orderId), 1500);
                 }
             });
         } else if (paystackData.authorization_url) {
@@ -255,24 +293,24 @@
 
     async function processOrderWithPaystack(orderData) {
         await loadPaystackScript();
-        let freshToken = '';
-        try {
-            const tokenRes = await fetch(`${API_URL}/csrf-token`, { credentials: 'include' });
-            const tokenData = await tokenRes.json();
-            freshToken = tokenData.csrfToken;
-        } catch (e) {}
-        
+        const csrfToken = await getCsrfToken();
+
         currentOrderData = { ...orderData, paymentMethod: 'paystack' };
         const response = await fetch(`${API_URL}/orders`, {
             method: 'POST',
             credentials: 'include',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': freshToken },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
             body: JSON.stringify(currentOrderData)
         });
-        
+
         const result = await response.json();
-        if (!response.ok || !result.success) throw new Error(result.error || 'Failed to create order');
-        
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to create order');
+        }
+
         await initializePaystackPayment(result.orderId, result.paystack);
         return { success: true, orderId: result.orderId };
     }
@@ -281,7 +319,7 @@
         isConfigured: isPaystackConfigured,
         isAvailable: () => isPaystackAvailable,
         processOrder: processOrderWithPaystack,
-        init: async function() {
+        init: async function () {
             await loadPaystackConfig();
             await loadPaystackScript();
         }

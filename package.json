@@ -9,8 +9,8 @@
     "dev:server": "nodemon server.js",
     "dev:client": "vite",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "build": "vite build",
-    "build:analyze": "vite build --mode analyze",
+    "build": "vite build && node scripts/copy-static-assets.js",
+    "build:analyze": "vite build --mode analyze && node scripts/copy-static-assets.js",
     "preview": "vite preview",
     "lint": "eslint . --ext .js,.ts",
     "lint:fix": "eslint . --ext .js,.ts --fix",
@@ -18,14 +18,15 @@
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
     "test": "vitest",
+    "test:ci": "vitest run",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
+    "check": "npm run lint && npm run type-check && npm run test:ci && npm run build",
     "prepare": "node scripts/setup-husky.js"
   },
   "dependencies": {
     "@sentry/node": "^7.100.0",
     "@sentry/profiling-node": "^7.100.0",
-    "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.10.0",
     "cloudinary": "^2.0.0",
     "compression": "^1.7.4",
@@ -36,17 +37,14 @@
     "express-rate-limit": "^7.1.5",
     "express-validator": "^7.0.1",
     "helmet": "^7.1.0",
-    "jsonwebtoken": "^9.0.2",
     "lru-cache": "^11.2.6",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.9",
-    "paystack-api": "^2.0.6",
+    "multer": "^2.3.0",
+    "nodemailer": "^10.0.9",
     "pg": "^8.11.3",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "sitemap": "^9.0.1",
-    "streamifier": "^0.1.1",
-    "uuid": "^9.0.1"
+    "streamifier": "^0.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
@@ -63,8 +61,8 @@
     "prettier": "^3.3.3",
     "terser": "^5.31.6",
     "typescript": "^5.5.4",
-    "vite": "^5.4.0",
-    "vitest": "^2.0.5"
+    "vite": "^8.3.0",
+    "vitest": "^4.1.11"
   },
   "keywords": [
     "ecommerce",

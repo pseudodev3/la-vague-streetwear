@@ -1,36 +1,26 @@
-# Netlify Configuration
-# https://docs.netlify.com/configure-builds/file-based-configuration/
-
 [build]
-  # No build command needed for static site
-  command = ""
-  publish = "."
+  command = "npm run build"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
 
-# Redirect rules for API and clean URLs
 [[redirects]]
   from = "/api/*"
   to = "https://la-vague-api.onrender.com/api/:splat"
   status = 200
   force = true
 
-# Netlify automatically handles clean URLs if we don't have a catch-all
-# Pretty URLs optimization will handle the rest
-
 [optimization]
   pretty_urls = true
 
-# Headers for security
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.paystack.co https://checkout.paystack.com https://browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: res.cloudinary.com *.cloudinary.com https://*.paystack.co https://checkout.paystack.com via.placeholder.com; connect-src 'self' https://la-vague-api.onrender.com https://api.paystack.co https://o4510883887316992.ingest.us.sentry.io https://browser.sentry-cdn.com; frame-src 'self' https://checkout.paystack.com https://js.paystack.co; object-src 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests;"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.paystack.co https://checkout.paystack.com https://browser.sentry-cdn.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://la-vague-api.onrender.com https://api.paystack.co https://o4510883887316992.ingest.us.sentry.io https://browser.sentry-cdn.com; frame-src 'self' https://checkout.paystack.com https://js.paystack.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests;"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"
     Cross-Origin-Embedder-Policy = "unsafe-none"
@@ -38,23 +28,23 @@
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
     Cache-Control = "public, max-age=0, must-revalidate"
 
-# Cache static assets long-term
-[[headers]]
-  for = "/src/*.css"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/src/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Environment variables (set in Netlify dashboard)
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/site.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    Content-Type = "application/manifest+json"
+
 [context.production.environment]
   API_URL = "https://la-vague-api.onrender.com"
 

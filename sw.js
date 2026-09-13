@@ -1,267 +1,175 @@
 /**
  * LA VAGUE - Service Worker
- * Provides offline support and caching for PWA functionality
- * Version: 1.1.0
+ * Keep navigations fresh while caching immutable/static assets safely.
  */
 
-const CACHE_NAME = 'la-vague-v2';
-const STATIC_CACHE = 'la-vague-static-v2';
-const IMAGE_CACHE = 'la-vague-images-v2';
+const STATIC_CACHE = 'la-vague-static-v3';
+const IMAGE_CACHE = 'la-vague-images-v3';
 
-// Assets to cache on install (same-origin only)
-const STATIC_ASSETS = [
+const APP_SHELL = [
     '/',
     '/index.html',
-    '/shop.html',
-    '/product.html',
-    '/checkout.html',
-    '/faq.html',
-    '/shipping.html',
-    '/returns.html',
-    '/contact.html',
-    '/track-order.html',
-    '/order-confirmation.html',
-    '/privacy-policy.html',
-    '/terms-of-service.html',
-    '/refund-policy.html',
-    '/404.html',
     '/favicon.svg',
-    '/site.webmanifest',
-    // Core styles
-    '/src/styles/styles.css',
-    '/src/styles/fonts.css',
-    '/src/styles/home-styles.css',
-    '/src/styles/shop-styles.css',
-    '/src/styles/product-styles.css',
-    '/src/styles/checkout-styles.css',
-    '/src/styles/page-styles.css',
-    '/src/styles/legal-styles.css',
-    // Core scripts
-    '/src/scripts/products.js',
-    '/src/scripts/cart.js',
-    '/src/scripts/components.js',
-    '/src/scripts/utils.js',
-    '/src/scripts/translations.js',
-    '/src/scripts/cookie-consent.js',
-    '/src/scripts/page.js',
-    '/src/scripts/home.js',
-    '/src/scripts/shop.js',
-    '/src/scripts/product.js',
-    '/src/scripts/checkout.js',
-    '/src/scripts/checkout-api.js',
-    '/src/scripts/checkout-config.js',
-    '/src/scripts/checkout-paystack.js',
-    '/src/scripts/pwa-register.js'
+    '/site.webmanifest'
 ];
 
-// Routes that should never be cached (dynamic/API)
 const NETWORK_ONLY_ROUTES = [
     /\/api\//,
-    /\/admin/,
-    /paystack/,
-    /checkout\.paystack\.com/,
-    /js\.paystack\.co/
+    /\/admin(?:\.html)?$/,
+    /paystack/i,
+    /checkout\.paystack\.com/i,
+    /js\.paystack\.co/i
 ];
 
-// Check if a request should be network-only
-function isNetworkOnly(url) {
-    return NETWORK_ONLY_ROUTES.some(route => route.test(url));
+function isNetworkOnly(pathname) {
+    return NETWORK_ONLY_ROUTES.some(route => route.test(pathname));
 }
 
-// Check if URL is same-origin
-function isSameOrigin(url) {
-    try {
-        const urlObj = new URL(url, self.location.origin);
-        return urlObj.origin === self.location.origin;
-    } catch (e) {
-        return true; // Assume same-origin for relative URLs
-    }
+async function cacheIfOk(cacheName, request, response) {
+    if (!response || !response.ok || response.type === 'opaque') return response;
+    const cache = await caches.open(cacheName);
+    await cache.put(request, response.clone());
+    return response;
 }
 
-// Install event - cache static assets
-self.addEventListener('install', (event) => {
-    console.log('[SW] Installing service worker...');
-    
+self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(STATIC_CACHE)
-            .then(cache => {
-                console.log('[SW] Caching static assets...');
-                // Cache assets one by one to avoid failing if one is missing
-                const cachePromises = STATIC_ASSETS.map(asset => {
-                    return cache.add(asset).catch(error => {
-                        console.warn('[SW] Failed to cache:', asset, error.message);
-                    });
-                });
-                return Promise.all(cachePromises);
-            })
-            .then(() => {
-                console.log('[SW] Static assets cached successfully');
-                return self.skipWaiting();
-            })
-            .catch(error => {
-                console.error('[SW] Failed to cache static assets:', error);
-                return self.skipWaiting();
-            })
-    );
-});
-
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-    console.log('[SW] Activating service worker...');
-    
-    event.waitUntil(
-        caches.keys()
-            .then(cacheNames => {
-                return Promise.all(
-                    cacheNames
-                        .filter(cacheName => {
-                            // Delete old versions of our caches
-                            return cacheName.startsWith('la-vague-') && 
-                                   cacheName !== STATIC_CACHE && 
-                                   cacheName !== IMAGE_CACHE;
+            .then(async cache => {
+                await Promise.all(
+                    APP_SHELL.map(asset =>
+                        cache.add(asset).catch(error => {
+                            console.warn('[SW] Could not pre-cache', asset, error.message);
                         })
-                        .map(cacheName => {
-                            console.log('[SW] Deleting old cache:', cacheName);
-                            return caches.delete(cacheName);
-                        })
+                    )
                 );
             })
-            .then(() => {
-                console.log('[SW] Service worker activated');
-                return self.clients.claim();
-            })
+            .then(() => self.skipWaiting())
     );
 });
 
-// Fetch event - handle requests with appropriate strategies
-self.addEventListener('fetch', (event) => {
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys()
+            .then(names =>
+                Promise.all(
+                    names
+                        .filter(name =>
+                            name.startsWith('la-vague-') &&
+                            name !== STATIC_CACHE &&
+                            name !== IMAGE_CACHE
+                        )
+                        .map(name => caches.delete(name))
+                )
+            )
+            .then(() => self.clients.claim())
+    );
+});
+
+self.addEventListener('fetch', event => {
     const { request } = event;
+    if (request.method !== 'GET') return;
+
     const url = new URL(request.url);
-    
-    // Skip non-GET requests
-    if (request.method !== 'GET') {
-        return;
-    }
-    
-    // Skip cross-origin requests (CSP blocks them)
-    if (url.origin !== self.location.origin) {
-        // Allow the browser to handle cross-origin requests normally
-        return;
-    }
-    
-    // Network-only routes (API, payments, admin)
+    if (url.origin !== self.location.origin) return;
+
     if (isNetworkOnly(url.pathname)) {
         event.respondWith(
+            fetch(request).catch(() => {
+                if (url.pathname.startsWith('/api/')) {
+                    return new Response(
+                        JSON.stringify({
+                            success: false,
+                            error: 'Network error. Please check your connection.'
+                        }),
+                        {
+                            status: 503,
+                            headers: { 'Content-Type': 'application/json' }
+                        }
+                    );
+                }
+                return new Response('Service unavailable', { status: 503 });
+            })
+        );
+        return;
+    }
+
+    if (request.mode === 'navigate' || request.destination === 'document') {
+        event.respondWith(
             fetch(request)
-                .catch(error => {
-                    console.error('[SW] Network request failed:', error);
-                    // Return a generic error response for API calls
-                    if (url.pathname.includes('/api/')) {
-                        return new Response(
-                            JSON.stringify({ 
-                                success: false, 
-                                error: 'Network error. Please check your connection.' 
-                            }),
-                            { 
-                                status: 503, 
-                                headers: { 'Content-Type': 'application/json' } 
-                            }
-                        );
-                    }
-                    throw error;
+                .then(response => cacheIfOk(STATIC_CACHE, request, response))
+                .catch(async () => {
+                    return (
+                        (await caches.match(request)) ||
+                        (await caches.match('/index.html')) ||
+                        new Response('Offline', { status: 503 })
+                    );
                 })
         );
         return;
     }
-    
-    // Same-origin images - Cache First
-    if (request.destination === 'image' && url.origin === self.location.origin) {
+
+    if (request.destination === 'image') {
         event.respondWith(
-            caches.open(IMAGE_CACHE).then(cache => {
-                return cache.match(request).then(response => {
-                    if (response) {
-                        // Return cached version, refresh in background
-                        fetch(request).then(networkResponse => {
-                            if (networkResponse.ok) {
-                                cache.put(request, networkResponse.clone());
-                            }
-                        }).catch(() => {});
-                        return response;
-                    }
-                    
-                    // Fetch and cache
-                    return fetch(request).then(networkResponse => {
-                        if (networkResponse.ok) {
-                            cache.put(request, networkResponse.clone());
-                        }
-                        return networkResponse;
-                    }).catch(() => {
-                        return new Response('', { status: 404 });
-                    });
-                });
+            caches.open(IMAGE_CACHE).then(async cache => {
+                const cached = await cache.match(request);
+                if (cached) {
+                    event.waitUntil(
+                        fetch(request)
+                            .then(response => cacheIfOk(IMAGE_CACHE, request, response))
+                            .catch(() => undefined)
+                    );
+                    return cached;
+                }
+
+                try {
+                    const response = await fetch(request);
+                    return cacheIfOk(IMAGE_CACHE, request, response);
+                } catch {
+                    return new Response('', { status: 404 });
+                }
             })
         );
         return;
     }
-    
-    // Static assets: Cache First
+
+    const isImmutableAsset = url.pathname.startsWith('/assets/');
+
+    if (isImmutableAsset) {
+        event.respondWith(
+            caches.open(STATIC_CACHE).then(async cache => {
+                const cached = await cache.match(request);
+                if (cached) return cached;
+
+                const response = await fetch(request);
+                return cacheIfOk(STATIC_CACHE, request, response);
+            })
+        );
+        return;
+    }
+
     event.respondWith(
-        caches.match(request).then(cachedResponse => {
-            if (cachedResponse) {
-                // Return cached version immediately
-                // Refresh cache in background
-                fetch(request).then(networkResponse => {
-                    if (networkResponse.ok) {
-                        caches.open(STATIC_CACHE).then(cache => {
-                            cache.put(request, networkResponse);
-                        });
-                    }
-                }).catch(() => {});
-                return cachedResponse;
-            }
-            
-            // Not in cache, fetch from network
-            return fetch(request).then(networkResponse => {
-                if (!networkResponse.ok) {
-                    return networkResponse;
-                }
-                
-                // Clone and cache the response
-                const responseToCache = networkResponse.clone();
-                caches.open(STATIC_CACHE).then(cache => {
-                    cache.put(request, responseToCache);
-                });
-                
-                return networkResponse;
-            }).catch(error => {
-                console.error('[SW] Fetch failed:', error);
-                
-                // For HTML pages, return the offline page or index
-                if (request.headers.get('accept')?.includes('text/html')) {
-                    return caches.match('/index.html');
-                }
-                
-                throw error;
-            });
-        })
+        fetch(request)
+            .then(response => cacheIfOk(STATIC_CACHE, request, response))
+            .catch(() => caches.match(request))
     );
 });
 
-// Message handling from main thread
-self.addEventListener('message', (event) => {
+self.addEventListener('message', event => {
     if (event.data === 'skipWaiting') {
         self.skipWaiting();
+        return;
     }
-    
-    if (event.data.type === 'CLEAR_CACHES') {
+
+    if (event.data?.type === 'CLEAR_CACHES') {
         event.waitUntil(
-            caches.keys().then(cacheNames => {
-                return Promise.all(
-                    cacheNames.map(cacheName => caches.delete(cacheName))
-                );
-            }).then(() => {
-                event.ports[0].postMessage({ success: true });
-            })
+            caches.keys()
+                .then(names => Promise.all(names.map(name => caches.delete(name))))
+                .then(() => {
+                    if (event.ports?.[0]) {
+                        event.ports[0].postMessage({ success: true });
+                    }
+                })
         );
     }
 });
