@@ -2,3 +2,69 @@
 /* LA VAGUE - External Fonts Bridge */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap');
 @import url('./announcement.css');
+
+/* Checkout selection states */
+.checkbox-label input[type="checkbox"],
+.shipping-option input[type="radio"],
+.payment-method input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--color-text-muted);
+    background: transparent;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] { border-radius: 3px; }
+.shipping-option input[type="radio"],
+.payment-method input[type="radio"] { border-radius: 50%; }
+
+.checkbox-label input[type="checkbox"]::after,
+.shipping-option input[type="radio"]::after,
+.payment-method input[type="radio"]::after {
+    content: '✓';
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+    transform: scale(0);
+}
+
+.checkbox-label input[type="checkbox"]:checked,
+.shipping-option input[type="radio"]:checked,
+.payment-method input[type="radio"]:checked {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+}
+
+.checkbox-label input[type="checkbox"]:checked::after,
+.shipping-option input[type="radio"]:checked::after,
+.payment-method input[type="radio"]:checked::after {
+    transform: scale(1);
+}
+
+.checkbox-label input[type="checkbox"]:focus-visible,
+.shipping-option input[type="radio"]:focus-visible,
+.payment-method input[type="radio"]:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+}
+
+.shipping-option:has(input:checked),
+.payment-method:has(input:checked) {
+    border-color: var(--color-accent);
+    box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+@media (max-width: 768px) {
+    .checkbox-label input[type="checkbox"],
+    .shipping-option input[type="radio"],
+    .payment-method input[type="radio"] {
+        width: 24px;
+        height: 24px;
+    }
+}
