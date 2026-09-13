@@ -1,0 +1,66 @@
+name: One-time Dependency Refresh
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'stabilize-repo'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out stabilization branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.20.2'
+          cache: npm
+
+      - name: Install current lockfile
+        run: npm ci
+
+      - name: Remove obsolete direct dependencies
+        run: npm uninstall paystack-api bcryptjs jsonwebtoken uuid
+
+      - name: Upgrade vulnerable runtime dependencies
+        run: npm install multer@^2.0.2 nodemailer@^10.0.9
+
+      - name: Upgrade vulnerable build/test dependencies
+        run: npm install --save-dev vite@^8.3.0 vitest@^4.1.11
+
+      - name: Apply safe transitive fixes
+        run: npm audit fix
+
+      - name: Run unit tests
+        run: npm run test:ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Verify high-severity audit is clean
+        run: npm audit --audit-level=high
+
+      - name: Remove one-time workflow
+        run: rm .github/workflows/dependency-refresh.yml
+
+      - name: Commit regenerated dependency files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A package.json package-lock.json .github/workflows/dependency-refresh.yml
+          if git diff --cached --quiet; then
+            echo "No dependency changes to commit"
+            exit 0
+          fi
+          git commit -m "chore: refresh vulnerable dependencies"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
