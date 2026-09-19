@@ -94,11 +94,6 @@ async function initHome() {
     updateWishlistCount();
     bindEvents();
     initRevealAnimations();
-    
-    // Initialize combined locale selector
-    initLocaleSelector();
-    
-    applyPageLocale();
 }
 
 // ==========================================
@@ -442,73 +437,6 @@ function bindEvents() {
             }
         });
     });
-}
-
-// Combined Locale Selector
-function initLocaleSelector() {
-    const localeBtn = document.getElementById('localeBtn');
-    const localeDropdown = document.getElementById('localeDropdown');
-    const localeCurrent = document.getElementById('localeCurrent');
-    
-    if (!localeBtn || !localeDropdown) return;
-    
-    // Get current values
-    const currentCurrency = CurrencyConfig.getCurrentCurrency();
-    const currentLang = localStorage.getItem('preferredLanguage') || 'en';
-    
-    // Update display
-    updateLocaleDisplay(currentCurrency, currentLang);
-    
-    // Set active states
-    document.querySelectorAll('#currencyOptions .locale-option').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.currency === currentCurrency);
-        btn.addEventListener('click', () => {
-            CurrencyConfig.setCurrency(btn.dataset.currency);
-            updateLocaleDisplay(btn.dataset.currency, currentLang);
-            window.location.reload();
-        });
-    });
-    
-    document.querySelectorAll('#languageOptions .locale-option').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.lang === currentLang);
-        btn.addEventListener('click', () => {
-            localStorage.setItem('preferredLanguage', btn.dataset.lang);
-            document.documentElement.lang = btn.dataset.lang;
-            document.documentElement.dir = btn.dataset.lang === 'ar' ? 'rtl' : 'ltr';
-            updateLocaleDisplay(currentCurrency, btn.dataset.lang);
-            window.location.reload();
-        });
-    });
-    
-    // Toggle dropdown
-    localeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        localeDropdown.classList.toggle('active');
-    });
-    
-    // Close on outside click
-    document.addEventListener('click', () => {
-        localeDropdown.classList.remove('active');
-    });
-    
-    localeDropdown.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-}
-
-function updateLocaleDisplay(currency, lang) {
-    const localeCurrent = document.getElementById('localeCurrent');
-    if (localeCurrent) {
-        const symbols = { USD: '$', NGN: '₦', EUR: '€', GBP: '£' };
-        localeCurrent.textContent = `${symbols[currency]} · ${lang.toUpperCase()}`;
-    }
-}
-
-function applyPageLocale() {
-    const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-    document.documentElement.lang = savedLang;
-    document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
-    if (typeof applyTranslations === 'function') applyTranslations();
 }
 
 // BOOTSTRAP: Wait for shared components to load before starting logic
