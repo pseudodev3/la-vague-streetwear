@@ -47,11 +47,19 @@ Start: node server.js
 Health check: /api/health
 ```
 
-The Render service is API-only. A request to `/` may return `404`; this is expected. Monitoring services should use:
+The Render service is API-only. A request to `/` may return `404`; this is expected. Render's liveness check should use:
 
 ```text
 https://la-vague-api.onrender.com/api/health
 ```
+
+For database-aware monitoring, use:
+
+```text
+https://la-vague-api.onrender.com/api/ready
+```
+
+The readiness endpoint returns `503` when PostgreSQL is unavailable, while the liveness endpoint remains independent so a transient database outage does not automatically cause a restart loop.
 
 ### Required environment variables
 
