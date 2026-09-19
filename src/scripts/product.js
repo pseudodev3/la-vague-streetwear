@@ -180,10 +180,7 @@ async function initProduct() {
     }
     
     bindEvents();
-    initLocaleSelector();
-    applyPageLocale();
-
-    // Nav scroll effect
+// Nav scroll effect
     window.addEventListener('scroll', () => {
         if (window.scrollY > 50) {
             elements.nav?.classList.add('scrolled');
@@ -698,21 +695,6 @@ function showToast(message, type = 'success') {
     toast.innerHTML = `<span class="toast-message">${message}</span>`;
     elements.toastContainer.appendChild(toast);
     setTimeout(() => { toast.remove(); }, 3000);
-}
-
-function initLocaleSelector() {
-    const btn = document.getElementById('localeBtn'), drop = document.getElementById('localeDropdown');
-    if (!btn || !drop) return;
-    const curr = CurrencyConfig.getCurrentCurrency(), lang = localStorage.getItem('preferredLanguage') || 'en';
-    btn.addEventListener('click', (e) => { e.stopPropagation(); drop.classList.toggle('active'); });
-    document.addEventListener('click', () => drop.classList.remove('active'));
-}
-
-function applyPageLocale() {
-    const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-    document.documentElement.lang = savedLang;
-    document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
-    if (typeof applyTranslations === 'function') applyTranslations();
 }
 
 window.addEventListener('componentsLoaded', initProduct);
