@@ -49,7 +49,7 @@
     
     <!-- Styles -->
     <link rel="stylesheet" href="src/styles/styles.css?v=9.0">
-    <link rel="stylesheet" href="src/styles/home-styles.css?v=9.0">
+    <link rel="stylesheet" href="src/styles/home-styles.css?v=9.1">
     
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -91,7 +91,7 @@
         ]
     }
     </script>
-    <link rel="stylesheet" href="src/styles/storefront-system.css?v=10.0">
+    <link rel="stylesheet" href="src/styles/storefront-system.css?v=10.1">
 </head>
 <body>
     <!-- Announcement Bar -->
@@ -222,54 +222,46 @@
     <!-- Lookbook Section -->
     <section class="lookbook" id="lookbook">
         <div class="container">
-            <div class="lookbook-header reveal-up">
-                <div>
-                    <span class="section-tag">Lookbook</span>
-                    <h2 class="section-title">Worn in the Wild</h2>
-                </div>
-                <p>Five frames from the LA VAGUE world, focused on print, proportion, and the way each piece moves outside the studio.</p>
+            <div class="section-header centered">
+                <span class="section-tag reveal-up">Lookbook</span>
+                <h2 class="section-title reveal-up">Style Guide</h2>
             </div>
             <div class="lookbook-grid">
-                <article class="lookbook-item lookbook-lead reveal-up" data-look="1">
-                    <img src="/assets/urbannights.jpg" alt="Brown oversized LA VAGUE graphic tee photographed from the back" loading="lazy">
+                <div class="lookbook-item large reveal-up" data-look="1">
+                    <img src="/assets/urbannights.jpg" alt="Look 01 - Urban Nights" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">01</span>
-                        <h3>Rear View</h3>
-                        <p>Brown oversized graphic tee, framed from the back so the artwork carries the whole shot.</p>
+                        <h3>Urban Nights</h3>
                     </div>
-                </article>
-                <article class="lookbook-item reveal-up" data-look="2">
-                    <img src="/assets/daylight.jpg" alt="Black LA VAGUE crop top with a white logo headwrap by a pool" loading="lazy">
+                </div>
+                <div class="lookbook-item reveal-up" data-look="2">
+                    <img src="/assets/daylight.jpg" alt="Look 02 - Daylight" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">02</span>
-                        <h3>Poolside Signal</h3>
-                        <p>Black crop top, white logo headwrap, hard daylight. Clean branding with no extra noise.</p>
+                        <h3>Daylight</h3>
                     </div>
-                </article>
-                <article class="lookbook-item reveal-up" data-look="3">
-                    <img src="/assets/skatepark.jpg" alt="Oversized grey LA VAGUE graphic tee photographed at a concrete skatepark" loading="lazy">
+                </div>
+                <div class="lookbook-item reveal-up" data-look="3">
+                    <img src="/assets/skatepark.jpg" alt="Look 03 - Skate Park" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">03</span>
-                        <h3>Concrete Grey</h3>
-                        <p>An oversized grey graphic tee against raw concrete, blue rails, and deep green.</p>
+                        <h3>Skate Park</h3>
                     </div>
-                </article>
-                <article class="lookbook-item reveal-up" data-look="4">
-                    <img src="/assets/downtown.jpg" alt="Two LA VAGUE striped shirts showing front and back details" loading="lazy">
+                </div>
+                <div class="lookbook-item reveal-up" data-look="4">
+                    <img src="/assets/downtown.jpg" alt="Look 04 - Downtown" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">04</span>
-                        <h3>Double Vision</h3>
-                        <p>Two relaxed shirts, two viewpoints. Front detailing meets oversized back lettering.</p>
+                        <h3>Downtown</h3>
                     </div>
-                </article>
-                <article class="lookbook-item reveal-up" data-look="5">
-                    <img src="/assets/afterhours.jpg" alt="Light blue LA VAGUE shirt showing The wave doesn't stop back graphic" loading="lazy">
+                </div>
+                <div class="lookbook-item large reveal-up" data-look="5">
+                    <img src="/assets/afterhours.jpg" alt="Look 05 - After Hours" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">05</span>
-                        <h3>The Wave Doesn't Stop</h3>
-                        <p>A light blue statement shirt seen from behind, built around the collection's clearest message.</p>
+                        <h3>After Hours</h3>
                     </div>
-                </article>
+                </div>
             </div>
         </div>
     </section>
@@ -285,7 +277,6 @@
             <div class="lightbox-info">
                 <span class="lightbox-number" id="lightboxNumber"></span>
                 <h3 id="lightboxTitle"></h3>
-                <p id="lightboxDescription"></p>
             </div>
         </div>
     </div>
@@ -347,7 +338,7 @@
     <script src="src/scripts/components.js?v=9.0"></script>
     <script src="src/scripts/utils.js?v=9.0"></script>
 <script src="src/scripts/cookie-consent.js?v=9.0"></script>
-    <script src="src/scripts/home.js?v=9.0"></script>
+    <script src="src/scripts/home.js?v=9.1"></script>
     <script src="src/scripts/pwa-register.js?v=1.0"></script>
 </body>
 </html>
