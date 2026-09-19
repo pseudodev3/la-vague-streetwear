@@ -540,7 +540,7 @@ body .lookbook-info {
   transition-timing-function: var(--lv-ease);
 }
 
-/* About + newsletter ---------------------------------------------------- */
+/* About ---------------------------------------------------------------- */
 
 body .about {
   border-block: 1px solid var(--lv-border);
@@ -558,23 +558,6 @@ body .about-stats {
   border-top-color: var(--lv-border);
 }
 
-body .newsletter {
-  background: #f2f0eb;
-  color: #0b0b0c;
-}
-
-body .newsletter-input {
-  border-radius: 12px;
-  background: #fff;
-  color: #111;
-  border-color: rgba(0,0,0,.12);
-}
-
-body .newsletter-form .btn-primary {
-  border-radius: 12px;
-  background: #0b0b0c;
-  color: #fff;
-}
 
 /* Search --------------------------------------------------------------- */
 
