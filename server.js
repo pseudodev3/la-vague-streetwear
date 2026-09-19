@@ -175,10 +175,27 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        database: USE_POSTGRES ? 'postgresql' : 'sqlite',
-        version: '1.2.2',
-        features: ['pwa', 'reviews']
+        uptimeSeconds: Math.round(process.uptime()),
+        database: USE_POSTGRES ? 'postgresql' : 'sqlite'
     });
+});
+
+app.get('/api/ready', async (req, res) => {
+    try {
+        await query('SELECT 1');
+        res.json({
+            status: 'ready',
+            timestamp: new Date().toISOString(),
+            database: 'reachable'
+        });
+    } catch (error) {
+        logger.error({ err: error }, 'Database readiness check failed');
+        res.status(503).json({
+            status: 'not_ready',
+            timestamp: new Date().toISOString(),
+            database: 'unavailable'
+        });
+    }
 });
 
 app.get('/api/csrf-token', csrfToken, (req, res) => {
