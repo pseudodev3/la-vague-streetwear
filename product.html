@@ -39,7 +39,7 @@
     <!-- Announcement Bar -->
     <div class="announcement-bar">
         <div class="announcement-content">
-            <span class="dynamic-free-shipping" data-i18n="announcement.freeShipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
+            <span class="dynamic-free-shipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
             <span class="announcement-divider">|</span>
             <span>NEW DROP AVAILABLE NOW</span>
         </div>
@@ -97,7 +97,7 @@
                     <!-- Color Selection -->
                     <div class="option-group" id="colorGroup">
                         <label class="option-label">
-                            <span data-i18n="product.color">Color</span>: <span id="selectedColor" data-i18n="product.select">Select</span>
+                            <span>Color</span>: <span id="selectedColor">Select</span>
                         </label>
                         <div class="color-selector" id="colorSelector"></div>
                     </div>
@@ -105,8 +105,8 @@
                     <!-- Size Selection -->
                     <div class="option-group" id="sizeGroup">
                         <label class="option-label">
-                            <span data-i18n="product.size">Size</span>: <span id="selectedSize" data-i18n="product.select">Select</span>
-                            <button class="size-guide-btn" id="sizeGuideBtn" data-i18n="product.sizeGuide">Size Guide</button>
+                            <span>Size</span>: <span id="selectedSize">Select</span>
+                            <button class="size-guide-btn" id="sizeGuideBtn">Size Guide</button>
                         </label>
                         <div class="size-selector" id="sizeSelector"></div>
                     </div>
@@ -121,7 +121,7 @@
                             <span id="quantity">1</span>
                             <button class="qty-btn" id="qtyPlus" aria-label="Increase">+</button>
                         </div>
-                        <button class="btn-add-cart" id="addToCartBtn" data-i18n="product.addToCart">
+                        <button class="btn-add-cart" id="addToCartBtn">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M6 6h15l-1.5 9h-12z"></path>
                                 <circle cx="9" cy="20" r="1"></circle>
@@ -143,20 +143,20 @@
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                             </svg>
-                            <span class="dynamic-free-shipping" data-i18n="product.freeShipping">Free standard shipping over ₦150,000</span>
+                            <span class="dynamic-free-shipping">Free standard shipping over ₦150,000</span>
                         </div>
                         <div class="meta-item">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
-                            <span data-i18n="product.shipsIn">Usually dispatches within 1 business day</span>
+                            <span>Usually dispatches within 1 business day</span>
                         </div>
                         <div class="meta-item">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                             </svg>
-                            <span data-i18n="product.returns">Final sale. Order issues are covered</span>
+                            <span>Final sale. Order issues are covered</span>
                         </div>
                     </div>
                     
@@ -226,12 +226,12 @@
     <div class="review-modal" id="reviewModal">
         <button class="review-modal-close-x" id="reviewModalCloseX">×</button>
         <div class="review-modal-header">
-            <h3 data-i18n="product.writeReview">Write a Review</h3>
+            <h3>Write a Review</h3>
         </div>
         <div class="review-modal-content">
             <form id="reviewForm">
                 <div class="form-group">
-                    <label data-i18n="product.rating">Rating</label>
+                    <label>Rating</label>
                     <div class="star-rating-input" id="starRatingInput">
                         <span data-rating="1">★</span>
                         <span data-rating="2">★</span>
@@ -242,27 +242,27 @@
                     <input type="hidden" id="reviewRating" required>
                 </div>
                 <div class="form-group">
-                    <label for="reviewTitle" data-i18n="product.reviewTitle">Review Title</label>
+                    <label for="reviewTitle">Review Title</label>
                     <input type="text" id="reviewTitle" class="input" placeholder="Summarize your experience" required>
                 </div>
                 <div class="form-group">
-                    <label for="reviewText" data-i18n="product.reviewText">Review</label>
+                    <label for="reviewText">Review</label>
                     <textarea id="reviewText" class="input" rows="4" placeholder="Tell us what you liked or didn't like" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="reviewerName" data-i18n="product.yourName">Your Name</label>
+                    <label for="reviewerName">Your Name</label>
                     <input type="text" id="reviewerName" class="input" placeholder="John Doe" required>
                 </div>
                 <div class="form-group">
-                    <label for="reviewerEmail" data-i18n="product.email">Email</label>
+                    <label for="reviewerEmail">Email</label>
                     <input type="email" id="reviewerEmail" class="input" placeholder="john@example.com" required>
                 </div>
                 <div class="form-group">
-                    <label for="orderId" data-i18n="product.orderId">Order ID (optional)</label>
+                    <label for="orderId">Order ID (optional)</label>
                     <input type="text" id="orderId" class="input" placeholder="LV-XXXXXXXX">
                     <small>Enter your order ID to verify purchase</small>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full" data-i18n="product.submitReview">Submit Review</button>
+                <button type="submit" class="btn btn-primary btn-full">Submit Review</button>
             </form>
         </div>
     </div>
@@ -270,7 +270,7 @@
     <!-- Related Products -->
     <section class="related-products" id="relatedProducts">
         <div class="container">
-            <h2 class="section-title" data-i18n="product.youMayAlsoLike">You May Also Like</h2>
+            <h2 class="section-title">You May Also Like</h2>
             <div class="related-grid" id="relatedGrid"></div>
         </div>
     </section>
@@ -300,8 +300,7 @@
     <script src="src/scripts/components.js?v=9.0"></script>
     <script src="src/scripts/search.js?v=1.0"></script>
     <script src="src/scripts/utils.js?v=9.0"></script>
-    <script src="src/scripts/translations.js?v=9.0"></script>
-    <script src="src/scripts/product.js?v=9.0"></script>
+<script src="src/scripts/product.js?v=9.0"></script>
     <script src="src/scripts/cookie-consent.js?v=9.0"></script>
     <script src="src/scripts/pwa-register.js?v=1.0"></script>
 </body>
