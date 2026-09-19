@@ -50,6 +50,7 @@ const TRANSLATIONS = {
         cart: {
             title: 'Your Cart',
             empty: 'Your cart is empty',
+            wishlistEmpty: 'Your wishlist is empty',
             continueShopping: 'Continue Shopping',
             subtotal: 'Subtotal',
             checkout: 'Checkout',
@@ -162,6 +163,7 @@ const TRANSLATIONS = {
         cart: {
             title: 'Votre Panier',
             empty: 'Votre panier est vide',
+            wishlistEmpty: 'Votre liste de favoris est vide',
             continueShopping: 'Continuer les achats',
             subtotal: 'Sous-total',
             checkout: 'Commander',
@@ -274,6 +276,7 @@ const TRANSLATIONS = {
         cart: {
             title: 'سلة التسوق',
             empty: 'سلة التسوق فارغة',
+            wishlistEmpty: 'قائمة المفضلة فارغة',
             continueShopping: 'مواصلة التسوق',
             subtotal: 'المجموع الفرعي',
             checkout: 'إتمام الشراء',
