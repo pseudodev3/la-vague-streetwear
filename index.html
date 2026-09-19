@@ -27,6 +27,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta property="og:image:alt" content="LA VAGUE official logo">
     <meta property="og:site_name" content="LA VAGUE">
+    <meta property="og:locale" content="en_NG">
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://la-vague.store/">
     
@@ -54,14 +55,39 @@
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
-        "@type": "ClothingStore",
-        "name": "LA VAGUE",
-        "description": "Premium streetwear crafted in Nigeria",
-        "url": "https://la-vague.store",
-        "logo": "/la-vague-red-wordmark.png",
-        "sameAs": [
-            "https://www.instagram.com/lavague_ng/",
-            "https://www.tiktok.com/@Lavague.ng"
+        "@graph": [
+            {
+                "@type": "Organization",
+                "@id": "https://la-vague.store/#organization",
+                "name": "LA VAGUE",
+                "url": "https://la-vague.store/",
+                "logo": "https://la-vague.store/la-vague-red-wordmark.png",
+                "sameAs": [
+                    "https://www.instagram.com/lavague_ng/",
+                    "https://www.tiktok.com/@Lavague.ng"
+                ]
+            },
+            {
+                "@type": "ClothingStore",
+                "@id": "https://la-vague.store/#store",
+                "name": "LA VAGUE",
+                "url": "https://la-vague.store/",
+                "image": "https://la-vague.store/la-vague-red-wordmark.png",
+                "description": "Nigerian streetwear label producing graphic tees, hoodies, shirts and limited drops.",
+                "parentOrganization": {
+                    "@id": "https://la-vague.store/#organization"
+                }
+            },
+            {
+                "@type": "WebSite",
+                "@id": "https://la-vague.store/#website",
+                "url": "https://la-vague.store/",
+                "name": "LA VAGUE",
+                "publisher": {
+                    "@id": "https://la-vague.store/#organization"
+                },
+                "inLanguage": "en"
+            }
         ]
     }
     </script>
