@@ -534,7 +534,9 @@ body .collection-info {
 
 body .lookbook-info {
   padding: 1.6rem;
-  transform: translateY(10px);
+  opacity: 1;
+  transform: none;
+  background: none;
   transition-property: opacity, transform;
   transition-duration: 180ms;
   transition-timing-function: var(--lv-ease);
