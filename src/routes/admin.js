@@ -463,28 +463,6 @@ export default function (productService, inventoryService) {
         res.json({ success: true, customer, orders });
     }));
 
-    // Currency
-    const DEFAULT_RATES = { USD: 1, NGN: 1550, EUR: 0.94, GBP: 0.80 };
-    router.get('/currency-rates', verifyAdminToken, asyncHandler(async (req, res) => {
-        const result = await query("SELECT value, updated_at FROM settings WHERE key = 'currency_rates'");
-        let rates = { ...DEFAULT_RATES };
-        let lastUpdated = null;
-        if (result.rows.length > 0) { rates = JSON.parse(result.rows[0].value); lastUpdated = result.rows[0].updated_at; }
-        res.json({ success: true, rates, lastUpdated: lastUpdated || new Date().toISOString() });
-    }));
-
-    router.post('/currency-rates', verifyAdminToken, asyncHandler(async (req, res) => {
-        const { rates } = req.body;
-        await query("INSERT INTO settings (key, value) VALUES ('currency_rates', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP", [JSON.stringify(rates)]);
-        await logAudit('UPDATE_CURRENCY_RATES', 'settings', 'currency_rates', null, rates, req);
-        res.json({ success: true, message: 'Rates updated' });
-    }));
-
-    router.post('/currency-rates/reset', verifyAdminToken, asyncHandler(async (req, res) => {
-        await query("INSERT INTO settings (key, value) VALUES ('currency_rates', $1) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP", [JSON.stringify(DEFAULT_RATES)]);
-        res.json({ success: true, message: 'Rates reset' });
-    }));
-
     // Exports
     router.get('/export/orders', verifyAdminToken, asyncHandler(async (req, res) => {
         const { startDate, endDate } = req.query;
