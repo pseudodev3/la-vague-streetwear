@@ -8,124 +8,32 @@ const { escapeHTML, safeURL } = window.BrowserSecurity;
 // ==========================================
 // CURRENCY CONFIGURATION (NGN ONLY)
 // ==========================================
-const CurrencyConfig = {
-    // NGN is the only supported currency
-    defaultRates: {
-        NGN: 1
-    },
-    
-    // Current rates (NGN only)
-    rates: { NGN: 1 },
-    
-    // Currency symbols
-    symbols: {
-        NGN: '₦'
-    },
-    
-    // Currency names
-    names: {
-        NGN: 'NGN'
-    },
-    
-    // API base URL
-    get API_BASE_URL() {
-        return '/api';
-    },
-    
-    // Load rates using storage or defaults
-    init() {
-        // Try to load cached rates from localStorage
-        const cached = localStorage.getItem('currencyRates');
-        const cachedTime = localStorage.getItem('currencyRatesUpdated');
-        
-        if (cached && cachedTime) {
-            const age = Date.now() - parseInt(cachedTime);
-            // Use cache if less than 1 hour old
-            if (age < 60 * 60 * 1000) {
-                try {
-                    this.rates = JSON.parse(cached);
-                } catch (e) {
-                    this.rates = { ...this.defaultRates };
-                }
-            } else {
-                // Cache expired, use defaults and fetch fresh
-                this.rates = { ...this.defaultRates };
-                this.fetchRates();
-            }
-        } else {
-            // No cache, use defaults and fetch
-            this.rates = { ...this.defaultRates };
-            this.fetchRates();
-        }
-        
-        // Refresh rates every 30 minutes
-        setInterval(() => this.fetchRates(), 30 * 60 * 1000);
-    },
-    
-    // Fetch rates from server
-    async fetchRates() {
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/config/currency-rates`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.rates) {
-                    this.rates = data.rates;
-                    // Cache in localStorage
-                    localStorage.setItem('currencyRates', JSON.stringify(this.rates));
-                    localStorage.setItem('currencyRatesUpdated', Date.now().toString());
-                    
-                    // Notify listeners that rates have been updated
-                    window.dispatchEvent(new CustomEvent('currencyRatesUpdated', { 
-                        detail: { rates: this.rates } 
-                    }));
-                }
-            }
-        } catch (error) {
-            console.error('[CURRENCY] Failed to fetch rates:', error);
-            // Keep using cached or default rates
-        }
-    },
-    
-    // Get current currency (always NGN)
+const ngnFormatter = new Intl.NumberFormat('en-NG', {
+    maximumFractionDigits: 0
+});
+
+const CurrencyConfig = Object.freeze({
     getCurrentCurrency() {
         return 'NGN';
     },
-    
-    // Set currency (no-op, always NGN)
+
     setCurrency(currency) {
-        // Currency switching disabled - always NGN
         return currency === 'NGN';
     },
-    
-    // Convert amount (always returns same amount - NGN only)
-    convert(amount, targetCurrency = null) {
-        // No conversion needed - always NGN
-        return amount;
+
+    convert(amount) {
+        return Number(amount) || 0;
     },
-    
-    // Format price for display (always NGN)
-    formatPrice(amount, currency = null) {
-        // Always format as NGN
-        const symbol = this.symbols.NGN;
-        // For NGN, show whole numbers without decimals
-        return `${symbol}${Math.round(amount).toLocaleString()}`;
+
+    formatPrice(amount) {
+        return `₦${ngnFormatter.format(Math.round(Number(amount) || 0))}`;
     },
-    
-    // Get all supported currencies (NGN only)
+
     getSupportedCurrencies() {
         return ['NGN'];
-    },
-    
-    // Get current rates for admin display (NGN only)
-    getCurrentRates() {
-        return { NGN: 1 };
     }
-};
+});
 
-// Initialize currency config on load
-CurrencyConfig.init();
-
-// Export to window for global access
 window.CurrencyConfig = CurrencyConfig;
 
 // ==========================================
