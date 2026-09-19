@@ -10,6 +10,20 @@ import { setupCartDOM, setupWishlistDOM, clearCartData, getCart, getWishlist } f
 let CartState;
 let CurrencyConfig;
 
+const createFetchMock = () => vi.fn().mockImplementation(async url => {
+  if (String(url).includes('/products/inventory/check/')) {
+    return {
+      ok: true,
+      json: async () => ({ success: true, available: 12, inStock: true })
+    };
+  }
+
+  return {
+    ok: true,
+    json: async () => ({ success: true, rates: { NGN: 1 } })
+  };
+});
+
 beforeAll(async () => {
   global.CATEGORIES = [
     { id: 'hoodies', name: 'Hoodies' },
@@ -17,21 +31,8 @@ beforeAll(async () => {
   ];
 
   global.I18n = undefined;
-  const fetchMock = vi.fn().mockImplementation(async url => {
-    if (String(url).includes('/products/inventory/check/')) {
-      return {
-        ok: true,
-        json: async () => ({ success: true, available: 12, inStock: true })
-      };
-    }
-
-    return {
-      ok: true,
-      json: async () => ({ success: true, rates: { NGN: 1 } })
-    };
-  });
-  global.fetch = fetchMock;
-  window.fetch = fetchMock;
+  global.fetch = createFetchMock();
+  window.fetch = global.fetch;
 
   await import('../../src/scripts/cart.js');
   CartState = window.CartState;
@@ -39,6 +40,8 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  global.fetch = createFetchMock();
+  window.fetch = global.fetch;
   setupCartDOM();
   setupWishlistDOM();
   clearCartData();
