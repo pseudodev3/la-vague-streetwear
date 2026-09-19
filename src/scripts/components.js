@@ -19,24 +19,6 @@ window.Components = {
                 <li><a href="/contact" class="nav-link">Contact</a></li>
             </ul>
             <div class="nav-actions">
-                <div class="locale-selector">
-                    <button class="locale-btn" id="localeBtn" aria-label="Select language">
-                        <span class="locale-current" id="localeCurrent">₦ · EN</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="locale-dropdown" id="localeDropdown">
-                        <div class="locale-section">
-                            <span class="locale-label">Language</span>
-                            <div class="locale-options" id="languageOptions">
-                                <button class="locale-option" data-lang="en">English</button>
-                                <button class="locale-option" data-lang="fr">Français</button>
-                                <button class="locale-option" data-lang="ar">العربية</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <button class="nav-btn" id="searchBtn" aria-label="Search">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"></circle>
