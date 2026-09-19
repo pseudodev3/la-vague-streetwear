@@ -203,6 +203,8 @@ GET /api/health
 
 Monitoring services should check this endpoint rather than `/` on the Render API service, because the API root intentionally does not serve the storefront.
 
+Use `GET /api/ready` when you specifically need to verify database connectivity. The liveness endpoint stays independent from PostgreSQL so a temporary database outage does not itself create a service restart loop.
+
 The PostgreSQL client retries initial connection failures and handles idle pool errors without letting an EventEmitter error terminate the API process. Database schema initialization is also retried before startup is abandoned.
 
 ## Testing and CI
