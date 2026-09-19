@@ -601,9 +601,9 @@ window.addToCartFromCard = async function(productId) {
                 const staticStock = product.inventory?.[variantKey] || 0;
                 if (staticStock <= 0) isAvailable = false;
             }
-        } catch (e) {
-            console.warn('[SHOP] Stock check failed, allowing add');
-            isAvailable = true; 
+        } catch (error) {
+            console.warn('[SHOP] Live stock check unavailable:', error);
+            isAvailable = false;
         }
     } else {
         const variantKey = `${color}-${size}`;
