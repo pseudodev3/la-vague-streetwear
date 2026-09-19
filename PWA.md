@@ -26,7 +26,7 @@ la-vague/
 ├── sw.js                          # Service Worker
 ├── site.webmanifest               # PWA Manifest
 ├── src/scripts/pwa-register.js    # Service Worker Registration
-├── assets/icons/                  # PWA Icons (generated from favicon.svg)
+├── assets/icons/                  # Optional square PWA icons generated from the official logo
 │   ├── icon-72x72.png
 │   ├── icon-96x96.png
 │   ├── icon-128x128.png
@@ -40,7 +40,7 @@ la-vague/
 
 ## Generating Icons
 
-To generate PNG icons from the SVG favicon:
+To generate square PNG icons from the official LA VAGUE wordmark:
 
 ```bash
 # Install sharp (one-time)
@@ -166,6 +166,6 @@ If you need all users to get the latest version immediately:
 
 ### Icons Not Showing
 
-1. Verify icons exist in `assets/icons/`
-2. Check icon paths in `site.webmanifest`
+1. If using generated square icons, verify they exist in `assets/icons/`; otherwise verify `/la-vague-red-wordmark.png` is available
+2. Check the active icon paths in `site.webmanifest`
 3. Test manifest in DevTools → Application → Manifest
