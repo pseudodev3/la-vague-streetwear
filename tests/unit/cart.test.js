@@ -4,7 +4,7 @@
  */
 
 import { beforeAll, beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { createMockCartItem, mockProducts } from '../fixtures/test-data.js';
+import { createMockCartItem } from '../fixtures/test-data.js';
 import { setupCartDOM, setupWishlistDOM, clearCartData, getCart, getWishlist } from '../helpers/test-helpers.js';
 
 let CartState;
