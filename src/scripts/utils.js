@@ -251,7 +251,7 @@ const GlobalSettings = {
             element.textContent = format(expressShippingRate);
         });
 
-        window.I18n?.applyTranslations();
+        if (typeof applyTranslations === 'function') applyTranslations();
     }
 };
 
