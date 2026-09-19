@@ -395,7 +395,8 @@ const CartState = {
         const wishlistItems = document.getElementById('wishlistItems');
         if (!wishlistItems) return;
         
-        const t = (key, def) => (typeof I18n !== 'undefined') ? I18n.getTranslation(key) || def : def;
+        const translate = (key, fallback) =>
+            typeof window.t === 'function' ? window.t(key) : fallback;
 
         if (this.wishlist.length === 0) {
             wishlistItems.innerHTML = `
