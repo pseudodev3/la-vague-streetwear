@@ -182,7 +182,7 @@ async function initShop() {
     
     bindEvents();
     initLocaleSelector();
-    initLegacySelectors();
+    applyPageLocale();
     
     const urlParams = new URLSearchParams(window.location.search);
     const category = urlParams.get('category');
@@ -737,7 +737,7 @@ function updateLocaleDisplay(currency, lang) {
     }
 }
 
-function initLegacySelectors() {
+function applyPageLocale() {
     const savedLang = localStorage.getItem('preferredLanguage') || 'en';
     document.documentElement.lang = savedLang;
     document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
