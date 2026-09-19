@@ -4,17 +4,17 @@
     "description": "Premium streetwear crafted in Nigeria. Timeless designs for those who set the trend.",
     "icons": [
         {
-            "src": "/favicon.svg",
-            "sizes": "any",
-            "type": "image/svg+xml",
-            "purpose": "any maskable"
+            "src": "/la-vague-red-wordmark.png",
+            "sizes": "3500x3000",
+            "type": "image/png",
+            "purpose": "any"
         }
     ],
     "theme_color": "#0a0a0a",
     "background_color": "#0a0a0a",
     "display": "standalone",
     "orientation": "portrait",
-    "start_url": "/index.html",
+    "start_url": "/",
     "scope": "/",
     "categories": ["shopping", "fashion", "lifestyle"],
     "lang": "en",
@@ -24,15 +24,15 @@
             "name": "Shop",
             "short_name": "Shop",
             "description": "Browse all products",
-            "url": "/shop.html",
-            "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+            "url": "/shop",
+            "icons": [{ "src": "/la-vague-red-wordmark.png", "sizes": "3500x3000" }]
         },
         {
             "name": "Cart",
             "short_name": "Cart",
             "description": "View your shopping cart",
-            "url": "/checkout.html",
-            "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+            "url": "/checkout",
+            "icons": [{ "src": "/la-vague-red-wordmark.png", "sizes": "3500x3000" }]
         }
     ]
 }
