@@ -8,36 +8,11 @@ const state = {
     wishlist: JSON.parse(localStorage.getItem('wishlist')) || [],
     currentLook: 0,
     lookbookImages: [
-        {
-            src: '/assets/urbannights.jpg',
-            title: 'Rear View',
-            number: '01',
-            description: 'Brown oversized graphic tee, framed from the back so the artwork carries the whole shot.'
-        },
-        {
-            src: '/assets/daylight.jpg',
-            title: 'Poolside Signal',
-            number: '02',
-            description: 'Black crop top, white logo headwrap, hard daylight. Clean branding with no extra noise.'
-        },
-        {
-            src: '/assets/skatepark.jpg',
-            title: 'Concrete Grey',
-            number: '03',
-            description: 'An oversized grey graphic tee against raw concrete, blue rails, and deep green.'
-        },
-        {
-            src: '/assets/downtown.jpg',
-            title: 'Double Vision',
-            number: '04',
-            description: 'Two relaxed shirts, two viewpoints. Front detailing meets oversized back lettering.'
-        },
-        {
-            src: '/assets/afterhours.jpg',
-            title: "The Wave Doesn't Stop",
-            number: '05',
-            description: "A light blue statement shirt seen from behind, built around the collection's clearest message."
-        }
+        { src: '/assets/urbannights.jpg', title: 'Urban Nights', number: '01' },
+        { src: '/assets/daylight.jpg', title: 'Daylight', number: '02' },
+        { src: '/assets/skatepark.jpg', title: 'Skate Park', number: '03' },
+        { src: '/assets/downtown.jpg', title: 'Downtown', number: '04' },
+        { src: '/assets/afterhours.jpg', title: 'After Hours', number: '05' }
     ]
 };
 
@@ -77,7 +52,6 @@ async function initHome() {
         lightboxImage: document.getElementById('lightboxImage'),
         lightboxNumber: document.getElementById('lightboxNumber'),
         lightboxTitle: document.getElementById('lightboxTitle'),
-        lightboxDescription: document.getElementById('lightboxDescription'),
         lookbookItems: document.querySelectorAll('.lookbook-item'),
         toastContainer: document.getElementById('toastContainer')
     };
@@ -331,7 +305,6 @@ function updateLightbox() {
     if (elements.lightboxImage) elements.lightboxImage.alt = look.title;
     if (elements.lightboxNumber) elements.lightboxNumber.textContent = look.number;
     if (elements.lightboxTitle) elements.lightboxTitle.textContent = look.title;
-    if (elements.lightboxDescription) elements.lightboxDescription.textContent = look.description || '';
 }
 
 function prevLook() {
