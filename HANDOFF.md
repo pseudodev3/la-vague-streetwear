@@ -141,6 +141,31 @@ The active translation runtime remains `src/scripts/translations.js`.
 
 The old `initLegacySelectors` naming/plumbing on home/shop/product was replaced with a smaller active page-locale bootstrap. Do not restore the removed duplicate i18n runtime unless a real regression proves it is needed.
 
+
+## UI skill requirement
+
+For **any future UI/UX work** on LA VAGUE, use these two skills as explicit design constraints before making visual changes:
+
+- `npx skills add https://github.com/jakubkrehel/skills --skill better-ui`
+- `npx skills add https://github.com/emilkowalski/skills --skill emil-design-eng`
+
+Apply their guidance especially to:
+- optical alignment
+- spacing and visual hierarchy
+- concentric radii
+- depth through surfaces/shadows instead of card spam
+- restrained borders
+- explicit transition properties
+- press/active states
+- reduced-motion behavior
+- mobile-first interaction quality
+- avoiding generic SaaS/dashboard styling
+- preserving LA VAGUE's existing dark / red / off-white visual identity
+
+For storefront UI, **polish the current system rather than inventing a new brand language** unless the user explicitly asks for a redesign.
+
+For admin UI, larger structural changes are acceptable when they improve operational clarity, but still preserve all existing functionality and hooks.
+
 ## Important architecture to preserve
 
 Frontend:
