@@ -39,9 +39,19 @@ window.CurrencyConfig = CurrencyConfig;
 // ==========================================
 // SHARED STATE
 // ==========================================
+function readStoredArray(key) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(value) ? value : [];
+    } catch {
+        localStorage.removeItem(key);
+        return [];
+    }
+}
+
 const CartState = {
-    cart: JSON.parse(localStorage.getItem('cart')) || [],
-    wishlist: JSON.parse(localStorage.getItem('wishlist')) || [],
+    cart: readStoredArray('cart'),
+    wishlist: readStoredArray('wishlist'),
     
     saveCart() {
         localStorage.setItem('cart', JSON.stringify(this.cart));
