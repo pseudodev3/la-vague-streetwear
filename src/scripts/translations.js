@@ -38,9 +38,9 @@ const TRANSLATIONS = {
             size: 'Size',
             select: 'Select',
             quantity: 'Quantity',
-            freeShipping: 'Free shipping over {{threshold}}',
-            shipsIn: 'Ships within 24 hours',
-            returns: 'All Sales Final',
+            freeShipping: 'Free standard shipping over {{threshold}}',
+            shipsIn: 'Usually dispatches within 1 business day',
+            returns: 'Final sale. Order issues are covered',
             youMayAlsoLike: 'You May Also Like'
         },
         announcement: {
@@ -143,9 +143,9 @@ const TRANSLATIONS = {
             size: 'Taille',
             select: 'Sélectionner',
             quantity: 'Quantité',
-            freeShipping: 'Livraison gratuite dès {{threshold}}',
-            shipsIn: 'Expédié sous 24h',
-            returns: 'Toutes les ventes sont finales',
+            freeShipping: 'Livraison standard gratuite dès {{threshold}}',
+            shipsIn: 'Expédition habituelle sous 1 jour ouvré',
+            returns: 'Vente finale. Les problèmes de commande sont couverts',
             youMayAlsoLike: 'Vous pourriez aussi aimer'
             },
 
