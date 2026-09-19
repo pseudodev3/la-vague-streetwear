@@ -181,10 +181,7 @@ async function initShop() {
     }
     
     bindEvents();
-    initLocaleSelector();
-    initLegacySelectors();
-    
-    const urlParams = new URLSearchParams(window.location.search);
+const urlParams = new URLSearchParams(window.location.search);
     const category = urlParams.get('category');
     // Sanitize input: only allow categories that actually exist
     if (category && typeof CATEGORIES !== 'undefined' && CATEGORIES.find(c => c.id === category)) {
@@ -640,10 +637,12 @@ function showToast(message, type = 'success', action = null) {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `<span class="toast-message">${message}</span>`;
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
     elements.toastContainer.appendChild(toast);
     setTimeout(() => {
-        toast.style.animation = 'toast-in 0.3s ease reverse';
-        setTimeout(() => toast.remove(), 300);
+        toast.style.animation = 'lv-toast-out 160ms var(--lv-ease) forwards';
+        setTimeout(() => toast.remove(), 180);
     }, 4000);
 }
 
@@ -717,31 +716,6 @@ function bindEvents() {
         }
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
     });
-}
-
-function initLocaleSelector() {
-    const btn = document.getElementById('localeBtn'), drop = document.getElementById('localeDropdown');
-    if (!btn || !drop) return;
-    const curr = CurrencyConfig.getCurrentCurrency(), lang = localStorage.getItem('preferredLanguage') || 'en';
-    updateLocaleDisplay(curr, lang);
-    btn.addEventListener('click', (e) => { e.stopPropagation(); drop.classList.toggle('active'); });
-    document.addEventListener('click', () => drop.classList.remove('active'));
-    drop.addEventListener('click', (e) => e.stopPropagation());
-}
-
-function updateLocaleDisplay(currency, lang) {
-    const el = document.getElementById('localeCurrent');
-    if (el) {
-        const symbols = { USD: '$', NGN: '₦', EUR: '€', GBP: '£' };
-        el.textContent = `${symbols[currency]} · ${lang.toUpperCase()}`;
-    }
-}
-
-function initLegacySelectors() {
-    const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-    document.documentElement.lang = savedLang;
-    document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
-    if (typeof applyTranslations === 'function') applyTranslations();
 }
 
 // Overrides for CartState

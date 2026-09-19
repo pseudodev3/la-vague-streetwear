@@ -992,12 +992,9 @@
     animation: toast-in 0.3s ease;
 }
 
-.toast.success {
-    border-left: 3px solid #22c55e;
-}
-
+.toast.success,
 .toast.error {
-    border-left: 3px solid var(--color-accent);
+    border-color: var(--color-border);
 }
 
 @keyframes toast-in {

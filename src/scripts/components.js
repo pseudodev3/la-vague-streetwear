@@ -19,24 +19,6 @@ window.Components = {
                 <li><a href="/contact" class="nav-link">Contact</a></li>
             </ul>
             <div class="nav-actions">
-                <div class="locale-selector">
-                    <button class="locale-btn" id="localeBtn" aria-label="Select language">
-                        <span class="locale-current" id="localeCurrent">₦ · EN</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="locale-dropdown" id="localeDropdown">
-                        <div class="locale-section">
-                            <span class="locale-label">Language</span>
-                            <div class="locale-options" id="languageOptions">
-                                <button class="locale-option" data-lang="en">English</button>
-                                <button class="locale-option" data-lang="fr">Français</button>
-                                <button class="locale-option" data-lang="ar">العربية</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <button class="nav-btn" id="searchBtn" aria-label="Search">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"></circle>
@@ -124,7 +106,7 @@ window.Components = {
         `,
         cartSidebar: `
         <div class="cart-header">
-            <h3 data-i18n="cart.title">Your Cart</h3>
+            <h3>Your Cart</h3>
             <button class="cart-close" id="cartClose">×</button>
         </div>
         <div class="cart-items" id="cartItems">
@@ -132,16 +114,16 @@ window.Components = {
         </div>
         <div class="cart-footer" id="cartFooter">
             <div class="cart-subtotal">
-                <span data-i18n="cart.subtotal">Subtotal</span>
+                <span>Subtotal</span>
                 <span id="cartSubtotal">$0</span>
             </div>
-            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()" data-i18n="cart.checkout">Checkout</a>
-            <p class="cart-note" data-i18n="cart.note">Shipping & taxes calculated at checkout</p>
+            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()">Checkout</a>
+            <p class="cart-note">Shipping & taxes calculated at checkout</p>
         </div>
         `,
         wishlistSidebar: `
         <div class="wishlist-header">
-            <h3 data-i18n="cart.wishlist">Your Wishlist</h3>
+            <h3>Your Wishlist</h3>
             <button class="wishlist-close" id="wishlistClose">×</button>
         </div>
         <div class="wishlist-items" id="wishlistItems">

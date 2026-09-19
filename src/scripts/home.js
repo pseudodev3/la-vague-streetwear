@@ -8,11 +8,36 @@ const state = {
     wishlist: JSON.parse(localStorage.getItem('wishlist')) || [],
     currentLook: 0,
     lookbookImages: [
-        { src: '/assets/urbannights.png', title: 'Urban Nights', number: '01' },
-        { src: '/assets/daylight.jpg', title: 'Daylight', number: '02' },
-        { src: '/assets/skatepark.jpg', title: 'Skate Park', number: '03' },
-        { src: '/assets/downtown.jpg', title: 'Downtown', number: '04' },
-        { src: '/assets/afterhours.jpg', title: 'After Hours', number: '05' }
+        {
+            src: '/assets/urbannights.jpg',
+            title: 'Rear View',
+            number: '01',
+            description: 'Brown oversized graphic tee, framed from the back so the artwork carries the whole shot.'
+        },
+        {
+            src: '/assets/daylight.jpg',
+            title: 'Poolside Signal',
+            number: '02',
+            description: 'Black crop top, white logo headwrap, hard daylight. Clean branding with no extra noise.'
+        },
+        {
+            src: '/assets/skatepark.jpg',
+            title: 'Concrete Grey',
+            number: '03',
+            description: 'An oversized grey graphic tee against raw concrete, blue rails, and deep green.'
+        },
+        {
+            src: '/assets/downtown.jpg',
+            title: 'Double Vision',
+            number: '04',
+            description: 'Two relaxed shirts, two viewpoints. Front detailing meets oversized back lettering.'
+        },
+        {
+            src: '/assets/afterhours.jpg',
+            title: "The Wave Doesn't Stop",
+            number: '05',
+            description: "A light blue statement shirt seen from behind, built around the collection's clearest message."
+        }
     ]
 };
 
@@ -44,8 +69,6 @@ async function initHome() {
         searchClose: document.getElementById('searchClose'),
         searchInput: document.getElementById('searchInput'),
         searchResults: document.getElementById('searchResults'),
-        newsletterForm: document.getElementById('newsletterForm'),
-        newsletterEmail: document.getElementById('newsletterEmail'),
         lightbox: document.getElementById('lightbox'),
         lightboxOverlay: document.getElementById('lightboxOverlay'),
         lightboxClose: document.getElementById('lightboxClose'),
@@ -54,6 +77,7 @@ async function initHome() {
         lightboxImage: document.getElementById('lightboxImage'),
         lightboxNumber: document.getElementById('lightboxNumber'),
         lightboxTitle: document.getElementById('lightboxTitle'),
+        lightboxDescription: document.getElementById('lightboxDescription'),
         lookbookItems: document.querySelectorAll('.lookbook-item'),
         toastContainer: document.getElementById('toastContainer')
     };
@@ -70,12 +94,6 @@ async function initHome() {
     updateWishlistCount();
     bindEvents();
     initRevealAnimations();
-    
-    // Initialize combined locale selector
-    initLocaleSelector();
-    
-    // Initialize legacy selectors (mobile menu)
-    initLegacySelectors();
 }
 
 // ==========================================
@@ -313,6 +331,7 @@ function updateLightbox() {
     if (elements.lightboxImage) elements.lightboxImage.alt = look.title;
     if (elements.lightboxNumber) elements.lightboxNumber.textContent = look.number;
     if (elements.lightboxTitle) elements.lightboxTitle.textContent = look.title;
+    if (elements.lightboxDescription) elements.lightboxDescription.textContent = look.description || '';
 }
 
 function prevLook() {
@@ -337,37 +356,14 @@ function showToast(message, type = 'success', action = null) {
         ${action ? `<span class="toast-action" onclick="window.openCart()">${action}</span>` : ''}
     `;
     
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
     elements.toastContainer.appendChild(toast);
     
     setTimeout(() => {
-        toast.style.animation = 'toast-in 0.3s ease reverse';
-        setTimeout(() => toast.remove(), 300);
+        toast.style.animation = 'lv-toast-out 160ms var(--lv-ease) forwards';
+        setTimeout(() => toast.remove(), 180);
     }, 4000);
-}
-
-// ==========================================
-// NEWSLETTER
-// ==========================================
-function handleNewsletterSubmit(e) {
-    e.preventDefault();
-    const email = elements.newsletterEmail.value;
-    const submitBtn = elements.newsletterForm.querySelector('button[type="submit"]');
-    
-    submitBtn.textContent = 'Subscribing...';
-    submitBtn.disabled = true;
-    
-    setTimeout(() => {
-        submitBtn.textContent = 'Subscribed!';
-        submitBtn.style.background = '#22c55e';
-        elements.newsletterForm.reset();
-        showToast('Welcome to the wave! Check your email.', 'success');
-        
-        setTimeout(() => {
-            submitBtn.textContent = 'Subscribe';
-            submitBtn.style.background = '';
-            submitBtn.disabled = false;
-        }, 2000);
-    }, 1000);
 }
 
 // ==========================================
@@ -402,9 +398,6 @@ function bindEvents() {
     elements.lightboxOverlay?.addEventListener('click', closeLightbox);
     elements.lightboxPrev?.addEventListener('click', prevLook);
     elements.lightboxNext?.addEventListener('click', nextLook);
-    
-    // Newsletter
-    elements.newsletterForm?.addEventListener('submit', handleNewsletterSubmit);
     
     // Keyboard
     document.addEventListener('keydown', (e) => {
@@ -446,120 +439,6 @@ function bindEvents() {
             }
         });
     });
-}
-
-// Combined Locale Selector
-function initLocaleSelector() {
-    const localeBtn = document.getElementById('localeBtn');
-    const localeDropdown = document.getElementById('localeDropdown');
-    const localeCurrent = document.getElementById('localeCurrent');
-    
-    if (!localeBtn || !localeDropdown) return;
-    
-    // Get current values
-    const currentCurrency = CurrencyConfig.getCurrentCurrency();
-    const currentLang = localStorage.getItem('preferredLanguage') || 'en';
-    
-    // Update display
-    updateLocaleDisplay(currentCurrency, currentLang);
-    
-    // Set active states
-    document.querySelectorAll('#currencyOptions .locale-option').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.currency === currentCurrency);
-        btn.addEventListener('click', () => {
-            CurrencyConfig.setCurrency(btn.dataset.currency);
-            updateLocaleDisplay(btn.dataset.currency, currentLang);
-            window.location.reload();
-        });
-    });
-    
-    document.querySelectorAll('#languageOptions .locale-option').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.lang === currentLang);
-        btn.addEventListener('click', () => {
-            localStorage.setItem('preferredLanguage', btn.dataset.lang);
-            document.documentElement.lang = btn.dataset.lang;
-            document.documentElement.dir = btn.dataset.lang === 'ar' ? 'rtl' : 'ltr';
-            updateLocaleDisplay(currentCurrency, btn.dataset.lang);
-            window.location.reload();
-        });
-    });
-    
-    // Toggle dropdown
-    localeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        localeDropdown.classList.toggle('active');
-    });
-    
-    // Close on outside click
-    document.addEventListener('click', () => {
-        localeDropdown.classList.remove('active');
-    });
-    
-    localeDropdown.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-}
-
-function updateLocaleDisplay(currency, lang) {
-    const localeCurrent = document.getElementById('localeCurrent');
-    if (localeCurrent) {
-        const symbols = { USD: '$', NGN: '₦', EUR: '€', GBP: '£' };
-        localeCurrent.textContent = `${symbols[currency]} · ${lang.toUpperCase()}`;
-    }
-}
-
-// Legacy selectors (mobile menu)
-function initLegacySelectors() {
-    const currencySelect = document.getElementById('currencySelect');
-    if (currencySelect) {
-        currencySelect.value = CurrencyConfig.getCurrentCurrency();
-        currencySelect.addEventListener('change', (e) => {
-            CurrencyConfig.setCurrency(e.target.value);
-            window.location.reload();
-        });
-    }
-    
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-        languageSelect.value = savedLang;
-        languageSelect.addEventListener('change', (e) => {
-            localStorage.setItem('preferredLanguage', e.target.value);
-            document.documentElement.lang = e.target.value;
-            document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
-            window.location.reload();
-        });
-    }
-    
-    // Mobile selectors
-    const mobileCurrencySelect = document.getElementById('mobileCurrencySelect');
-    if (mobileCurrencySelect) {
-        mobileCurrencySelect.value = CurrencyConfig.getCurrentCurrency();
-        mobileCurrencySelect.addEventListener('change', (e) => {
-            CurrencyConfig.setCurrency(e.target.value);
-            window.location.reload();
-        });
-    }
-    
-    const mobileLanguageSelect = document.getElementById('mobileLanguageSelect');
-    if (mobileLanguageSelect) {
-        const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-        mobileLanguageSelect.value = savedLang;
-        mobileLanguageSelect.addEventListener('change', (e) => {
-            localStorage.setItem('preferredLanguage', e.target.value);
-            document.documentElement.lang = e.target.value;
-            document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
-            window.location.reload();
-        });
-    }
-    
-    // Apply translations on load
-    const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-    document.documentElement.lang = savedLang;
-    document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
-    if (typeof applyTranslations === 'function') {
-        applyTranslations();
-    }
 }
 
 // BOOTSTRAP: Wait for shared components to load before starting logic

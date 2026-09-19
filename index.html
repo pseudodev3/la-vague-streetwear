@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/favicon.svg">
+    <link rel="icon" href="/la-vague-red-wordmark.png" type="image/png">
+    <link rel="apple-touch-icon" href="/la-vague-red-wordmark.png">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
@@ -19,16 +19,24 @@
     
     <!-- iOS Splash Screen Background -->
     <meta name="background-color" content="#0a0a0a">
-    <title>LA VAGUE | Premium Streetwear - Ride the Wave</title>
-    <meta name="description" content="LA VAGUE - Premium streetwear crafted in Nigeria. Timeless designs, heavyweight cotton, sustainable production. Shop hoodies, tees, bottoms & accessories.">
-    <meta name="keywords" content="streetwear, LA VAGUE, premium clothing, hoodies, t-shirts, cargo pants, made in nigeria">
+    <title>LA VAGUE | Nigerian Streetwear & Limited Drops</title>
+    <meta name="description" content="Shop LA VAGUE streetwear from Nigeria: graphic tees, hoodies, shirts and limited drops designed for bold everyday wear.">
+    <meta name="twitter:image" content="https://la-vague.store/la-vague-red-wordmark.png">
+    <meta name="twitter:description" content="Shop LA VAGUE streetwear from Nigeria: graphic tees, hoodies, shirts and limited drops designed for bold everyday wear.">
+    <meta name="twitter:title" content="LA VAGUE | Nigerian Streetwear & Limited Drops">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:image:alt" content="LA VAGUE official logo">
+    <meta property="og:site_name" content="LA VAGUE">
+    <meta property="og:locale" content="en_NG">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://la-vague.store/">
     
     <!-- Open Graph -->
-    <meta property="og:title" content="LA VAGUE | Premium Streetwear - Ride the Wave">
-    <meta property="og:description" content="Premium streetwear crafted in Nigeria. Timeless designs for those who set the trend.">
+    <meta property="og:title" content="LA VAGUE | Nigerian Streetwear & Limited Drops">
+    <meta property="og:description" content="Shop LA VAGUE streetwear from Nigeria: graphic tees, hoodies, shirts and limited drops designed for bold everyday wear.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://la-vague.store">
-    <meta property="og:image" content="/la-vague-red-wordmark.png">
+    <meta property="og:url" content="https://la-vague.store/">
+    <meta property="og:image" content="https://la-vague.store/la-vague-red-wordmark.png">
     
     <!-- Error Tracking (Sentry) -->
     <script src="src/config/sentry-env.js"></script>
@@ -47,14 +55,39 @@
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
-        "@type": "ClothingStore",
-        "name": "LA VAGUE",
-        "description": "Premium streetwear crafted in Nigeria",
-        "url": "https://la-vague.store",
-        "logo": "/la-vague-red-wordmark.png",
-        "sameAs": [
-            "https://www.instagram.com/lavague_ng/",
-            "https://www.tiktok.com/@Lavague.ng"
+        "@graph": [
+            {
+                "@type": "Organization",
+                "@id": "https://la-vague.store/#organization",
+                "name": "LA VAGUE",
+                "url": "https://la-vague.store/",
+                "logo": "https://la-vague.store/la-vague-red-wordmark.png",
+                "sameAs": [
+                    "https://www.instagram.com/lavague_ng/",
+                    "https://www.tiktok.com/@Lavague.ng"
+                ]
+            },
+            {
+                "@type": "ClothingStore",
+                "@id": "https://la-vague.store/#store",
+                "name": "LA VAGUE",
+                "url": "https://la-vague.store/",
+                "image": "https://la-vague.store/la-vague-red-wordmark.png",
+                "description": "Nigerian streetwear label producing graphic tees, hoodies, shirts and limited drops.",
+                "parentOrganization": {
+                    "@id": "https://la-vague.store/#organization"
+                }
+            },
+            {
+                "@type": "WebSite",
+                "@id": "https://la-vague.store/#website",
+                "url": "https://la-vague.store/",
+                "name": "LA VAGUE",
+                "publisher": {
+                    "@id": "https://la-vague.store/#organization"
+                },
+                "inLanguage": "en"
+            }
         ]
     }
     </script>
@@ -64,7 +97,7 @@
     <!-- Announcement Bar -->
     <div class="announcement-bar">
         <div class="announcement-content">
-            <span class="dynamic-free-shipping" data-i18n="announcement.freeShipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
+            <span class="dynamic-free-shipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
             <span class="announcement-divider">|</span>
             <span>NEW DROP AVAILABLE NOW</span>
         </div>
@@ -102,13 +135,13 @@
         <div class="marquee-content">
             <span>NEW DROP AVAILABLE NOW</span>
             <span class="marquee-dot">◆</span>
-            <span class="dynamic-free-shipping" data-i18n="announcement.freeShipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
+            <span class="dynamic-free-shipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
             <span class="marquee-dot">◆</span>
             <span>LIMITED EDITION PIECES</span>
             <span class="marquee-dot">◆</span>
             <span>NEW DROP AVAILABLE NOW</span>
             <span class="marquee-dot">◆</span>
-            <span class="dynamic-free-shipping" data-i18n="announcement.freeShipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
+            <span class="dynamic-free-shipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
             <span class="marquee-dot">◆</span>
             <span>LIMITED EDITION PIECES</span>
             <span class="marquee-dot">◆</span>
@@ -189,46 +222,54 @@
     <!-- Lookbook Section -->
     <section class="lookbook" id="lookbook">
         <div class="container">
-            <div class="section-header centered">
-                <span class="section-tag reveal-up">Lookbook</span>
-                <h2 class="section-title reveal-up">Style Guide</h2>
+            <div class="lookbook-header reveal-up">
+                <div>
+                    <span class="section-tag">Lookbook</span>
+                    <h2 class="section-title">Worn in the Wild</h2>
+                </div>
+                <p>Five frames from the LA VAGUE world, focused on print, proportion, and the way each piece moves outside the studio.</p>
             </div>
             <div class="lookbook-grid">
-                <div class="lookbook-item large reveal-up" data-look="1">
-                    <img src="/assets/urbannights.png" alt="Look 01 - Urban Nights" loading="lazy">
+                <article class="lookbook-item lookbook-lead reveal-up" data-look="1">
+                    <img src="/assets/urbannights.jpg" alt="Brown oversized LA VAGUE graphic tee photographed from the back" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">01</span>
-                        <h3>Urban Nights</h3>
+                        <h3>Rear View</h3>
+                        <p>Brown oversized graphic tee, framed from the back so the artwork carries the whole shot.</p>
                     </div>
-                </div>
-                <div class="lookbook-item reveal-up" data-look="2">
-                    <img src="/assets/daylight.jpg" alt="Look 02 - Daylight" loading="lazy">
+                </article>
+                <article class="lookbook-item reveal-up" data-look="2">
+                    <img src="/assets/daylight.jpg" alt="Black LA VAGUE crop top with a white logo headwrap by a pool" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">02</span>
-                        <h3>Daylight</h3>
+                        <h3>Poolside Signal</h3>
+                        <p>Black crop top, white logo headwrap, hard daylight. Clean branding with no extra noise.</p>
                     </div>
-                </div>
-                <div class="lookbook-item reveal-up" data-look="3">
-                    <img src="/assets/skatepark.jpg" alt="Look 03 - Skate Park" loading="lazy">
+                </article>
+                <article class="lookbook-item reveal-up" data-look="3">
+                    <img src="/assets/skatepark.jpg" alt="Oversized grey LA VAGUE graphic tee photographed at a concrete skatepark" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">03</span>
-                        <h3>Skate Park</h3>
+                        <h3>Concrete Grey</h3>
+                        <p>An oversized grey graphic tee against raw concrete, blue rails, and deep green.</p>
                     </div>
-                </div>
-                <div class="lookbook-item reveal-up" data-look="4">
-                    <img src="/assets/downtown.jpg" alt="Look 04 - Downtown" loading="lazy">
+                </article>
+                <article class="lookbook-item reveal-up" data-look="4">
+                    <img src="/assets/downtown.jpg" alt="Two LA VAGUE striped shirts showing front and back details" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">04</span>
-                        <h3>Downtown</h3>
+                        <h3>Double Vision</h3>
+                        <p>Two relaxed shirts, two viewpoints. Front detailing meets oversized back lettering.</p>
                     </div>
-                </div>
-                <div class="lookbook-item large reveal-up" data-look="5">
-                    <img src="/assets/afterhours.jpg" alt="Look 05 - After Hours" loading="lazy">
+                </article>
+                <article class="lookbook-item reveal-up" data-look="5">
+                    <img src="/assets/afterhours.jpg" alt="Light blue LA VAGUE shirt showing The wave doesn't stop back graphic" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">05</span>
-                        <h3>After Hours</h3>
+                        <h3>The Wave Doesn't Stop</h3>
+                        <p>A light blue statement shirt seen from behind, built around the collection's clearest message.</p>
                     </div>
-                </div>
+                </article>
             </div>
         </div>
     </section>
@@ -244,6 +285,7 @@
             <div class="lightbox-info">
                 <span class="lightbox-number" id="lightboxNumber"></span>
                 <h3 id="lightboxTitle"></h3>
+                <p id="lightboxDescription"></p>
             </div>
         </div>
     </div>
@@ -286,23 +328,6 @@
         </div>
     </section>
 
-    <!-- Newsletter Section -->
-    <section class="newsletter">
-        <div class="container">
-            <div class="newsletter-content reveal-up">
-                <h2 class="newsletter-title">Join the Wave</h2>
-                <p class="newsletter-text">
-                    Subscribe for early access to drops, exclusive offers, and behind-the-scenes content.
-                </p>
-                <form class="newsletter-form" id="newsletterForm">
-                    <input type="email" placeholder="Enter your email" required class="newsletter-input" id="newsletterEmail">
-                    <button type="submit" class="btn btn-primary">Subscribe</button>
-                </form>
-                <p class="newsletter-note">No spam, just waves. Unsubscribe anytime.</p>
-            </div>
-        </div>
-    </section>
-
     <!-- Footer -->
     <footer class="footer" id="contact"></footer>
 
@@ -321,8 +346,7 @@
     <script src="src/scripts/cart.js?v=9.0"></script>
     <script src="src/scripts/components.js?v=9.0"></script>
     <script src="src/scripts/utils.js?v=9.0"></script>
-    <script src="src/scripts/translations.js?v=9.0"></script>
-    <script src="src/scripts/cookie-consent.js?v=9.0"></script>
+<script src="src/scripts/cookie-consent.js?v=9.0"></script>
     <script src="src/scripts/home.js?v=9.0"></script>
     <script src="src/scripts/pwa-register.js?v=1.0"></script>
 </body>

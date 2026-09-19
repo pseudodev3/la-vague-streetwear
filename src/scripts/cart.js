@@ -195,8 +195,7 @@ const CartState = {
         }
         
         this.saveCart();
-        const viewCartText = (typeof I18n !== 'undefined') ? I18n.t('toast.viewCart') : 'View Cart';
-        this.showToast(`${item.name} ${(typeof I18n !== 'undefined') ? I18n.t('toast.addedToCart') : 'added to cart'}`, 'success', viewCartText);
+        this.showToast(`${item.name} added to cart`, 'success', 'View Cart');
     },
 
     /**
@@ -227,12 +226,12 @@ const CartState = {
         if (index > -1) {
             this.wishlist.splice(index, 1);
             this.saveWishlist();
-            this.showToast((typeof I18n !== 'undefined') ? I18n.t('toast.removedFromWishlist') : 'Removed from wishlist', 'success');
+            this.showToast('Removed from wishlist', 'success');
             return false;
         } else {
             this.wishlist.push(productId);
             this.saveWishlist();
-            this.showToast((typeof I18n !== 'undefined') ? I18n.t('toast.addedToWishlist') : 'Added to wishlist', 'success');
+            this.showToast('Added to wishlist', 'success');
             return true;
         }
     },
@@ -289,11 +288,13 @@ const CartState = {
             ${action ? `<span class="toast-action" onclick="window.openCart(); this.parentElement.remove();">${action}</span>` : ''}
         `;
         
+        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
         toastContainer.appendChild(toast);
         
         setTimeout(() => {
-            toast.style.animation = 'toast-out 0.3s ease forwards';
-            setTimeout(() => toast.remove(), 300);
+            toast.style.animation = 'lv-toast-out 160ms var(--lv-ease) forwards';
+            setTimeout(() => toast.remove(), 180);
         }, 4000);
     },
     
@@ -301,8 +302,6 @@ const CartState = {
         const cartItems = document.getElementById('cartItems');
         const cartSubtotal = document.getElementById('cartSubtotal');
         if (!cartItems) return;
-        
-        const t = (key, def) => (typeof I18n !== 'undefined') ? I18n.getTranslation(key) || def : def;
 
         if (this.cart.length === 0) {
             cartItems.innerHTML = `
@@ -313,8 +312,8 @@ const CartState = {
                         <circle cx="18" cy="20" r="1"></circle>
                         <path d="M6 6L5 3H2"></path>
                     </svg>
-                    <p>${t('cart.empty', 'Your cart is empty')}</p>
-                    <a href="shop.html" class="btn btn-primary" onclick="window.closeCart()">${t('cart.continueShopping', 'Continue Shopping')}</a>
+                    <p>Your cart is empty</p>
+                    <a href="shop.html" class="btn btn-primary" onclick="window.closeCart()">Continue Shopping</a>
                 </div>
             `;
             if (cartSubtotal) cartSubtotal.textContent = CurrencyConfig.formatPrice(0);
@@ -390,8 +389,6 @@ const CartState = {
     async renderWishlist(isInitialLoad = true) {
         const wishlistItems = document.getElementById('wishlistItems');
         if (!wishlistItems) return;
-        
-        const t = (key, def) => (typeof I18n !== 'undefined') ? I18n.getTranslation(key) || def : def;
 
         if (this.wishlist.length === 0) {
             wishlistItems.innerHTML = `
@@ -399,8 +396,8 @@ const CartState = {
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                     </svg>
-                    <p>${t('cart.wishlistEmpty', 'Your wishlist is empty')}</p>
-                    <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">${t('cart.continueShopping', 'Continue Shopping')}</a>
+                    <p>Your wishlist is empty</p>
+                    <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Continue Shopping</a>
                 </div>
             `;
             return;

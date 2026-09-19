@@ -2,56 +2,38 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://la-vague.store/</loc>
-    <lastmod>2026-05-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <lastmod>2026-09-19</lastmod>
   </url>
   <url>
     <loc>https://la-vague.store/shop</loc>
-    <lastmod>2026-05-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://la-vague.store/checkout</loc>
-    <lastmod>2026-05-13</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <lastmod>2026-09-19</lastmod>
   </url>
   <url>
     <loc>https://la-vague.store/contact</loc>
-    <lastmod>2026-05-13</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
+    <lastmod>2026-09-19</lastmod>
   </url>
   <url>
     <loc>https://la-vague.store/faq</loc>
-    <lastmod>2026-05-13</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://la-vague.store/returns</loc>
-    <lastmod>2026-05-13</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.2</priority>
+    <lastmod>2026-09-19</lastmod>
   </url>
   <url>
     <loc>https://la-vague.store/shipping</loc>
-    <lastmod>2026-05-13</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.2</priority>
+    <lastmod>2026-09-19</lastmod>
   </url>
   <url>
-    <loc>https://la-vague.store/terms-of-service</loc>
-    <lastmod>2026-05-13</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.1</priority>
+    <loc>https://la-vague.store/returns</loc>
+    <lastmod>2026-09-19</lastmod>
+  </url>
+  <url>
+    <loc>https://la-vague.store/refund-policy</loc>
+    <lastmod>2026-09-19</lastmod>
   </url>
   <url>
     <loc>https://la-vague.store/privacy-policy</loc>
-    <lastmod>2026-05-13</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.1</priority>
+    <lastmod>2026-09-19</lastmod>
+  </url>
+  <url>
+    <loc>https://la-vague.store/terms-of-service</loc>
+    <lastmod>2026-09-19</lastmod>
   </url>
 </urlset>

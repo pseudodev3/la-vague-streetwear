@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * LA VAGUE - PWA Icon Generator
- * Generates PNG icons from the SVG favicon for PWA manifest
+ * Generates square PNG icons from the official LA VAGUE wordmark for PWA use
  * Requires: npm install sharp (optional dependency)
  */
 
@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
 const OUTPUT_DIR = path.join(__dirname, '..', 'assets', 'icons');
-const SOURCE_SVG = path.join(__dirname, '..', 'favicon.svg');
+const SOURCE_IMAGE = path.join(__dirname, '..', 'la-vague-red-wordmark.png');
 
 async function generateIcons() {
     // Check if sharp is available
@@ -32,8 +32,8 @@ async function generateIcons() {
         fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     }
 
-    // Read source SVG
-    const svgBuffer = fs.readFileSync(SOURCE_SVG);
+    // Read official source image
+    const sourceBuffer = fs.readFileSync(SOURCE_IMAGE);
 
     console.log('[PWA] Generating icons...');
 
@@ -41,7 +41,7 @@ async function generateIcons() {
         const outputPath = path.join(OUTPUT_DIR, `icon-${size}x${size}.png`);
         
         try {
-            await sharp(svgBuffer)
+            await sharp(sourceBuffer)
                 .resize(size, size, { fit: 'contain', background: { r: 10, g: 10, b: 10, alpha: 1 } })
                 .png()
                 .toFile(outputPath);
@@ -59,7 +59,7 @@ function createPlaceholderIcons() {
     // Create a simple placeholder - in production, you'd use actual PNG icons
     const placeholderData = {
         note: 'These are placeholder icon files.',
-        instruction: 'Run "npm install sharp --save-dev" and then "node scripts/generate-pwa-icons.js" to generate real PNG icons from favicon.svg',
+        instruction: 'Run "npm install sharp --save-dev" and then "node scripts/generate-pwa-icons.js" to generate square PNG icons from la-vague-red-wordmark.png',
         alternative: 'Or manually create PNG icons in assets/icons/ with sizes: 72x72, 96x96, 128x128, 144x144, 152x152, 192x192, 384x384, 512x512'
     };
 

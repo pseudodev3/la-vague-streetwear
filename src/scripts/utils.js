@@ -238,7 +238,7 @@ const GlobalSettings = {
 
         document.querySelectorAll('.dynamic-free-shipping').forEach(element => {
             element.textContent =
-                element.getAttribute('data-i18n') === 'product.freeShipping'
+                element.classList.contains('product-free-shipping')
                     ? `Free standard shipping over ${format(freeShippingThreshold)}`
                     : `FREE SHIPPING ON ORDERS OVER ${format(freeShippingThreshold)}`;
         });
@@ -250,8 +250,6 @@ const GlobalSettings = {
         document.querySelectorAll('.dynamic-express-rate').forEach(element => {
             element.textContent = format(expressShippingRate);
         });
-
-        window.I18n?.applyTranslations();
     }
 };
 

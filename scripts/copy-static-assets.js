@@ -7,7 +7,6 @@ const root = process.cwd();
 const dist = resolve(root, 'dist');
 
 const files = [
-    'favicon.svg',
     'site.webmanifest',
     'sw.js',
     'robots.txt',
