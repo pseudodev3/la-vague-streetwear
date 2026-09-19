@@ -964,6 +964,13 @@ body .toast-action {
   }
 }
 
+@keyframes lv-toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(.985);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body .toast {
     animation: none;
