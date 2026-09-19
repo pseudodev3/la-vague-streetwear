@@ -30,6 +30,40 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 // ==========================================
+// BROWSER SECURITY HELPERS
+// ==========================================
+window.BrowserSecurity = Object.freeze({
+  escapeHTML(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  },
+  safeURL(value, { allowDataImage = false } = {}) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    if (allowDataImage && /^data:image\/(?:png|jpe?g|gif|webp|avif);base64,[a-z0-9+/=\s]+$/i.test(raw)) {
+      return raw;
+    }
+    try {
+      const url = new URL(raw, window.location.origin);
+      return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+    } catch {
+      return '';
+    }
+  },
+  safeClassToken(value) {
+    return String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+  },
+  safeColor(value, fallback = '#111111') {
+    const color = String(value ?? '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(color) ? color : fallback;
+  }
+});
+
+// ==========================================
 // MATCH MEDIA MOCK
 // ==========================================
 Object.defineProperty(window, 'matchMedia', {
