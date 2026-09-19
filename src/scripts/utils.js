@@ -135,6 +135,9 @@ const CSRFProtection = {
     token: null,
 
     async init() {
+        // Paint a trustworthy default immediately, then revalidate from the API.
+        this.updateDynamicElements();
+
         try {
             const response = await fetch(`${API_BASE_URL}/csrf-token`, {
                 credentials: 'include'
@@ -236,6 +239,8 @@ const GlobalSettings = {
         window.I18n?.applyTranslations();
     }
 };
+
+window.GlobalSettings = GlobalSettings;
 
 window.initRevealAnimations = function () {
     const revealElements = document.querySelectorAll(
