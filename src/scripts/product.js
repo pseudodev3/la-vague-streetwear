@@ -57,6 +57,8 @@ function transformProduct(dbProduct) {
         inventory: typeof dbProduct.inventory === 'object' ? dbProduct.inventory : JSON.parse(dbProduct.inventory || '{}'),
         tags: Array.isArray(dbProduct.tags) ? dbProduct.tags : JSON.parse(dbProduct.tags || '[]'),
         badge: dbProduct.badge,
+        average_rating: Number.parseFloat(dbProduct.average_rating || 0),
+        review_count: Number.parseInt(dbProduct.review_count || 0, 10),
         createdAt: dbProduct.created_at || dbProduct.createdAt,
         sizeGuide: getSizeGuideForCategory(dbProduct.category)
     };
