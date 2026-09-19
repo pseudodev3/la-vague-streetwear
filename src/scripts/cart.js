@@ -288,11 +288,13 @@ const CartState = {
             ${action ? `<span class="toast-action" onclick="window.openCart(); this.parentElement.remove();">${action}</span>` : ''}
         `;
         
+        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
         toastContainer.appendChild(toast);
         
         setTimeout(() => {
-            toast.style.animation = 'toast-out 0.3s ease forwards';
-            setTimeout(() => toast.remove(), 300);
+            toast.style.animation = 'lv-toast-out 160ms var(--lv-ease) forwards';
+            setTimeout(() => toast.remove(), 180);
         }, 4000);
     },
     
