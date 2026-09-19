@@ -153,10 +153,14 @@ export async function initDatabase() {
     const inventoryService = new InventoryService(db, USE_POSTGRES);
     const productService = new ProductService(db, USE_POSTGRES);
     
-    // Start periodic cleanup
-    setInterval(() => {
-        inventoryService.cleanupExpiredReservations();
+    // Keep expired reservations tidy without allowing a transient DB failure
+    // to become an unhandled background rejection.
+    const cleanupTimer = setInterval(() => {
+        void inventoryService.cleanupExpiredReservations().catch(error => {
+            console.error('[INVENTORY] Failed to clean expired reservations:', error.message);
+        });
     }, 5 * 60 * 1000);
+    cleanupTimer.unref();
     
     console.log('✅ Database initialized');
     return { inventoryService, productService };
