@@ -135,9 +135,6 @@ const CSRFProtection = {
     token: null,
 
     async init() {
-        // Paint a trustworthy default immediately, then revalidate from the API.
-        this.updateDynamicElements();
-
         try {
             const response = await fetch(`${API_BASE_URL}/csrf-token`, {
                 credentials: 'include'
@@ -242,7 +239,7 @@ const GlobalSettings = {
         document.querySelectorAll('.dynamic-free-shipping').forEach(element => {
             element.textContent =
                 element.getAttribute('data-i18n') === 'product.freeShipping'
-                    ? `Free shipping over ${format(freeShippingThreshold)}`
+                    ? `Free standard shipping over ${format(freeShippingThreshold)}`
                     : `FREE SHIPPING ON ORDERS OVER ${format(freeShippingThreshold)}`;
         });
 

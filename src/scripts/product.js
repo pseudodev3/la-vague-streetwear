@@ -136,7 +136,6 @@ async function initProduct() {
         relatedGrid: document.getElementById('relatedGrid'),
         stockStatus: document.getElementById('stockStatus'),
         nav: document.getElementById('nav'),
-        mobileMenuBtn: document.getElementById('mobileMenuBtn'),
         navLinks: document.getElementById('navLinks'),
         cartCount: document.getElementById('cartCount'),
         wishlistCount: document.getElementById('wishlistCount'),
@@ -409,10 +408,6 @@ function bindEvents() {
     });
     
     // UI Event listeners
-    elements.mobileMenuBtn?.addEventListener('click', () => {
-        elements.mobileMenuBtn.classList.toggle('active');
-        elements.navLinks?.classList.toggle('active');
-    });
 
     // Reviews events
     console.log('[PRODUCT] Binding events, writeReviewBtn:', !!elements.writeReviewBtn);

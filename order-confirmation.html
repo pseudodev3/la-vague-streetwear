@@ -27,25 +27,27 @@
 
     <!-- Confirmation -->
     <main class="confirmation">
-        <div>
-            <div class="confirmation-icon">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <polyline points="20 6 9 17 4 12"></polyline>
+        <section class="confirmation-card" id="confirmationCard" aria-live="polite">
+            <div class="confirmation-mark" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12.5 9.2 17 19 7"></path>
                 </svg>
             </div>
-            <h1>Thank You!</h1>
-            <p>Your order has been placed successfully. We've sent a confirmation email with your order details.</p>
-            
+            <p class="confirmation-kicker" id="confirmationStatus">Order confirmed</p>
+            <h1 id="confirmationTitle">You're all set.</h1>
+            <p class="confirmation-message" id="confirmationMessage">Your order is confirmed. We will send delivery updates using the contact details provided at checkout.</p>
+
             <div class="order-details">
-                <div class="order-number">Order #<span id="orderNumber"></span></div>
-                <div class="order-email">A confirmation has been sent to your email</div>
+                <span class="order-detail-label">Order reference</span>
+                <strong class="order-number">#<span id="orderNumber"></span></strong>
+                <span class="order-email">Keep this reference if you need support.</span>
             </div>
-            
+
             <div class="confirmation-actions">
-                <a href="/shop" class="btn btn-primary">Continue Shopping</a>
-                <a href="/" class="btn btn-secondary">Back to Home</a>
+                <a href="/track-order" class="btn btn-secondary">Track order</a>
+                <a href="/shop" class="btn btn-primary">Continue shopping</a>
             </div>
-        </div>
+        </section>
     </main>
 
     <!-- Footer -->

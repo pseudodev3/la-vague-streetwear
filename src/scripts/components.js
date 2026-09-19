@@ -17,14 +17,6 @@ window.Components = {
                 <li><a href="/#lookbook" class="nav-link">Lookbook</a></li>
                 <li><a href="/#about" class="nav-link">About</a></li>
                 <li><a href="/contact" class="nav-link">Contact</a></li>
-                <li class="mobile-language-wrap">
-                    <span class="mobile-label">Language</span>
-                    <div class="mobile-language-options">
-                        <button class="locale-option" data-lang="en">EN</button>
-                        <button class="locale-option" data-lang="fr">FR</button>
-                        <button class="locale-option" data-lang="ar">AR</button>
-                    </div>
-                </li>
             </ul>
             <div class="nav-actions">
                 <div class="locale-selector">
@@ -65,10 +57,6 @@ window.Components = {
                         <path d="M6 6L5 3H2"></path>
                     </svg>
                     <span class="cart-count" id="cartCount">0</span>
-                </button>
-                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
-                    <span></span>
-                    <span></span>
                 </button>
             </div>
         </div>

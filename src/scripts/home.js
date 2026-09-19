@@ -24,7 +24,6 @@ async function initHome() {
     // ==========================================
     elements = {
         nav: document.getElementById('nav'),
-        mobileMenuBtn: document.getElementById('mobileMenuBtn'),
         navLinks: document.getElementById('navLinks'),
         featuredProducts: document.getElementById('featuredProducts'),
         cartBtn: document.getElementById('cartBtn'),
@@ -384,11 +383,6 @@ function bindEvents() {
         }
     }, { passive: true });
     
-    elements.mobileMenuBtn?.addEventListener('click', () => {
-        elements.mobileMenuBtn.classList.toggle('active');
-        elements.navLinks?.classList.toggle('active');
-    });
-    
     // Search
     elements.searchBtn?.addEventListener('click', openSearch);
     elements.searchClose?.addEventListener('click', closeSearch);
@@ -419,10 +413,6 @@ function bindEvents() {
             closeLightbox();
             window.closeCart();
             window.closeWishlist();
-            
-            if (elements.navLinks?.classList.contains('active')) {
-                elements.mobileMenuBtn?.click();
-            }
         }
         
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') {

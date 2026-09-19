@@ -37,9 +37,19 @@
         return result;
     }
 
-    function setConfirmationMessage(message) {
-        const confirmationMsg = document.querySelector('.confirmation > p');
-        if (confirmationMsg) confirmationMsg.textContent = message;
+    function setConfirmationState(state, status, title, message) {
+        const card = document.getElementById('confirmationCard');
+        const statusEl = document.getElementById('confirmationStatus');
+        const titleEl = document.getElementById('confirmationTitle');
+        const messageEl = document.getElementById('confirmationMessage');
+
+        if (card) {
+            card.classList.toggle('is-pending', state === 'pending');
+            card.classList.toggle('is-confirmed', state === 'confirmed');
+        }
+        if (statusEl) statusEl.textContent = status;
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
     }
 
     async function initOrderConfirmation() {
@@ -59,12 +69,32 @@
         }
 
         // Non-Paystack/manual checkout already clears the cart before this page.
-        if (paymentStatus !== 'success') return;
+        if (paymentStatus !== 'success') {
+            setConfirmationState(
+                'confirmed',
+                'Order confirmed',
+                "You're all set.",
+                'Your order is confirmed. We will send delivery updates using the contact details provided at checkout.'
+            );
+            return;
+        }
+
+        setConfirmationState(
+            'pending',
+            'Checking payment',
+            'Confirming your order',
+            'We are verifying the payment with Paystack. Keep this page open for a moment.'
+        );
 
         if (!orderId || !reference) {
             // Do not trust the URL alone. The webhook can still finish the order,
             // but without a Paystack reference this page cannot independently verify it.
-            setConfirmationMessage('Your payment is being confirmed. Please keep your order number for reference.');
+            setConfirmationState(
+                'pending',
+                'Payment pending',
+                'Confirmation in progress',
+                'We could not verify the payment from this page yet. Keep your order reference and check the tracking page shortly.'
+            );
             return;
         }
 
@@ -72,13 +102,28 @@
             const result = await verifyReturnedPayment(orderId, reference);
             if (result.verified && result.status === 'paid') {
                 clearCart();
-                setConfirmationMessage("Your payment was successful! We've confirmed your order.");
+                setConfirmationState(
+                    'confirmed',
+                    'Payment confirmed',
+                    "You're all set.",
+                    'Payment is confirmed and your order is now being prepared.'
+                );
             } else {
-                setConfirmationMessage('Your payment is still being confirmed. Please keep your order number for reference.');
+                setConfirmationState(
+                    'pending',
+                    'Payment pending',
+                    'Confirmation in progress',
+                    'Paystack has not returned a final confirmation yet. Keep your order reference and check again shortly.'
+                );
             }
         } catch (error) {
             console.warn('[ORDER CONFIRMATION] Verification pending:', error.message);
-            setConfirmationMessage('Your payment is still being confirmed. Please keep your order number for reference.');
+            setConfirmationState(
+                'pending',
+                'Payment pending',
+                'Confirmation in progress',
+                'We could not complete verification right now. Your order reference is safe and you can check its status shortly.'
+            );
         }
     }
 

@@ -151,7 +151,6 @@ async function initShop() {
         wishlistItems: document.getElementById('wishlistItems'),
         toastContainer: document.getElementById('toastContainer'),
         nav: document.getElementById('nav'),
-        mobileMenuBtn: document.getElementById('mobileMenuBtn'),
         navLinks: document.getElementById('navLinks')
     };
 
@@ -710,11 +709,6 @@ function bindEvents() {
         if (window.scrollY > 50) elements.nav?.classList.add('scrolled');
         else elements.nav?.classList.remove('scrolled');
     }, { passive: true });
-
-    elements.mobileMenuBtn?.addEventListener('click', () => {
-        elements.mobileMenuBtn.classList.toggle('active');
-        elements.navLinks?.classList.toggle('active');
-    });
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
