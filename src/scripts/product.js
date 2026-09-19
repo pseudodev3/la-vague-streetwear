@@ -78,7 +78,6 @@ const state = {
     selectedColor: null,
     selectedSize: null,
     quantity: 1,
-    usingStaticData: false,
     selectedRating: 0
 };
 
@@ -95,7 +94,6 @@ async function initProduct() {
     const dbProduct = await ProductDetailAPI.getProductBySlug(slug);
     if (dbProduct) {
         state.product = transformProduct(dbProduct);
-        state.usingStaticData = false;
     } else {
         const loading = document.getElementById('productLoading');
         if (loading) {
@@ -515,44 +513,15 @@ function bindEvents() {
 
     elements.addToCartBtn?.addEventListener('click', async () => {
         const size = state.selectedSize || 'OS';
-        
-        // Final stock check before adding to cart
-        let isAvailable = true;
-        if (!state.usingStaticData) {
-            try {
-                const API_URL = '/api';
-                const response = await fetch(`${API_URL}/products/inventory/check/${state.product.id}?color=${encodeURIComponent(state.selectedColor)}&size=${encodeURIComponent(size)}`);
-                
-                if (response.ok) {
-                    const stockCheck = await response.json();
-                    if (stockCheck && stockCheck.success && stockCheck.inStock === false) {
-                        isAvailable = false;
-                    }
-                } else if (response.status === 404) {
-                    // Fallback to local data if not found in DB
-                    const variantKey = `${state.selectedColor}-${size}`;
-                    const stock = state.product.inventory?.[variantKey] || 0;
-                    if (stock <= 0) isAvailable = false;
-                }
-            } catch (error) {
-                console.warn('[PRODUCT] Live stock check unavailable:', error);
-                isAvailable = false;
-            }
-        } else {
-            const variantKey = `${state.selectedColor}-${size}`;
-            const stock = state.product.inventory?.[variantKey] || 0;
-            if (stock <= 0) isAvailable = false;
-        }
-
-        if (!isAvailable) {
-            showToast('Sorry, this item is out of stock', 'error');
-            return;
-        }
 
         await CartState.addToCart({
-            id: state.product.id, name: state.product.name, price: state.product.price,
-            image: state.product.images[0].src, color: state.selectedColor,
-            size: size, quantity: state.quantity
+            id: state.product.id,
+            name: state.product.name,
+            price: state.product.price,
+            image: state.product.images?.[0]?.src || '',
+            color: state.selectedColor,
+            size,
+            quantity: state.quantity
         });
     });
     elements.wishlistToggleBtn?.addEventListener('click', () => {
