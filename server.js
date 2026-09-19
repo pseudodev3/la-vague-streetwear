@@ -158,20 +158,6 @@ app.use('/api/config', configRoutes);
 app.use('/api/payment', paymentRoutes(inventoryService));
 app.use('/api/admin', adminRoutes(productService, inventoryService));
 
-// Temporary compatibility aliases for older storefront clients.
-app.get('/api/inventory/check/:productId', (req, res) => {
-    const queryString = req.originalUrl.includes('?')
-        ? `?${req.originalUrl.split('?')[1]}`
-        : '';
-    res.redirect(307, `/api/products/inventory/check/${req.params.productId}${queryString}`);
-});
-app.post('/api/inventory/check', (req, res) => {
-    res.redirect(307, '/api/products/inventory/check');
-});
-app.post('/api/coupons/validate', (req, res) => {
-    res.redirect(307, '/api/orders/validate-coupon');
-});
-
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 

@@ -35,7 +35,7 @@ const ProductDetailAPI = {
             const data = await response.json();
             return data;
         } catch (error) {
-            return { available: 999, inStock: true };
+            return { available: 0, inStock: false, unavailable: true };
         }
     }
 };
@@ -93,9 +93,17 @@ async function initProduct() {
         state.product = transformProduct(dbProduct);
         state.usingStaticData = false;
     } else {
-        const staticProduct = ProductAPI.getBySlug(slug);
-        if (staticProduct) { state.product = staticProduct; state.usingStaticData = true; }
-        else { window.location.href = 'shop.html'; return; }
+        const loading = document.getElementById('productLoading');
+        if (loading) {
+            loading.innerHTML = `
+                <div class="store-unavailable-state">
+                    <h3>Product temporarily unavailable</h3>
+                    <p>We could not verify this product against live inventory. Please refresh in a moment.</p>
+                    <a class="btn btn-secondary" href="/shop">Back to shop</a>
+                </div>
+            `;
+        }
+        return;
     }
 
     elements = {

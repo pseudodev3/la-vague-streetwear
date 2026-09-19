@@ -2,7 +2,6 @@
 node_modules
 npm-debug.log
 yarn-error.log
-package-lock.json
 yarn.lock
 
 # Environment variables
@@ -86,7 +85,6 @@ build/
 .prettierrc*
 .husky/
 .github/
-scripts/setup-husky.js
 
 # Local data
 data/

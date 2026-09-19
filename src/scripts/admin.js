@@ -2041,7 +2041,7 @@ function renderSalesChart(data) {
         
         // The actual bar
         const bar = createElement('div', {
-            style: `width: 70%; height: ${Math.max(barHeight, 2)}%; background: #dc2626; border-radius: 2px 2px 0 0; transition: all 0.3s ease; cursor: pointer; z-index: 2;`,
+            style: `width: 70%; height: ${Math.max(barHeight, 2)}%; background: #dc2626; border-radius: 2px 2px 0 0; transition: background-color 150ms ease, box-shadow 150ms ease; cursor: pointer; z-index: 2;`,
             onmouseenter: (e) => {
                 bar.style.background = '#ef4444';
                 bar.style.boxShadow = '0 0 15px rgba(220, 38, 38, 0.5)';

@@ -177,7 +177,7 @@ const CartState = {
         const currentQty = existingItem ? existingItem.quantity : 0;
         const newTotalQty = currentQty + item.quantity;
 
-        // Unified Stock Check (Static + API fallback)
+        // Live inventory is authoritative. Never assume stock when the API is unavailable.
         try {
             const stock = await this.getAvailableStock(item.id, item.color, item.size);
             if (newTotalQty > stock) {
@@ -200,40 +200,25 @@ const CartState = {
     },
 
     /**
-     * Helper to get stock from any source
+     * Read sellable stock from the live API only.
+     * Fail closed so an outage can never create overselling.
      */
     async getAvailableStock(productId, color, size) {
-        // 1. Try static ProductAPI first
-        if (typeof ProductAPI !== 'undefined') {
-            const staticProduct = ProductAPI.getById(productId);
-            if (staticProduct) {
-                const inventory = typeof staticProduct.inventory === 'string' ? JSON.parse(staticProduct.inventory || '{}') : (staticProduct.inventory || {});
-                const stock = parseInt(inventory[`${color}-${size}`]);
-                if (!isNaN(stock)) return stock;
-            }
-        }
-
-        // 2. Fallback to API check
         try {
-            const API_URL = '/api';
-            const response = await fetch(`${API_URL}/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
-            
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && typeof data.available !== 'undefined') {
-                    return parseInt(data.available);
-                }
-            } else if (response.status === 404) {
-                // Product not in DB, but we might have it in static data or it might be a newly added product
-                // If it's a 404, we don't assume availability if we can't find it
-                console.warn(`[CART] Product ${productId} not found in database`);
-                return 0; 
-            }
-        } catch (e) {
-            console.warn('[CART] API stock check unavailable, assuming available');
-        }
+            const response = await fetch(`/api/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
 
-        return 999; // Safe default if server is DOWN (allow purchase)
+            if (!response.ok) {
+                console.warn(`[CART] Live stock unavailable for ${productId}: ${response.status}`);
+                return 0;
+            }
+
+            const data = await response.json();
+            const available = Number.parseInt(data.available, 10);
+            return data.success && Number.isFinite(available) ? Math.max(0, available) : 0;
+        } catch (error) {
+            console.warn('[CART] Live stock check unavailable:', error);
+            return 0;
+        }
     },
     
     addToWishlist(productId) {
@@ -435,29 +420,39 @@ const CartState = {
             `).join('');
         }
         
-        const waitTime = isInitialLoad ? 400 : 0;
+        const waitTime = isInitialLoad ? 220 : 0;
         const minWait = new Promise(resolve => setTimeout(resolve, waitTime));
-        let apiProducts = null;
-        
+        let apiProducts = [];
+
+        try {
+            const response = await fetch('/api/products');
+            if (!response.ok) throw new Error(`Products unavailable: ${response.status}`);
+            const data = await response.json();
+            apiProducts = Array.isArray(data.products) ? data.products : [];
+        } catch (error) {
+            console.warn('[WISHLIST] Live products unavailable:', error);
+            wishlistItems.innerHTML = '<div class="wishlist-empty"><p>Wishlist is temporarily unavailable.</p><a href="/shop" class="btn btn-secondary">Back to shop</a></div>';
+            return;
+        }
+
         const [resolvedProducts] = await Promise.all([
-            Promise.all(this.wishlist.map(async (productId) => {
-                let product = null;
-                if (typeof ProductAPI !== 'undefined') product = ProductAPI.getById(productId);
-                if (!product && !apiProducts) {
-                    try {
-                        const API_URL = '/api';
-                        const response = await fetch(`${API_URL}/products`);
-                        const data = await response.json();
-                        apiProducts = data.products || [];
-                    } catch (e) { apiProducts = []; }
-                }
-                if (!product && apiProducts) product = apiProducts.find(p => p.id === productId);
+            Promise.all(this.wishlist.map(async productId => {
+                const product = apiProducts.find(candidate => candidate.id === productId);
                 if (!product) return null;
 
-                const color = product.colors?.[0]?.name || 'Default';
-                const size = product.sizes?.[0] || 'OS';
+                let colors = product.colors;
+                let sizes = product.sizes;
+                if (typeof colors === 'string') {
+                    try { colors = JSON.parse(colors); } catch { colors = []; }
+                }
+                if (typeof sizes === 'string') {
+                    try { sizes = JSON.parse(sizes); } catch { sizes = []; }
+                }
+
+                const color = colors?.[0]?.name || colors?.[0] || 'Default';
+                const size = sizes?.[0] || 'OS';
                 const stock = await this.getAvailableStock(productId, color, size);
-                return { ...product, color, size, stock };
+                return { ...product, colors, sizes, color, size, stock };
             })),
             minWait
         ]);

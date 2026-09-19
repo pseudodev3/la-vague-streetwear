@@ -4,28 +4,35 @@
  */
 
 import { beforeAll, beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { createMockCartItem, mockProducts } from '../fixtures/test-data.js';
+import { createMockCartItem } from '../fixtures/test-data.js';
 import { setupCartDOM, setupWishlistDOM, clearCartData, getCart, getWishlist } from '../helpers/test-helpers.js';
 
 let CartState;
 let CurrencyConfig;
 
-beforeAll(async () => {
-  global.ProductAPI = {
-    getById: id => mockProducts.find(product => product.id === id),
-    getAll: () => mockProducts
-  };
+const createFetchMock = () => vi.fn().mockImplementation(async url => {
+  if (String(url).includes('/products/inventory/check/')) {
+    return {
+      ok: true,
+      json: async () => ({ success: true, available: 12, inStock: true })
+    };
+  }
 
+  return {
+    ok: true,
+    json: async () => ({ success: true, rates: { NGN: 1 } })
+  };
+});
+
+beforeAll(async () => {
   global.CATEGORIES = [
     { id: 'hoodies', name: 'Hoodies' },
     { id: 'tees', name: 'T-Shirts' }
   ];
 
   global.I18n = undefined;
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: false,
-    json: async () => ({})
-  });
+  global.fetch = createFetchMock();
+  window.fetch = global.fetch;
 
   await import('../../src/scripts/cart.js');
   CartState = window.CartState;
@@ -33,6 +40,8 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  global.fetch = createFetchMock();
+  window.fetch = global.fetch;
   setupCartDOM();
   setupWishlistDOM();
   clearCartData();
@@ -97,6 +106,23 @@ describe('CartState', () => {
     }));
 
     expect(getCart()).toHaveLength(2);
+  });
+
+  it('fails closed when live stock cannot be verified', async () => {
+    global.fetch.mockRejectedValueOnce(new Error('network down'));
+    window.fetch = global.fetch;
+    const showToast = vi.spyOn(CartState, 'showToast').mockImplementation(() => {});
+    const item = createMockCartItem({
+      id: 'lv-hoodie-001',
+      color: 'Black',
+      size: 'L',
+      quantity: 1
+    });
+
+    await CartState.addToCart(item);
+
+    expect(getCart()).toEqual([]);
+    expect(showToast).toHaveBeenCalledWith('Sorry, this item is out of stock', 'error');
   });
 
   it('does not exceed known stock', async () => {

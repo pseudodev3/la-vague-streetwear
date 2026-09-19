@@ -135,6 +135,9 @@ const CSRFProtection = {
     token: null,
 
     async init() {
+        // Paint a trustworthy default immediately, then revalidate from the API.
+        this.updateDynamicElements();
+
         try {
             const response = await fetch(`${API_BASE_URL}/csrf-token`, {
                 credentials: 'include'
@@ -188,6 +191,7 @@ const CSRFProtection = {
 };
 
 const GlobalSettings = {
+    cacheKey: 'laVagueStoreSettings',
     settings: {
         freeShippingThreshold: 150000,
         shippingRate: 10000,
@@ -195,13 +199,30 @@ const GlobalSettings = {
         storeName: 'LA VAGUE'
     },
 
+    hydrateCachedSettings() {
+        try {
+            const cached = JSON.parse(localStorage.getItem(this.cacheKey) || 'null');
+            if (cached && typeof cached === 'object') {
+                this.settings = { ...this.settings, ...cached };
+            }
+        } catch {
+            localStorage.removeItem(this.cacheKey);
+        }
+    },
+
     async init() {
+        // Paint synchronously from the last known settings (or safe defaults),
+        // then revalidate against the API without flashing zero/placeholder values.
+        this.hydrateCachedSettings();
+        this.updateDynamicElements();
+
         try {
             const response = await fetch(`${API_BASE_URL}/config/settings`);
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.settings) {
                     this.settings = { ...this.settings, ...data.settings };
+                    localStorage.setItem(this.cacheKey, JSON.stringify(this.settings));
                 }
             }
         } catch (error) {
@@ -236,6 +257,8 @@ const GlobalSettings = {
         window.I18n?.applyTranslations();
     }
 };
+
+window.GlobalSettings = GlobalSettings;
 
 window.initRevealAnimations = function () {
     const revealElements = document.querySelectorAll(
