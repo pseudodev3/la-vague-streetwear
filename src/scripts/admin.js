@@ -13,18 +13,6 @@ const API_URL = '/api';
 // ==========================================
 
 /**
- * Sanitize HTML to prevent XSS attacks
- * @param {string} str - String to sanitize
- * @returns {string} Sanitized string safe for HTML insertion
- */
-function sanitizeHTML(str) {
-    if (typeof str !== 'string') return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-/**
  * Escape HTML attributes
  * @param {string} str - String to escape
  * @returns {string} Escaped string safe for attributes
