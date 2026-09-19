@@ -129,6 +129,10 @@ Admin browser requests use the same-origin `/api` route and the authenticated ad
 
 Production uses PostgreSQL via `DATABASE_URL`. The old SQLite-on-Render-disk deployment model is obsolete and should not be used for production.
 
+The API retries transient PostgreSQL connection and initialization failures during startup. Pool-level idle-client errors are logged instead of being allowed to terminate the Node process.
+
+If the database in `render.yaml` is deployed on Render's Free database plan, treat it as temporary infrastructure rather than durable production storage. Replace it with a persistent Postgres provider or a paid Render database before relying on it for long-lived production data.
+
 ## Local development
 
 The default local layout is:
@@ -143,10 +147,11 @@ Vite proxies `/api` to the local backend, so frontend code should still use `/ap
 ## Deployment flow
 
 1. Push a validated change to `main`.
-2. GitHub Actions runs quality checks, tests, and the frontend build.
+2. GitHub Actions runs one consolidated validation job: lint, type-check, unit tests, frontend build, and audit.
 3. Netlify builds and deploys `dist`.
-4. Render deploys the API service.
-5. Verify `/api/health`, storefront product loading, checkout, and admin login.
+4. The validated main workflow triggers the Render deploy hook.
+5. Production E2E tests run after the Render deploy.
+6. Verify `/api/health`, storefront product loading, checkout, and admin login.
 
 ## Production smoke test
 
