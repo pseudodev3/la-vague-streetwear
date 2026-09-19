@@ -98,8 +98,7 @@ async function initHome() {
     // Initialize combined locale selector
     initLocaleSelector();
     
-    // Initialize legacy selectors (mobile menu)
-    initLegacySelectors();
+    applyPageLocale();
 }
 
 // ==========================================
@@ -505,58 +504,11 @@ function updateLocaleDisplay(currency, lang) {
     }
 }
 
-// Legacy selectors (mobile menu)
-function initLegacySelectors() {
-    const currencySelect = document.getElementById('currencySelect');
-    if (currencySelect) {
-        currencySelect.value = CurrencyConfig.getCurrentCurrency();
-        currencySelect.addEventListener('change', (e) => {
-            CurrencyConfig.setCurrency(e.target.value);
-            window.location.reload();
-        });
-    }
-    
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-        languageSelect.value = savedLang;
-        languageSelect.addEventListener('change', (e) => {
-            localStorage.setItem('preferredLanguage', e.target.value);
-            document.documentElement.lang = e.target.value;
-            document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
-            window.location.reload();
-        });
-    }
-    
-    // Mobile selectors
-    const mobileCurrencySelect = document.getElementById('mobileCurrencySelect');
-    if (mobileCurrencySelect) {
-        mobileCurrencySelect.value = CurrencyConfig.getCurrentCurrency();
-        mobileCurrencySelect.addEventListener('change', (e) => {
-            CurrencyConfig.setCurrency(e.target.value);
-            window.location.reload();
-        });
-    }
-    
-    const mobileLanguageSelect = document.getElementById('mobileLanguageSelect');
-    if (mobileLanguageSelect) {
-        const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-        mobileLanguageSelect.value = savedLang;
-        mobileLanguageSelect.addEventListener('change', (e) => {
-            localStorage.setItem('preferredLanguage', e.target.value);
-            document.documentElement.lang = e.target.value;
-            document.documentElement.dir = e.target.value === 'ar' ? 'rtl' : 'ltr';
-            window.location.reload();
-        });
-    }
-    
-    // Apply translations on load
+function applyPageLocale() {
     const savedLang = localStorage.getItem('preferredLanguage') || 'en';
     document.documentElement.lang = savedLang;
     document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
-    if (typeof applyTranslations === 'function') {
-        applyTranslations();
-    }
+    if (typeof applyTranslations === 'function') applyTranslations();
 }
 
 // BOOTSTRAP: Wait for shared components to load before starting logic
