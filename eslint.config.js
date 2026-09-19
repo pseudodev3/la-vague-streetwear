@@ -2,7 +2,6 @@ import globals from 'globals';
 import js from '@eslint/js';
 
 const browserAppGlobals = {
-    PRODUCTS: 'readonly',
     CATEGORIES: 'readonly',
     SIZE_GUIDES: 'readonly',
     ProductAPI: 'readonly',
