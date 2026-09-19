@@ -94,8 +94,7 @@ const state = {
     quickViewProduct: null,
     selectedColor: null,
     selectedSize: null,
-    selectedQuantity: 1,
-    usingStaticData: false
+    selectedQuantity: 1
 };
 
 let elements = {};
@@ -164,10 +163,8 @@ async function initShop() {
     
     if (Array.isArray(apiProducts)) {
         state.products = apiProducts.map(transformProduct);
-        state.usingStaticData = false;
     } else {
         state.products = [];
-        state.usingStaticData = false;
         if (elements.emptyState) {
             elements.emptyState.innerHTML = '<h3>Store temporarily unavailable</h3><p>We could not load live products right now. Please refresh in a moment.</p>';
         }
@@ -503,27 +500,19 @@ window.updateQuantity = function(delta) {
 
 window.addToCartFromQuickView = async function() {
     const product = state.quickViewProduct;
-    if (!state.usingStaticData) {
-        const stockCheck = await ShopAPI.checkStock(product.id, state.selectedColor, state.selectedSize);
-        if (!stockCheck.inStock || stockCheck.available < state.selectedQuantity) {
-            showToast(`Only ${stockCheck.available} items available in this variant`, 'error');
-            return;
-        }
-    } else {
-        const variantKey = `${state.selectedColor}-${state.selectedSize}`;
-        const stock = product.inventory?.[variantKey] || 0;
-        if (state.selectedQuantity > stock) {
-            showToast(`Only ${stock} items available in stock`, 'error');
-            return;
-        }
-    }
-    CartState.addToCart({
-        id: product.id, name: product.name, price: product.price,
-        image: product.images?.[0]?.src || '', color: state.selectedColor,
-        size: state.selectedSize, quantity: state.selectedQuantity
+    if (!product) return;
+
+    const added = await CartState.addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0]?.src || '',
+        color: state.selectedColor,
+        size: state.selectedSize,
+        quantity: state.selectedQuantity
     });
-    showToast(`${product.name} added to cart`, 'success');
-    closeQuickView();
+
+    if (added) closeQuickView();
 };
 
 function openQuickView() {
@@ -580,45 +569,20 @@ function closeSizeGuide() {
 // CART & WISHLIST HELPERS
 // ==========================================
 window.addToCartFromCard = async function(productId) {
-    const product = state.products.find(p => p.id === productId);
+    const product = state.products.find(item => item.id === productId);
     if (!product) return;
+
     const color = product.colors?.[0]?.name || 'Default';
     const size = product.sizes?.[0] || 'OS';
-    
-    // Perform thorough stock check
-    let isAvailable = true;
-    if (!state.usingStaticData) {
-        try {
-            const response = await fetch(`${API_URL}/products/inventory/check/${product.id}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
-            if (response.ok) {
-                const stockCheck = await response.json();
-                if (stockCheck && stockCheck.success && stockCheck.inStock === false) {
-                    isAvailable = false;
-                }
-            } else if (response.status === 404) {
-                // If product is not found in DB, it might be in static data
-                const variantKey = `${color}-${size}`;
-                const staticStock = product.inventory?.[variantKey] || 0;
-                if (staticStock <= 0) isAvailable = false;
-            }
-        } catch (error) {
-            console.warn('[SHOP] Live stock check unavailable:', error);
-            isAvailable = false;
-        }
-    } else {
-        const variantKey = `${color}-${size}`;
-        const stock = product.inventory?.[variantKey] || 0;
-        if (stock <= 0) isAvailable = false;
-    }
 
-    if (!isAvailable) {
-        showToast('Sorry, this item is out of stock', 'error');
-        return;
-    }
-    
-    CartState.addToCart({
-        id: product.id, name: product.name, price: product.price,
-        image: product.images?.[0]?.src || '', color: color, size: size, quantity: 1
+    await CartState.addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0]?.src || '',
+        color,
+        size,
+        quantity: 1
     });
 };
 
