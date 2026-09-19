@@ -303,24 +303,20 @@ async function loadAllData() {
 
 async function loadSettings() {
     try {
-        // Load current currency rates
-        const result = await fetchAPI('/admin/currency-rates');
-        if (result.rates) {
-            Object.entries(result.rates).forEach(([currency, rate]) => {
-                const input = document.querySelector(`.currency-rate[data-currency="${currency}"]`);
-                if (input) input.value = rate;
-            });
-        }
-        
-        // Show last updated time
-        if (result.lastUpdated) {
-            const date = new Date(result.lastUpdated);
-            const statusEl = document.getElementById('currencyRatesStatus');
-            if (statusEl) {
-                statusEl.textContent = `Last updated: ${date.toLocaleString()}`;
-                statusEl.style.color = 'var(--color-text-muted)';
-            }
-        }
+        const data = await fetchAPI('/admin/settings');
+        const settings = data.settings || {};
+
+        const storeName = document.getElementById('settingStoreName');
+        const supportEmail = document.getElementById('settingSupportEmail');
+        const freeShipping = document.getElementById('settingFreeShipping');
+        const standardShipping = document.getElementById('settingStandardShippingRate');
+        const expressShipping = document.getElementById('settingExpressShippingRate');
+
+        if (storeName) storeName.value = settings.storeName || 'LA VAGUE';
+        if (supportEmail) supportEmail.value = settings.supportEmail || 'support@la-vague.store';
+        if (freeShipping) freeShipping.value = settings.freeShippingThreshold || '0';
+        if (standardShipping) standardShipping.value = settings.standardShippingRate || '0';
+        if (expressShipping) expressShipping.value = settings.expressShippingRate || '0';
     } catch (error) {
         console.error('Failed to load settings:', error);
         showToast('Failed to load settings', 'error');
@@ -2251,113 +2247,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function loadAdminSettings() {
-        try {
-            const data = await fetchAPI('/admin/settings');
-            if (data.success && data.settings) {
-                document.getElementById('settingStoreName').value = data.settings.storeName || 'LA VAGUE';
-                document.getElementById('settingSupportEmail').value = data.settings.supportEmail || 'support@la-vague.store';
-                document.getElementById('settingFreeShipping').value = data.settings.freeShippingThreshold || '0';
-                document.getElementById('settingStandardShippingRate').value = data.settings.standardShippingRate || '0';
-                document.getElementById('settingExpressShippingRate').value = data.settings.expressShippingRate || '0';
-            }
-        } catch (error) {
-            console.error('Failed to load settings:', error);
-            showToast('Failed to load settings', 'error');
-        }
+    if (document.getElementById('settingsSection') && sessionStorage.getItem('adminToken')) {
+        loadSettings();
     }
 
-    if (document.getElementById('settingsSection') && sessionStorage.getItem('adminToken')) {
-        loadAdminSettings();
-    }
-    
-    // Currency rates management
-    const updateCurrencyRatesBtn = document.getElementById('updateCurrencyRatesBtn');
-    const resetCurrencyRatesBtn = document.getElementById('resetCurrencyRatesBtn');
-    
-    if (updateCurrencyRatesBtn) {
-        updateCurrencyRatesBtn.addEventListener('click', async () => {
-            const rateInputs = document.querySelectorAll('.currency-rate');
-            const rates = {};
-            
-            rateInputs.forEach(input => {
-                const currency = input.dataset.currency;
-                const value = parseFloat(input.value);
-                if (currency && !isNaN(value) && value > 0) {
-                    rates[currency] = value;
-                }
-            });
-            
-            // Ensure USD is always 1
-            rates.USD = 1;
-            
-            try {
-                updateCurrencyRatesBtn.disabled = true;
-                updateCurrencyRatesBtn.textContent = 'Updating...';
-                
-                await fetchAPI('/admin/currency-rates', {
-                    method: 'POST',
-                    body: { rates }
-                });
-                
-                document.getElementById('currencyRatesStatus').textContent = 'Rates updated successfully!';
-                document.getElementById('currencyRatesStatus').style.color = 'var(--color-success)';
-                showToast('Currency rates updated successfully', 'success');
-                
-                setTimeout(() => {
-                    document.getElementById('currencyRatesStatus').textContent = '';
-                }, 3000);
-            } catch (error) {
-                document.getElementById('currencyRatesStatus').textContent = 'Failed to update rates';
-                document.getElementById('currencyRatesStatus').style.color = 'var(--color-error)';
-                showToast('Failed to update currency rates', 'error');
-            } finally {
-                updateCurrencyRatesBtn.disabled = false;
-                updateCurrencyRatesBtn.textContent = 'Update Rates';
-            }
-        });
-    }
-    
-    if (resetCurrencyRatesBtn) {
-        resetCurrencyRatesBtn.addEventListener('click', async () => {
-            if (!confirm('Are you sure you want to reset currency rates to defaults?')) {
-                return;
-            }
-            
-            try {
-                resetCurrencyRatesBtn.disabled = true;
-                resetCurrencyRatesBtn.textContent = 'Resetting...';
-                
-                const result = await fetchAPI('/admin/currency-rates/reset', {
-                    method: 'POST'
-                });
-                
-                // Update input values
-                if (result.rates) {
-                    Object.entries(result.rates).forEach(([currency, rate]) => {
-                        const input = document.querySelector(`.currency-rate[data-currency="${currency}"]`);
-                        if (input) input.value = rate;
-                    });
-                }
-                
-                document.getElementById('currencyRatesStatus').textContent = 'Rates reset to defaults!';
-                document.getElementById('currencyRatesStatus').style.color = 'var(--color-success)';
-                showToast('Currency rates reset to defaults', 'success');
-                
-                setTimeout(() => {
-                    document.getElementById('currencyRatesStatus').textContent = '';
-                }, 3000);
-            } catch (error) {
-                document.getElementById('currencyRatesStatus').textContent = 'Failed to reset rates';
-                document.getElementById('currencyRatesStatus').style.color = 'var(--color-error)';
-                showToast('Failed to reset currency rates', 'error');
-            } finally {
-                resetCurrencyRatesBtn.disabled = false;
-                resetCurrencyRatesBtn.textContent = 'Reset to Defaults';
-            }
-        });
-    }
-    
     // Coupon Management
     const manageCouponsBtn = document.getElementById('manageCouponsBtn');
     const couponManagementPanel = document.getElementById('couponManagementPanel');
