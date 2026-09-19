@@ -203,6 +203,8 @@ GET /api/health
 
 Monitoring services should check this endpoint rather than `/` on the Render API service, because the API root intentionally does not serve the storefront.
 
+The PostgreSQL client retries initial connection failures and handles idle pool errors without letting an EventEmitter error terminate the API process. Database schema initialization is also retried before startup is abandoned.
+
 ## Testing and CI
 
 GitHub Actions runs the core validation pipeline:
@@ -212,7 +214,7 @@ GitHub Actions runs the core validation pipeline:
 - unit tests
 - Vite production build
 - security audit reporting
-- Docker/deployment stages where applicable
+- Render deployment on validated `main` pushes
 
 Before deploying substantial changes locally, run:
 
@@ -245,14 +247,12 @@ npm run check
 ├── vite.config.js
 ├── netlify.toml
 ├── render.yaml
-├── Dockerfile
 └── .github/workflows/ci-cd.yml
 ```
 
 ## Documentation
 
 - `DEPLOYMENT.md` — current Netlify/Render deployment setup
-- `DEVELOPMENT.md` — development notes
 - `PWA.md` — service-worker/PWA notes
 - `openapi.yaml` — API documentation
 - `.env.example` — environment variable template
