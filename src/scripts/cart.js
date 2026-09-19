@@ -488,7 +488,7 @@ const CartState = {
                             size: '${product.size}',
                             quantity: 1
                         }); if (!${isSoldOut}) CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)});">
-                            ${isSoldOut ? t('product.soldOut', 'Sold Out') : t('product.addToCart', 'Add to Cart')}
+                            ${isSoldOut ? 'Sold Out' : 'Add to Cart'}
                         </button>
                         <button class="cart-item-remove" onclick="CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -33,7 +33,41 @@ const PORT = Number(process.env.PORT) || 3001;
 
 app.set('trust proxy', 1);
 
-const { inventoryService, productService } = await initDatabase();
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function readPositiveInt(name, fallback, max = 10) {
+    const parsed = Number.parseInt(process.env[name] || '', 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(max, Math.max(1, parsed));
+}
+
+async function initializeDatabaseWithRetry() {
+    const maxAttempts = readPositiveInt('DB_INIT_RETRIES', 3, 6);
+    const baseDelayMs = readPositiveInt('DB_INIT_RETRY_BASE_MS', 2500, 30000);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+            return await initDatabase();
+        } catch (error) {
+            logger.error({ err: error, attempt, maxAttempts }, 'Database initialization failed');
+
+            if (attempt === maxAttempts) throw error;
+            await sleep(Math.min(baseDelayMs * 2 ** (attempt - 1), 10000));
+        }
+    }
+
+    throw new Error('Database initialization failed');
+}
+
+let services;
+try {
+    services = await initializeDatabaseWithRetry();
+} catch (error) {
+    logger.fatal({ err: error }, 'API startup aborted because the database could not initialize');
+    process.exit(1);
+}
+
+const { inventoryService, productService } = services;
 
 app.use(
     pinoHttp({
@@ -141,10 +175,27 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        database: USE_POSTGRES ? 'postgresql' : 'sqlite',
-        version: '1.2.2',
-        features: ['pwa', 'reviews']
+        uptimeSeconds: Math.round(process.uptime()),
+        database: USE_POSTGRES ? 'postgresql' : 'sqlite'
     });
+});
+
+app.get('/api/ready', async (req, res) => {
+    try {
+        await query('SELECT 1');
+        res.json({
+            status: 'ready',
+            timestamp: new Date().toISOString(),
+            database: 'reachable'
+        });
+    } catch (error) {
+        logger.error({ err: error }, 'Database readiness check failed');
+        res.status(503).json({
+            status: 'not_ready',
+            timestamp: new Date().toISOString(),
+            database: 'unavailable'
+        });
+    }
 });
 
 app.get('/api/csrf-token', csrfToken, (req, res) => {
