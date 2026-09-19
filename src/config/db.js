@@ -12,6 +12,48 @@ function getPostgresSSLConfig() {
     return { rejectUnauthorized };
 }
 
+function readPositiveInt(name, fallback, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
+    const parsed = Number.parseInt(process.env[name] || '', 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(max, Math.max(min, parsed));
+}
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function verifyPostgresConnection(pool) {
+    const maxAttempts = readPositiveInt('PG_CONNECT_RETRIES', 6, { max: 12 });
+    const baseDelayMs = readPositiveInt('PG_CONNECT_RETRY_BASE_MS', 2000, { max: 30000 });
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        let client;
+
+        try {
+            client = await pool.connect();
+            const result = await client.query('SELECT NOW()');
+            console.log(
+                `✅ PostgreSQL connected successfully at ${result.rows[0].now} (attempt ${attempt}/${maxAttempts})`
+            );
+            return;
+        } catch (error) {
+            if (client) {
+                client.release(error);
+                client = null;
+            }
+
+            console.error(
+                `[DB] PostgreSQL connection attempt ${attempt}/${maxAttempts} failed: ${error.message}`
+            );
+
+            if (attempt === maxAttempts) throw error;
+
+            const delayMs = Math.min(baseDelayMs * 2 ** (attempt - 1), 10000);
+            await sleep(delayMs);
+        } finally {
+            if (client) client.release();
+        }
+    }
+}
+
 async function getDB() {
     if (db) return db;
 
@@ -22,18 +64,18 @@ async function getDB() {
         db = new Pool({
             connectionString: process.env.DATABASE_URL,
             ssl: getPostgresSSLConfig(),
-            max: 10,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 5000
+            max: readPositiveInt('PG_POOL_MAX', 10, { max: 50 }),
+            idleTimeoutMillis: readPositiveInt('PG_IDLE_TIMEOUT_MS', 30000, { max: 300000 }),
+            connectionTimeoutMillis: readPositiveInt('PG_CONNECTION_TIMEOUT_MS', 10000, { max: 60000 })
         });
 
-        const client = await db.connect();
-        try {
-            const result = await client.query('SELECT NOW()');
-            console.log('✅ PostgreSQL connected successfully at', result.rows[0].now);
-        } finally {
-            client.release();
-        }
+        // node-postgres emits idle-client failures on the Pool. Without a listener,
+        // EventEmitter treats the error as uncaught and can terminate the process.
+        db.on('error', error => {
+            console.error('[DB POOL] Unexpected idle PostgreSQL client error:', error.message);
+        });
+
+        await verifyPostgresConnection(db);
     } else {
         const { default: Database } = await import('better-sqlite3');
         db = new Database('database.sqlite');
