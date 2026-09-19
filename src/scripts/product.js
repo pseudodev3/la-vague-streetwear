@@ -179,7 +179,7 @@ async function initProduct() {
     
     bindEvents();
     initLocaleSelector();
-    initLegacySelectors();
+    applyPageLocale();
 
     // Nav scroll effect
     window.addEventListener('scroll', () => {
@@ -706,7 +706,10 @@ function initLocaleSelector() {
     document.addEventListener('click', () => drop.classList.remove('active'));
 }
 
-function initLegacySelectors() {
+function applyPageLocale() {
+    const savedLang = localStorage.getItem('preferredLanguage') || 'en';
+    document.documentElement.lang = savedLang;
+    document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
     if (typeof applyTranslations === 'function') applyTranslations();
 }
 
