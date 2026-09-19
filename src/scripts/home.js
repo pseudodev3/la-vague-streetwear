@@ -2,6 +2,8 @@
  * LA VAGUE - Homepage JavaScript
  */
 
+const { escapeHTML, safeURL, safeClassToken } = window.BrowserSecurity;
+
 // State - kept global for cross-function access
 const state = {
     cart: JSON.parse(localStorage.getItem('cart')) || [],
@@ -17,6 +19,7 @@ const state = {
 };
 
 let elements = {};
+let eventsBound = false;
 
 async function initHome() {
     // ==========================================
@@ -152,50 +155,59 @@ async function renderFeaturedProducts() {
     }
     
     elements.featuredProducts.innerHTML = featured.map(product => {
-        // Robust stock calculation
-        const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
-        const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
+        const inventory = typeof product.inventory === 'string'
+            ? JSON.parse(product.inventory || '{}')
+            : (product.inventory || {});
+        const totalStock = Object.values(inventory).reduce(
+            (total, value) => total + (Number.parseInt(value, 10) || 0),
+            0
+        );
         const isSoldOut = totalStock === 0;
 
-        // Badge priority logic
+        const badge = String(product.badge || '').trim();
+        const badgeClass = safeClassToken(badge);
         let badgeHtml = '';
         if (isSoldOut) {
-            badgeHtml = '<span class="product-badge soldout" style="background: #6b7280 !important; color: white !important;">Sold Out</span>';
-        } else if (product.badge && product.badge.toLowerCase() !== 'null' && product.badge.trim() !== '') {
-            badgeHtml = `<span class="product-badge ${product.badge.toLowerCase().replace(/\s+/g, '-')}">${product.badge}</span>`;
+            badgeHtml = '<span class="product-badge soldout">Sold Out</span>';
+        } else if (badge && badge.toLowerCase() !== 'null') {
+            badgeHtml = `<span class="product-badge ${badgeClass}">${escapeHTML(badge)}</span>`;
         }
 
-        const categoryName = CATEGORIES.find(c => c.id === product.category)?.name || product.category;
-        
-        // Image safety check
-        const firstImage = product.images && product.images[0] ? product.images[0] : {
-            src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
-            alt: product.name
-        };
-        const secondImage = product.images && product.images[1] ? product.images[1] : null;
+        const categoryName = CATEGORIES.find(category => category.id === product.category)?.name || product.category;
+        const firstImage = product.images?.[0] || { src: '/la-vague-red-wordmark.png', alt: product.name };
+        const secondImage = product.images?.[1] || null;
+        const firstSrc = escapeHTML(safeURL(firstImage.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
+        const firstAlt = escapeHTML(firstImage.alt || product.name);
+        const secondSrc = secondImage
+            ? escapeHTML(safeURL(secondImage.src, { allowDataImage: true }))
+            : '';
+        const secondAlt = secondImage ? escapeHTML(secondImage.alt || product.name) : '';
+        const safeSlug = escapeHTML(product.slug || product.id || '');
+        const reviewCount = Math.max(0, Number.parseInt(product.review_count, 10) || 0);
 
         return `
-        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" onclick="window.location.href='product.html?slug=${product.slug}'">
+        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-home-action="open-product" data-slug="${safeSlug}">
             <div class="product-image-wrapper">
                 ${badgeHtml}
-                <img src="${firstImage.src}" alt="${firstImage.alt}" class="product-image" loading="lazy">
-                ${secondImage ? `<img src="${secondImage.src}" alt="${secondImage.alt}" class="product-image-hover" loading="lazy">` : ''}
+                <img src="${firstSrc}" alt="${firstAlt}" class="product-image" loading="lazy">
+                ${secondSrc ? `<img src="${secondSrc}" alt="${secondAlt}" class="product-image-hover" loading="lazy">` : ''}
             </div>
             <div class="product-info">
-                <p class="product-category">${categoryName}</p>
-                <h3 class="product-name">${product.name}</h3>
+                <p class="product-category">${escapeHTML(categoryName)}</p>
+                <h3 class="product-name">${escapeHTML(product.name)}</h3>
                 <div class="product-price">
-                    <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
+                    <span class="current-price">${CurrencyConfig.formatPrice(Number(product.price) || 0)}</span>
                 </div>
-                ${product.review_count > 0 ? `
+                ${reviewCount > 0 ? `
                     <div class="product-rating">
-                        <span class="star-rating-small">${renderStarRating(product.average_rating)}</span>
-                        <span class="rating-text">(${product.review_count})</span>
+                        <span class="star-rating-small">${renderStarRating(Number(product.average_rating) || 0)}</span>
+                        <span class="rating-text">(${reviewCount})</span>
                     </div>
                 ` : ''}
             </div>
         </article>
-    `}).join('');
+    `;
+    }).join('');
 }
 
 // ==========================================
@@ -267,19 +279,22 @@ async function handleSearch(query) {
     }
 
     elements.searchResults.innerHTML = results.map(product => {
-        const image = product.images?.[0]?.src || '';
-        const category = CATEGORIES.find(c => c.id === product.category)?.name || product.category || '';
+        const image = escapeHTML(safeURL(product.images?.[0]?.src, { allowDataImage: true }));
+        const category = CATEGORIES.find(item => item.id === product.category)?.name || product.category || '';
+        const slug = encodeURIComponent(String(product.slug || product.id || ''));
+        const safeName = escapeHTML(product.name);
         return `
-            <div class="search-result-item" onclick="window.location.href='product.html?slug=${encodeURIComponent(product.slug)}'">
-                <img src="${image}" alt="${product.name}">
+            <a class="search-result-item" href="/product.html?slug=${slug}">
+                ${image ? `<img src="${image}" alt="${safeName}">` : ''}
                 <div class="search-result-info">
-                    <h4>${product.name}</h4>
-                    <p>${category}</p>
+                    <h4>${safeName}</h4>
+                    <p>${escapeHTML(category)}</p>
                 </div>
-                <span class="search-result-price">${CurrencyConfig.formatPrice(product.price)}</span>
-            </div>
+                <span class="search-result-price">${CurrencyConfig.formatPrice(Number(product.price) || 0)}</span>
+            </a>
         `;
     }).join('');
+
 }
 
 // ==========================================
@@ -322,17 +337,28 @@ function nextLook() {
 // ==========================================
 function showToast(message, type = 'success', action = null) {
     if (!elements.toastContainer) return;
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <span class="toast-message">${message}</span>
-        ${action ? `<span class="toast-action" onclick="window.openCart()">${action}</span>` : ''}
-    `;
-    
     toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
     toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+
+    const content = document.createElement('span');
+    content.className = 'toast-message';
+    content.textContent = String(message);
+    toast.appendChild(content);
+
+    if (action) {
+        const actionButton = document.createElement('button');
+        actionButton.type = 'button';
+        actionButton.className = 'toast-action';
+        actionButton.textContent = String(action);
+        actionButton.addEventListener('click', () => window.openCart());
+        toast.appendChild(actionButton);
+    }
+
     elements.toastContainer.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.style.animation = 'lv-toast-out 160ms var(--lv-ease) forwards';
         setTimeout(() => toast.remove(), 180);
@@ -343,6 +369,17 @@ function showToast(message, type = 'success', action = null) {
 // EVENTS
 // ==========================================
 function bindEvents() {
+    if (eventsBound) return;
+    eventsBound = true;
+
+    elements.featuredProducts?.addEventListener('click', event => {
+        const card = event.target.closest('[data-home-action="open-product"]');
+        if (!card) return;
+        const slug = card.dataset.slug;
+        if (!slug) return;
+        window.location.href = `/product.html?slug=${encodeURIComponent(slug)}`;
+    });
+
     // Navigation
     window.addEventListener('scroll', () => {
         if (window.scrollY > 50) {
