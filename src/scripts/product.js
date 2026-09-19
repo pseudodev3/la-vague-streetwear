@@ -196,9 +196,119 @@ async function initProduct() {
     productInitialized = true;
 }
 
+function setProductMeta(selector, attribute, value) {
+    let element = document.head.querySelector(selector);
+    if (!element) {
+        element = document.createElement('meta');
+        if (selector.includes('property=')) {
+            const property = selector.match(/property="([^"]+)"/)?.[1];
+            if (property) element.setAttribute('property', property);
+        } else {
+            const name = selector.match(/name="([^"]+)"/)?.[1];
+            if (name) element.setAttribute('name', name);
+        }
+        document.head.appendChild(element);
+    }
+    element.setAttribute(attribute, value);
+}
+
+function updateProductSEO(product) {
+    const baseUrl = 'https://la-vague.store';
+    const canonicalUrl = `${baseUrl}/product?slug=${encodeURIComponent(product.slug)}`;
+    const plainDescription = String(product.description || 'LA VAGUE streetwear from Nigeria.')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 160);
+    const title = `${product.name} | LA VAGUE`;
+    const images = (product.images || [])
+        .map(image => image?.src)
+        .filter(Boolean)
+        .map(src => new URL(src, baseUrl).href);
+    const primaryImage = images[0] || `${baseUrl}/la-vague-red-wordmark.png`;
+    const inventory = typeof product.inventory === 'string'
+        ? JSON.parse(product.inventory || '{}')
+        : (product.inventory || {});
+    const totalStock = Object.values(inventory).reduce(
+        (sum, value) => sum + (Number.parseInt(value, 10) || 0),
+        0
+    );
+
+    document.title = title;
+
+    const descriptionMeta = document.head.querySelector('meta[name="description"]');
+    if (descriptionMeta) descriptionMeta.setAttribute('content', plainDescription);
+
+    let canonical = document.head.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.rel = 'canonical';
+        document.head.appendChild(canonical);
+    }
+    canonical.href = canonicalUrl;
+
+    setProductMeta('meta[property="og:title"]', 'content', title);
+    setProductMeta('meta[property="og:description"]', 'content', plainDescription);
+    setProductMeta('meta[property="og:type"]', 'content', 'product');
+    setProductMeta('meta[property="og:url"]', 'content', canonicalUrl);
+    setProductMeta('meta[property="og:image"]', 'content', primaryImage);
+    setProductMeta('meta[property="og:image:alt"]', 'content', product.name);
+    setProductMeta('meta[property="product:price:amount"]', 'content', String(product.price));
+    setProductMeta('meta[property="product:price:currency"]', 'content', 'NGN');
+    setProductMeta('meta[name="twitter:title"]', 'content', title);
+    setProductMeta('meta[name="twitter:description"]', 'content', plainDescription);
+    setProductMeta('meta[name="twitter:image"]', 'content', primaryImage);
+
+    const structuredData = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: product.name,
+        description: plainDescription,
+        image: images.length ? images : [primaryImage],
+        sku: String(product.id),
+        brand: {
+            '@type': 'Brand',
+            name: 'LA VAGUE'
+        },
+        offers: {
+            '@type': 'Offer',
+            url: canonicalUrl,
+            priceCurrency: 'NGN',
+            price: String(product.price),
+            availability: totalStock > 0
+                ? 'https://schema.org/InStock'
+                : 'https://schema.org/OutOfStock',
+            itemCondition: 'https://schema.org/NewCondition',
+            seller: {
+                '@type': 'Organization',
+                name: 'LA VAGUE'
+            }
+        }
+    };
+
+    const rating = Number.parseFloat(product.average_rating || 0);
+    const reviewCount = Number.parseInt(product.review_count || 0, 10);
+    if (rating > 0 && reviewCount > 0) {
+        structuredData.aggregateRating = {
+            '@type': 'AggregateRating',
+            ratingValue: rating,
+            reviewCount
+        };
+    }
+
+    let schema = document.getElementById('productStructuredData');
+    if (!schema) {
+        schema = document.createElement('script');
+        schema.id = 'productStructuredData';
+        schema.type = 'application/ld+json';
+        document.head.appendChild(schema);
+    }
+    schema.textContent = JSON.stringify(structuredData);
+}
+
 function renderProduct() {
     const p = state.product;
     if (!elements.productTitle) return;
+    updateProductSEO(p);
     elements.breadcrumbProduct.textContent = p.name;
     elements.productCategory.textContent = CATEGORIES.find(c => c.id === p.category)?.name || p.category;
     elements.productTitle.textContent = p.name;
