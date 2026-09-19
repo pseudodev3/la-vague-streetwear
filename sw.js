@@ -3,13 +3,13 @@
  * Keep navigations fresh while caching immutable/static assets safely.
  */
 
-const STATIC_CACHE = 'la-vague-static-v3';
-const IMAGE_CACHE = 'la-vague-images-v3';
+const STATIC_CACHE = 'la-vague-static-v4';
+const IMAGE_CACHE = 'la-vague-images-v4';
 
 const APP_SHELL = [
     '/',
     '/index.html',
-    '/favicon.svg',
+    '/la-vague-red-wordmark.png',
     '/site.webmanifest'
 ];
 
