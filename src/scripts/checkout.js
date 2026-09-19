@@ -19,14 +19,7 @@ const state = {
 
 let elements = {};
 
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-}
+const { escapeHTML, safeURL } = window.BrowserSecurity;
 
 async function initCheckout() {
     elements = {
@@ -74,12 +67,12 @@ function render() {
             item => `
         <div class="summary-item">
             <div class="summary-item-image">
-                <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">
+                <img src="${escapeHTML(safeURL(item.image, { allowDataImage: true }) || '/la-vague-red-wordmark.png')}" alt="${escapeHTML(item.name)}">
                 <span class="summary-item-qty">${Number(item.quantity) || 0}</span>
             </div>
             <div class="summary-item-details">
-                <p class="summary-item-name">${escapeHtml(item.name)}</p>
-                <p class="summary-item-variant">${escapeHtml(item.color)} / ${escapeHtml(item.size)}</p>
+                <p class="summary-item-name">${escapeHTML(item.name)}</p>
+                <p class="summary-item-variant">${escapeHTML(item.color)} / ${escapeHTML(item.size)}</p>
             </div>
             <span class="summary-item-price">${CurrencyConfig.formatPrice(Number(item.price) * Number(item.quantity))}</span>
         </div>
