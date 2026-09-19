@@ -59,6 +59,7 @@ jobs:
           path: dist/
           retention-days: 7
 
+  # PRs validate the Docker image without publishing; main pushes publish to GHCR.
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
