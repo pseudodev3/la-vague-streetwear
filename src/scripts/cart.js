@@ -420,29 +420,39 @@ const CartState = {
             `).join('');
         }
         
-        const waitTime = isInitialLoad ? 400 : 0;
+        const waitTime = isInitialLoad ? 220 : 0;
         const minWait = new Promise(resolve => setTimeout(resolve, waitTime));
-        let apiProducts = null;
-        
+        let apiProducts = [];
+
+        try {
+            const response = await fetch('/api/products');
+            if (!response.ok) throw new Error(`Products unavailable: ${response.status}`);
+            const data = await response.json();
+            apiProducts = Array.isArray(data.products) ? data.products : [];
+        } catch (error) {
+            console.warn('[WISHLIST] Live products unavailable:', error);
+            wishlistItems.innerHTML = '<div class="wishlist-empty"><p>Wishlist is temporarily unavailable.</p><a href="/shop" class="btn btn-secondary">Back to shop</a></div>';
+            return;
+        }
+
         const [resolvedProducts] = await Promise.all([
-            Promise.all(this.wishlist.map(async (productId) => {
-                let product = null;
-                if (typeof ProductAPI !== 'undefined') product = ProductAPI.getById(productId);
-                if (!product && !apiProducts) {
-                    try {
-                        const API_URL = '/api';
-                        const response = await fetch(`${API_URL}/products`);
-                        const data = await response.json();
-                        apiProducts = data.products || [];
-                    } catch (e) { apiProducts = []; }
-                }
-                if (!product && apiProducts) product = apiProducts.find(p => p.id === productId);
+            Promise.all(this.wishlist.map(async productId => {
+                const product = apiProducts.find(candidate => candidate.id === productId);
                 if (!product) return null;
 
-                const color = product.colors?.[0]?.name || 'Default';
-                const size = product.sizes?.[0] || 'OS';
+                let colors = product.colors;
+                let sizes = product.sizes;
+                if (typeof colors === 'string') {
+                    try { colors = JSON.parse(colors); } catch { colors = []; }
+                }
+                if (typeof sizes === 'string') {
+                    try { sizes = JSON.parse(sizes); } catch { sizes = []; }
+                }
+
+                const color = colors?.[0]?.name || colors?.[0] || 'Default';
+                const size = sizes?.[0] || 'OS';
                 const stock = await this.getAvailableStock(productId, color, size);
-                return { ...product, color, size, stock };
+                return { ...product, colors, sizes, color, size, stock };
             })),
             minWait
         ]);
