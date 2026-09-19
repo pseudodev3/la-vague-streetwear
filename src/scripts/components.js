@@ -106,7 +106,7 @@ window.Components = {
         `,
         cartSidebar: `
         <div class="cart-header">
-            <h3 data-i18n="cart.title">Your Cart</h3>
+            <h3>Your Cart</h3>
             <button class="cart-close" id="cartClose">×</button>
         </div>
         <div class="cart-items" id="cartItems">
@@ -114,16 +114,16 @@ window.Components = {
         </div>
         <div class="cart-footer" id="cartFooter">
             <div class="cart-subtotal">
-                <span data-i18n="cart.subtotal">Subtotal</span>
+                <span>Subtotal</span>
                 <span id="cartSubtotal">$0</span>
             </div>
-            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()" data-i18n="cart.checkout">Checkout</a>
-            <p class="cart-note" data-i18n="cart.note">Shipping & taxes calculated at checkout</p>
+            <a href="checkout.html" class="btn btn-primary btn-full" onclick="window.closeCart()">Checkout</a>
+            <p class="cart-note">Shipping & taxes calculated at checkout</p>
         </div>
         `,
         wishlistSidebar: `
         <div class="wishlist-header">
-            <h3 data-i18n="cart.wishlist">Your Wishlist</h3>
+            <h3>Your Wishlist</h3>
             <button class="wishlist-close" id="wishlistClose">×</button>
         </div>
         <div class="wishlist-items" id="wishlistItems">
