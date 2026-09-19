@@ -6,6 +6,12 @@
   NODE_VERSION = "20.20.2"
 
 [[redirects]]
+  from = "/sitemap.xml"
+  to = "https://la-vague-api.onrender.com/api/sitemap.xml"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/*"
   to = "https://la-vague-api.onrender.com/api/:splat"
   status = 200
