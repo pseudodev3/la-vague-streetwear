@@ -7,12 +7,7 @@
     let productsPromise = null;
     let bound = false;
 
-    const escapeHtml = value => String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
+    const { escapeHTML, safeURL } = window.BrowserSecurity;
 
     const formatPrice = value => window.CurrencyConfig?.formatPrice
         ? window.CurrencyConfig.formatPrice(value)
@@ -96,15 +91,15 @@
                     if (typeof images === 'string') {
                         try { images = JSON.parse(images); } catch { images = []; }
                     }
-                    const image = images?.[0]?.src || '';
+                    const image = safeURL(images?.[0]?.src, { allowDataImage: true });
                     const slug = encodeURIComponent(product.slug || product.id || '');
                     return `<a class="search-result-item" href="/product.html?slug=${slug}">
-                        ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}">` : ''}
+                        ${image ? `<img src="${escapeHTML(image)}" alt="${escapeHTML(product.name)}">` : ''}
                         <div class="search-result-info">
-                            <h4>${escapeHtml(product.name)}</h4>
-                            <p>${escapeHtml(product.category || '')}</p>
+                            <h4>${escapeHTML(product.name)}</h4>
+                            <p>${escapeHTML(product.category || '')}</p>
                         </div>
-                        <span class="search-result-price">${escapeHtml(formatPrice(product.price))}</span>
+                        <span class="search-result-price">${escapeHTML(formatPrice(product.price))}</span>
                     </a>`;
                 }).join('');
             }, 220);
