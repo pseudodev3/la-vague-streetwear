@@ -177,7 +177,7 @@ const CartState = {
         const currentQty = existingItem ? existingItem.quantity : 0;
         const newTotalQty = currentQty + item.quantity;
 
-        // Unified Stock Check (Static + API fallback)
+        // Live inventory is authoritative. Never assume stock when the API is unavailable.
         try {
             const stock = await this.getAvailableStock(item.id, item.color, item.size);
             if (newTotalQty > stock) {
@@ -200,40 +200,25 @@ const CartState = {
     },
 
     /**
-     * Helper to get stock from any source
+     * Read sellable stock from the live API only.
+     * Fail closed so an outage can never create overselling.
      */
     async getAvailableStock(productId, color, size) {
-        // 1. Try static ProductAPI first
-        if (typeof ProductAPI !== 'undefined') {
-            const staticProduct = ProductAPI.getById(productId);
-            if (staticProduct) {
-                const inventory = typeof staticProduct.inventory === 'string' ? JSON.parse(staticProduct.inventory || '{}') : (staticProduct.inventory || {});
-                const stock = parseInt(inventory[`${color}-${size}`]);
-                if (!isNaN(stock)) return stock;
-            }
-        }
-
-        // 2. Fallback to API check
         try {
-            const API_URL = '/api';
-            const response = await fetch(`${API_URL}/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
-            
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && typeof data.available !== 'undefined') {
-                    return parseInt(data.available);
-                }
-            } else if (response.status === 404) {
-                // Product not in DB, but we might have it in static data or it might be a newly added product
-                // If it's a 404, we don't assume availability if we can't find it
-                console.warn(`[CART] Product ${productId} not found in database`);
-                return 0; 
-            }
-        } catch (e) {
-            console.warn('[CART] API stock check unavailable, assuming available');
-        }
+            const response = await fetch(`/api/products/inventory/check/${productId}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
 
-        return 999; // Safe default if server is DOWN (allow purchase)
+            if (!response.ok) {
+                console.warn(`[CART] Live stock unavailable for ${productId}: ${response.status}`);
+                return 0;
+            }
+
+            const data = await response.json();
+            const available = Number.parseInt(data.available, 10);
+            return data.success && Number.isFinite(available) ? Math.max(0, available) : 0;
+        } catch (error) {
+            console.warn('[CART] Live stock check unavailable:', error);
+            return 0;
+        }
     },
     
     addToWishlist(productId) {
