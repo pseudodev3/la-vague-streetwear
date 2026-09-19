@@ -8,13 +8,13 @@ Repository: `pseudodev3/la-vague-streetwear`
 
 Current working branch: `polish/lookbook-seo-cleanup`
 
-Current branch head: `a0a6298613f53c82d3910cc9eb06d75f8f17bbb2`
+Current work is tracked in **PR #4**: `Refresh Lookbook, brand icons, SEO, and repository hygiene`.
 
 Base branch: `main`
 
-The branch is currently **53 commits ahead of main and 0 behind**. Do not restart this work from `main`; continue from the branch above.
+Do not restart this work from `main`; continue from `polish/lookbook-seo-cleanup`.
 
-There is **no PR for this branch yet**. The normal CI workflow only runs on PRs to `main` or pushes to `main`/`develop`, so the next safe step is to open a PR and use the PR checks as the authority before merging.
+GitHub Actions is currently unavailable because the account's monthly Actions allocation is exhausted. The PR workflow failures occur before a runner starts (zero executed steps / runner id 0), so they are infrastructure/quota failures rather than test or build failures.
 
 ## User request being implemented
 
@@ -204,29 +204,44 @@ Deployment:
 
 ## Current validation status
 
-A pair of temporary one-off cleanup workflows were attempted during the audit but failed before a runner actually started. They were removed and should not be treated as product failures.
+PR #4 is open and GitHub reports it as mergeable.
 
-Because the normal CI workflow does **not** run on arbitrary feature-branch pushes, this branch has not yet received authoritative CI validation.
+The GitHub Actions jobs currently fail before any runner starts because the monthly Actions allocation is exhausted. Re-running the workflow reproduced the same zero-step runner failure. Do **not** interpret the red checks as code failures.
+
+Manual repository validation performed after that discovery:
+
+- `package.json`, `package-lock.json`, and `site.webmanifest` parse successfully.
+- `package.json` and the root lockfile dependency sets match; the removed `sitemap` package is absent from both.
+- all changed JavaScript files that still exist pass a syntax parse check.
+- Vite build inputs referenced by `scripts/copy-static-assets.js` all exist.
+- storefront files no longer reference the deleted `favicon.svg`, `assets/urbannights.png`, newsletter handlers, or the deleted `I18n` runtime.
+- stale favicon references in the PWA generator and order-email fallback were corrected.
+- cart/wishlist translations were moved onto the surviving `translations.js` runtime.
+- product transformation now preserves `average_rating` and `review_count`, allowing the new Product JSON-LD aggregate rating path to work.
+
+### Deployment blocker
+
+Do **not** merge PR #4 while GitHub Actions remains unavailable unless the Render backend will be deployed separately.
+
+Reason: this branch adds `GET /api/sitemap.xml` to the Render API and changes Netlify so `/sitemap.xml` proxies to that endpoint. The normal Render deploy is triggered only by the `Deploy to Render` GitHub Actions job after a push to `main`. With Actions exhausted, merging could update the Netlify frontend without deploying the required backend route, leaving the production sitemap proxy pointed at an undeployed endpoint.
 
 ### Next steps
 
-1. Open a PR from `polish/lookbook-seo-cleanup` to `main`.
-2. Wait for the PR checks:
+1. Keep PR #4 open until either GitHub Actions minutes reset or Render can be deployed through another confirmed path.
+2. When runners are available, run the PR workflow and check:
    - Quality Checks
    - Unit Tests
    - Build Frontend
    - Build Docker Image
    - Security Audit
-3. If anything fails, inspect the exact failing job and patch the branch. Do not guess.
-4. Pay special attention to `npm ci` because `package.json` / `package-lock.json` were intentionally pruned to remove the unused `sitemap` dependency.
-5. Confirm the Vite build still copies the official logo, manifest, robots file, sitemap fallback and runtime assets.
-6. Review the deploy preview on mobile, especially:
+3. Review the deploy preview on mobile, especially:
    - Lookbook grid proportions
    - lightbox title/description
    - favicon/app icon appearance
    - homepage after newsletter removal
-7. After CI and preview are good, merge via PR.
-8. Then watch the `main` production pipeline and confirm Netlify + Render are healthy.
+4. After validation is green, merge PR #4.
+5. Confirm the `main` pipeline deploys Render before treating the sitemap change as live.
+6. Confirm Netlify + Render health after deployment.
 
 ## Recent main state before this branch
 
