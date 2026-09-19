@@ -195,7 +195,9 @@ const CartState = {
         }
         
         this.saveCart();
-        this.showToast(`${item.name} added to cart`, 'success', 'View Cart');
+        const addedToCartText = typeof window.t === 'function' ? window.t('toast.addedToCart') : 'added to cart';
+        const viewCartText = typeof window.t === 'function' ? window.t('toast.viewCart') : 'View Cart';
+        this.showToast(`${item.name} ${addedToCartText}`, 'success', viewCartText);
     },
 
     /**
@@ -226,12 +228,14 @@ const CartState = {
         if (index > -1) {
             this.wishlist.splice(index, 1);
             this.saveWishlist();
-            this.showToast('Removed from wishlist', 'success');
+            const message = typeof window.t === 'function' ? window.t('toast.removedFromWishlist') : 'Removed from wishlist';
+            this.showToast(message, 'success');
             return false;
         } else {
             this.wishlist.push(productId);
             this.saveWishlist();
-            this.showToast('Added to wishlist', 'success');
+            const message = typeof window.t === 'function' ? window.t('toast.addedToWishlist') : 'Added to wishlist';
+            this.showToast(message, 'success');
             return true;
         }
     },
