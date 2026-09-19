@@ -1,0 +1,66 @@
+name: One-time Repository Cleanup
+
+on:
+  push:
+    branches: [polish/lookbook-seo-cleanup]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out cleanup branch
+        uses: actions/checkout@v4
+        with:
+          ref: polish/lookbook-seo-cleanup
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Remove unused sitemap dependency
+        run: npm uninstall sitemap --package-lock-only --ignore-scripts
+
+      - name: Verify retired storefront files stay retired
+        shell: bash
+        run: |
+          test ! -e favicon.svg
+          test ! -e assets/ahhhh.jpg
+          test ! -e assets/urbannights.png
+          test ! -e src/scripts/script.js
+          test ! -e src/scripts/i18n.js
+          test ! -e src/services/seoService.js
+          test ! -e tests/unit/i18n.test.js
+          ! grep -R "favicon.svg" --exclude-dir=.git --exclude=package-lock.json .
+          ! grep -R "urbannights.png" --exclude-dir=.git .
+          ! grep -R "src/scripts/script.js" --exclude-dir=.git .
+          ! grep -R "src/scripts/i18n.js" --exclude-dir=.git .
+          ! grep -R "newsletterForm\|newsletterEmail" --exclude-dir=.git .
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate cleanup
+        run: |
+          npm run lint
+          npm run type-check
+          npm run test:ci
+          npm run build
+          npm audit --audit-level=moderate
+
+      - name: Remove one-time workflow
+        run: rm .github/workflows/one-time-repository-cleanup.yml
+
+      - name: Commit lockfile cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json .github/workflows/one-time-repository-cleanup.yml
+          git commit -m "refactor: remove unused sitemap dependency"
+          git push origin HEAD:polish/lookbook-seo-cleanup
