@@ -53,7 +53,7 @@ function generateOrderItems(items) {
                 <table cellpadding="0" cellspacing="0" border="0" width="100%">
                     <tr>
                         <td width="80" style="vertical-align: top;">
-                            <img src="${item.image || 'https://la-vague.store/favicon.svg'}" alt="${item.name}" style="width: 70px; height: 90px; object-fit: cover; background: #f4f4f4;" />
+                            <img src="${item.image || 'https://la-vague.store/la-vague-red-wordmark.png'}" alt="${item.name}" style="width: 70px; height: 90px; object-fit: cover; background: #f4f4f4;" />
                         </td>
                         <td style="vertical-align: top; padding-left: 20px;">
                             <p style="margin: 0; font-size: 14px; font-weight: 700; text-transform: uppercase; color: ${BRAND.secondary}; letter-spacing: 0.5px;">${item.name}</p>
