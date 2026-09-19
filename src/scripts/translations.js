@@ -358,7 +358,7 @@ function applyTranslations() {
     
         // Get dynamic values for variables
         const threshold = (window.GlobalSettings) ?
-            window.GlobalSettings.settings.freeShippingThreshold : 0;    const formattedThreshold = (window.CurrencyConfig) ? 
+            window.GlobalSettings.settings.freeShippingThreshold : 150000;    const formattedThreshold = (window.CurrencyConfig) ? 
         window.CurrencyConfig.formatPrice(threshold) : `₦${threshold.toLocaleString()}`;
     
     const vars = { threshold: formattedThreshold };
