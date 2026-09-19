@@ -1,4 +1,24 @@
 # LA VAGUE API - Production Dockerfile
+
+# Build native runtime dependencies in a disposable stage.
+FROM node:20-bookworm-slim AS dependencies
+
+ENV NODE_ENV=production \
+    CI=true
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+COPY scripts/setup-husky.js ./scripts/setup-husky.js
+
+RUN npm ci --omit=dev \
+    && npm cache clean --force
+
+# Runtime stays slim: no compiler toolchain is shipped to production.
 FROM node:20-bookworm-slim AS production
 
 ENV NODE_ENV=production \
@@ -7,20 +27,12 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-# dumb-init gives Node correct signal handling as PID 1.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends dumb-init ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# The prepare lifecycle script references this file, so copy it before npm ci.
+COPY --from=dependencies /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
-COPY scripts/setup-husky.js ./scripts/setup-husky.js
-
-# Install only runtime dependencies. CI=true makes the Husky setup script a no-op.
-RUN npm ci --omit=dev \
-    && npm cache clean --force
-
-# The Render/Docker service is API-only; frontend files are built and hosted by Netlify.
 COPY server.js ./server.js
 COPY src ./src
 COPY email-templates ./email-templates
