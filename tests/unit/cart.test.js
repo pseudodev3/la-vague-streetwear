@@ -11,20 +11,24 @@ let CartState;
 let CurrencyConfig;
 
 beforeAll(async () => {
-  global.ProductAPI = {
-    getById: id => mockProducts.find(product => product.id === id),
-    getAll: () => mockProducts
-  };
-
   global.CATEGORIES = [
     { id: 'hoodies', name: 'Hoodies' },
     { id: 'tees', name: 'T-Shirts' }
   ];
 
   global.I18n = undefined;
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: false,
-    json: async () => ({})
+  global.fetch = vi.fn().mockImplementation(async url => {
+    if (String(url).includes('/products/inventory/check/')) {
+      return {
+        ok: true,
+        json: async () => ({ success: true, available: 12, inStock: true })
+      };
+    }
+
+    return {
+      ok: true,
+      json: async () => ({ success: true, rates: { NGN: 1 } })
+    };
   });
 
   await import('../../src/scripts/cart.js');
@@ -97,6 +101,22 @@ describe('CartState', () => {
     }));
 
     expect(getCart()).toHaveLength(2);
+  });
+
+  it('fails closed when live stock cannot be verified', async () => {
+    global.fetch.mockRejectedValueOnce(new Error('network down'));
+    const showToast = vi.spyOn(CartState, 'showToast').mockImplementation(() => {});
+    const item = createMockCartItem({
+      id: 'lv-hoodie-001',
+      color: 'Black',
+      size: 'L',
+      quantity: 1
+    });
+
+    await CartState.addToCart(item);
+
+    expect(getCart()).toEqual([]);
+    expect(showToast).toHaveBeenCalledWith('Sorry, this item is out of stock', 'error');
   });
 
   it('does not exceed known stock', async () => {
