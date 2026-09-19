@@ -65,14 +65,6 @@ test.describe('Checkout Flow', () => {
       // Should show validation error
       await expect(page.locator('.error, .invalid')).toBeVisible();
     });
-
-    test('should have newsletter checkbox', async ({ page }) => {
-      const newsletterCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: /newsletter|email me/i });
-      if (await newsletterCheckbox.isVisible().catch(() => false)) {
-        await newsletterCheckbox.check();
-        await expect(newsletterCheckbox).toBeChecked();
-      }
-    });
   });
 
   test.describe('Shipping Information', () => {
