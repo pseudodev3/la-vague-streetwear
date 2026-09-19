@@ -55,6 +55,12 @@ const TRANSLATIONS = {
             checkout: 'Checkout',
             remove: 'Remove'
         },
+        toast: {
+            addedToCart: 'added to cart',
+            addedToWishlist: 'Added to wishlist',
+            removedFromWishlist: 'Removed from wishlist',
+            viewCart: 'View Cart'
+        },
         shop: {
             filters: 'Filters',
             categories: 'Categories',
@@ -161,6 +167,12 @@ const TRANSLATIONS = {
             checkout: 'Commander',
             remove: 'Retirer'
         },
+        toast: {
+            addedToCart: 'ajouté au panier',
+            addedToWishlist: 'Ajouté aux favoris',
+            removedFromWishlist: 'Retiré des favoris',
+            viewCart: 'Voir le panier'
+        },
         shop: {
             filters: 'Filtres',
             categories: 'Catégories',
@@ -266,6 +278,12 @@ const TRANSLATIONS = {
             subtotal: 'المجموع الفرعي',
             checkout: 'إتمام الشراء',
             remove: 'إزالة'
+        },
+        toast: {
+            addedToCart: 'تمت إضافته إلى السلة',
+            addedToWishlist: 'تمت الإضافة إلى المفضلة',
+            removedFromWishlist: 'تمت الإزالة من المفضلة',
+            viewCart: 'عرض السلة'
         },
         shop: {
             filters: 'فلاتر',
