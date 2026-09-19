@@ -356,11 +356,13 @@ function showToast(message, type = 'success', action = null) {
         ${action ? `<span class="toast-action" onclick="window.openCart()">${action}</span>` : ''}
     `;
     
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
     elements.toastContainer.appendChild(toast);
     
     setTimeout(() => {
-        toast.style.animation = 'toast-in 0.3s ease reverse';
-        setTimeout(() => toast.remove(), 300);
+        toast.style.animation = 'lv-toast-out 160ms var(--lv-ease) forwards';
+        setTimeout(() => toast.remove(), 180);
     }, 4000);
 }
 
