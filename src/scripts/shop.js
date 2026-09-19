@@ -253,7 +253,7 @@ function renderProducts() {
         }
 
         return `
-        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-product-id="${safeId}">
+        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-product-id="${safeId}" data-shop-action="open-product" data-slug="${safeSlug}" role="link" tabindex="0">
             <div class="product-image-wrapper" data-shop-action="open-product" data-slug="${safeSlug}">
                 ${badgeHtml}
                 <img src="${firstSrc}" alt="${firstAlt}" class="product-image" loading="lazy">
@@ -670,6 +670,14 @@ window.openProductPage = function(slug) {
 function bindEvents() {
     if (eventsBound) return;
     eventsBound = true;
+
+    elements.productsGrid?.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const card = event.target.closest('.product-card[data-shop-action="open-product"]');
+        if (!card || event.target.closest('button')) return;
+        event.preventDefault();
+        window.openProductPage(card.dataset.slug);
+    });
 
     elements.productsGrid?.addEventListener('click', event => {
         const control = event.target.closest('[data-shop-action]');
