@@ -250,8 +250,6 @@ const GlobalSettings = {
         document.querySelectorAll('.dynamic-express-rate').forEach(element => {
             element.textContent = format(expressShippingRate);
         });
-
-        if (typeof applyTranslations === 'function') applyTranslations();
     }
 };
 
