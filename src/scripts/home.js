@@ -8,11 +8,36 @@ const state = {
     wishlist: JSON.parse(localStorage.getItem('wishlist')) || [],
     currentLook: 0,
     lookbookImages: [
-        { src: '/assets/urbannights.png', title: 'Urban Nights', number: '01' },
-        { src: '/assets/daylight.jpg', title: 'Daylight', number: '02' },
-        { src: '/assets/skatepark.jpg', title: 'Skate Park', number: '03' },
-        { src: '/assets/downtown.jpg', title: 'Downtown', number: '04' },
-        { src: '/assets/afterhours.jpg', title: 'After Hours', number: '05' }
+        {
+            src: '/assets/urbannights.jpg',
+            title: 'Rear View',
+            number: '01',
+            description: 'Brown oversized graphic tee, framed from the back so the artwork carries the whole shot.'
+        },
+        {
+            src: '/assets/daylight.jpg',
+            title: 'Poolside Signal',
+            number: '02',
+            description: 'Black crop top, white logo headwrap, hard daylight. Clean branding with no extra noise.'
+        },
+        {
+            src: '/assets/skatepark.jpg',
+            title: 'Concrete Grey',
+            number: '03',
+            description: 'An oversized grey graphic tee against raw concrete, blue rails, and deep green.'
+        },
+        {
+            src: '/assets/downtown.jpg',
+            title: 'Double Vision',
+            number: '04',
+            description: 'Two relaxed shirts, two viewpoints. Front detailing meets oversized back lettering.'
+        },
+        {
+            src: '/assets/afterhours.jpg',
+            title: "The Wave Doesn't Stop",
+            number: '05',
+            description: "A light blue statement shirt seen from behind, built around the collection's clearest message."
+        }
     ]
 };
 
@@ -44,8 +69,6 @@ async function initHome() {
         searchClose: document.getElementById('searchClose'),
         searchInput: document.getElementById('searchInput'),
         searchResults: document.getElementById('searchResults'),
-        newsletterForm: document.getElementById('newsletterForm'),
-        newsletterEmail: document.getElementById('newsletterEmail'),
         lightbox: document.getElementById('lightbox'),
         lightboxOverlay: document.getElementById('lightboxOverlay'),
         lightboxClose: document.getElementById('lightboxClose'),
@@ -54,6 +77,7 @@ async function initHome() {
         lightboxImage: document.getElementById('lightboxImage'),
         lightboxNumber: document.getElementById('lightboxNumber'),
         lightboxTitle: document.getElementById('lightboxTitle'),
+        lightboxDescription: document.getElementById('lightboxDescription'),
         lookbookItems: document.querySelectorAll('.lookbook-item'),
         toastContainer: document.getElementById('toastContainer')
     };
@@ -313,6 +337,7 @@ function updateLightbox() {
     if (elements.lightboxImage) elements.lightboxImage.alt = look.title;
     if (elements.lightboxNumber) elements.lightboxNumber.textContent = look.number;
     if (elements.lightboxTitle) elements.lightboxTitle.textContent = look.title;
+    if (elements.lightboxDescription) elements.lightboxDescription.textContent = look.description || '';
 }
 
 function prevLook() {
@@ -343,31 +368,6 @@ function showToast(message, type = 'success', action = null) {
         toast.style.animation = 'toast-in 0.3s ease reverse';
         setTimeout(() => toast.remove(), 300);
     }, 4000);
-}
-
-// ==========================================
-// NEWSLETTER
-// ==========================================
-function handleNewsletterSubmit(e) {
-    e.preventDefault();
-    const email = elements.newsletterEmail.value;
-    const submitBtn = elements.newsletterForm.querySelector('button[type="submit"]');
-    
-    submitBtn.textContent = 'Subscribing...';
-    submitBtn.disabled = true;
-    
-    setTimeout(() => {
-        submitBtn.textContent = 'Subscribed!';
-        submitBtn.style.background = '#22c55e';
-        elements.newsletterForm.reset();
-        showToast('Welcome to the wave! Check your email.', 'success');
-        
-        setTimeout(() => {
-            submitBtn.textContent = 'Subscribe';
-            submitBtn.style.background = '';
-            submitBtn.disabled = false;
-        }, 2000);
-    }, 1000);
 }
 
 // ==========================================
@@ -402,9 +402,6 @@ function bindEvents() {
     elements.lightboxOverlay?.addEventListener('click', closeLightbox);
     elements.lightboxPrev?.addEventListener('click', prevLook);
     elements.lightboxNext?.addEventListener('click', nextLook);
-    
-    // Newsletter
-    elements.newsletterForm?.addEventListener('submit', handleNewsletterSubmit);
     
     // Keyboard
     document.addEventListener('keydown', (e) => {
