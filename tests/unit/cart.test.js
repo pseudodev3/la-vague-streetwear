@@ -17,7 +17,7 @@ beforeAll(async () => {
   ];
 
   global.I18n = undefined;
-  global.fetch = vi.fn().mockImplementation(async url => {
+  const fetchMock = vi.fn().mockImplementation(async url => {
     if (String(url).includes('/products/inventory/check/')) {
       return {
         ok: true,
@@ -30,6 +30,8 @@ beforeAll(async () => {
       json: async () => ({ success: true, rates: { NGN: 1 } })
     };
   });
+  global.fetch = fetchMock;
+  window.fetch = fetchMock;
 
   await import('../../src/scripts/cart.js');
   CartState = window.CartState;
@@ -105,6 +107,7 @@ describe('CartState', () => {
 
   it('fails closed when live stock cannot be verified', async () => {
     global.fetch.mockRejectedValueOnce(new Error('network down'));
+    window.fetch = global.fetch;
     const showToast = vi.spyOn(CartState, 'showToast').mockImplementation(() => {});
     const item = createMockCartItem({
       id: 'lv-hoodie-001',
