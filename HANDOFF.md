@@ -142,6 +142,47 @@ The active translation runtime remains `src/scripts/translations.js`.
 The old `initLegacySelectors` naming/plumbing on home/shop/product was replaced with a smaller active page-locale bootstrap. Do not restore the removed duplicate i18n runtime unless a real regression proves it is needed.
 
 
+## Latest continuation
+
+### English-only storefront
+
+The storefront is now intentionally English-only.
+
+Removed:
+- the shared language selector from navigation
+- French / Arabic language options
+- page locale bootstraps and preferred-language runtime behavior
+- the duplicate translation dictionary/runtime
+- translation script tags and `data-i18n` hooks from active storefront pages
+- stale multilingual preference language in the privacy copy
+
+Currency formatting remains intact and is separate from the removed multilingual behavior.
+
+### Toast redesign
+
+Storefront toasts were changed from colored-edge cards to a neutral dark floating surface.
+
+Current treatment:
+- neutral border on all states
+- small internal status dot for success/error instead of colored card edges
+- softer vertical enter/exit motion
+- compact spacing and typography
+- accessible status/alert semantics
+- reduced-motion handling
+
+### Manual validation performed
+
+Because GitHub Actions cannot allocate runners this month, validation was performed statically on the branch:
+- affected storefront JavaScript parses successfully
+- removed translation runtime has no remaining active storefront references
+- language selector / locale runtime references are gone from affected pages and shared UI
+- product free-shipping copy no longer depends on translation metadata
+- official logo / retired favicon cleanup remains consistent
+- package and lockfile dependency roots remain aligned after sitemap dependency removal
+- build-copy inputs referenced by `scripts/copy-static-assets.js` exist
+- PR #4 remains mergeable
+- commerce/payment authority was not moved into the browser and payment/inventory routes were not modified by this continuation
+
 ## UI skill requirement
 
 For **any future UI/UX work** on LA VAGUE, use these two skills as explicit design constraints before making visual changes:
@@ -204,44 +245,25 @@ Deployment:
 
 ## Current validation status
 
-PR #4 is open and GitHub reports it as mergeable.
+PR #4 is mergeable, but GitHub Actions cannot currently execute because the account's monthly Actions allowance has been exhausted. Multiple attempts failed before any runner started; the jobs had no executed steps.
 
-The GitHub Actions jobs currently fail before any runner starts because the monthly Actions allocation is exhausted. Re-running the workflow reproduced the same zero-step runner failure. Do **not** interpret the red checks as code failures.
+Do not spend time debugging those zero-step failures as repository failures.
 
-Manual repository validation performed after that discovery:
-
-- `package.json`, `package-lock.json`, and `site.webmanifest` parse successfully.
-- `package.json` and the root lockfile dependency sets match; the removed `sitemap` package is absent from both.
-- all changed JavaScript files that still exist pass a syntax parse check.
-- Vite build inputs referenced by `scripts/copy-static-assets.js` all exist.
-- storefront files no longer reference the deleted `favicon.svg`, `assets/urbannights.png`, newsletter handlers, or the deleted `I18n` runtime.
-- stale favicon references in the PWA generator and order-email fallback were corrected.
-- cart/wishlist translations were moved onto the surviving `translations.js` runtime.
-- product transformation now preserves `average_rating` and `review_count`, allowing the new Product JSON-LD aggregate rating path to work.
-
-### Deployment blocker
-
-Do **not** merge PR #4 while GitHub Actions remains unavailable unless the Render backend will be deployed separately.
-
-Reason: this branch adds `GET /api/sitemap.xml` to the Render API and changes Netlify so `/sitemap.xml` proxies to that endpoint. The normal Render deploy is triggered only by the `Deploy to Render` GitHub Actions job after a push to `main`. With Actions exhausted, merging could update the Netlify frontend without deploying the required backend route, leaving the production sitemap proxy pointed at an undeployed endpoint.
+Manual/static validation for the current branch is documented above.
 
 ### Next steps
 
-1. Keep PR #4 open until either GitHub Actions minutes reset or Render can be deployed through another confirmed path.
-2. When runners are available, run the PR workflow and check:
-   - Quality Checks
-   - Unit Tests
-   - Build Frontend
-   - Build Docker Image
-   - Security Audit
-3. Review the deploy preview on mobile, especially:
-   - Lookbook grid proportions
-   - lightbox title/description
-   - favicon/app icon appearance
-   - homepage after newsletter removal
-4. After validation is green, merge PR #4.
-5. Confirm the `main` pipeline deploys Render before treating the sitemap change as live.
-6. Confirm Netlify + Render health after deployment.
+1. Review the deploy preview if Netlify produces one independently of GitHub Actions.
+2. Merge PR #4 when ready to ship this cleanup.
+3. Watch Netlify and Render production deployment after the merge.
+4. Smoke-test the live storefront on mobile:
+   - homepage Lookbook and lightbox
+   - shop/product cart interactions
+   - neutral toast appearance
+   - checkout entry
+   - official logo/favicon/app icon
+   - `/sitemap.xml`
+5. When GitHub Actions minutes reset, let the normal pipeline become the automated authority again.
 
 ## Recent main state before this branch
 
