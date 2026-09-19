@@ -7,7 +7,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import pinoHttp from 'pino-http';
 
-import { db, USE_POSTGRES } from './src/config/db.js';
+import { db, query, USE_POSTGRES } from './src/config/db.js';
 import { initDatabase } from './src/services/dbInit.js';
 import { globalErrorHandler, notFoundHandler } from './src/middleware/errorHandler.js';
 import { csrfToken } from './src/middleware/csrf.js';
@@ -149,6 +149,53 @@ app.get('/api/health', (req, res) => {
 
 app.get('/api/csrf-token', csrfToken, (req, res) => {
     res.json({ success: true, csrfToken: req.csrfToken });
+});
+
+app.get('/api/sitemap.xml', async (req, res, next) => {
+    const baseUrl = (process.env.FRONTEND_URL || 'https://la-vague.store').replace(/\/$/, '');
+    const staticPaths = [
+        '/',
+        '/shop',
+        '/contact',
+        '/faq',
+        '/shipping',
+        '/returns',
+        '/refund-policy',
+        '/privacy-policy',
+        '/terms-of-service'
+    ];
+
+    const escapeXml = value =>
+        String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+
+    try {
+        const result = await query('SELECT slug FROM products ORDER BY created_at DESC');
+        const productPaths = result.rows
+            .map(product => product.slug)
+            .filter(Boolean)
+            .map(slug => `/product?slug=${encodeURIComponent(slug)}`);
+        const urls = [...staticPaths, ...productPaths];
+        const today = new Date().toISOString().slice(0, 10);
+        const xml = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+            ...urls.map(path =>
+                `  <url><loc>${escapeXml(`${baseUrl}${path}`)}</loc><lastmod>${today}</lastmod></url>`
+            ),
+            '</urlset>'
+        ].join('\n');
+
+        res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+        res.send(xml);
+    } catch (error) {
+        next(error);
+    }
 });
 
 app.use('/api/products', productRoutes);
