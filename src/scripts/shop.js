@@ -181,10 +181,7 @@ async function initShop() {
     }
     
     bindEvents();
-    initLocaleSelector();
-    applyPageLocale();
-    
-    const urlParams = new URLSearchParams(window.location.search);
+const urlParams = new URLSearchParams(window.location.search);
     const category = urlParams.get('category');
     // Sanitize input: only allow categories that actually exist
     if (category && typeof CATEGORIES !== 'undefined' && CATEGORIES.find(c => c.id === category)) {
@@ -717,31 +714,6 @@ function bindEvents() {
         }
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
     });
-}
-
-function initLocaleSelector() {
-    const btn = document.getElementById('localeBtn'), drop = document.getElementById('localeDropdown');
-    if (!btn || !drop) return;
-    const curr = CurrencyConfig.getCurrentCurrency(), lang = localStorage.getItem('preferredLanguage') || 'en';
-    updateLocaleDisplay(curr, lang);
-    btn.addEventListener('click', (e) => { e.stopPropagation(); drop.classList.toggle('active'); });
-    document.addEventListener('click', () => drop.classList.remove('active'));
-    drop.addEventListener('click', (e) => e.stopPropagation());
-}
-
-function updateLocaleDisplay(currency, lang) {
-    const el = document.getElementById('localeCurrent');
-    if (el) {
-        const symbols = { USD: '$', NGN: '₦', EUR: '€', GBP: '£' };
-        el.textContent = `${symbols[currency]} · ${lang.toUpperCase()}`;
-    }
-}
-
-function applyPageLocale() {
-    const savedLang = localStorage.getItem('preferredLanguage') || 'en';
-    document.documentElement.lang = savedLang;
-    document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
-    if (typeof applyTranslations === 'function') applyTranslations();
 }
 
 // Overrides for CartState
