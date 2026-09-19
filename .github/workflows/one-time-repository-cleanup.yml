@@ -37,11 +37,11 @@ jobs:
           test ! -e src/scripts/i18n.js
           test ! -e src/services/seoService.js
           test ! -e tests/unit/i18n.test.js
-          ! grep -R "favicon.svg" --exclude-dir=.git --exclude=package-lock.json .
-          ! grep -R "urbannights.png" --exclude-dir=.git .
-          ! grep -R "src/scripts/script.js" --exclude-dir=.git .
-          ! grep -R "src/scripts/i18n.js" --exclude-dir=.git .
-          ! grep -R "newsletterForm\|newsletterEmail" --exclude-dir=.git .
+          ! grep -R "favicon.svg" --exclude-dir=.git --exclude=package-lock.json --exclude=one-time-repository-cleanup.yml .
+          ! grep -R "urbannights.png" --exclude-dir=.git --exclude=one-time-repository-cleanup.yml .
+          ! grep -R "src/scripts/script.js" --exclude-dir=.git --exclude=one-time-repository-cleanup.yml .
+          ! grep -R "src/scripts/i18n.js" --exclude-dir=.git --exclude=one-time-repository-cleanup.yml .
+          ! grep -R "newsletterForm\|newsletterEmail" --exclude-dir=.git --exclude=one-time-repository-cleanup.yml .
 
       - name: Install dependencies
         run: npm ci
