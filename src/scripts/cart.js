@@ -96,6 +96,8 @@ const CartState = {
             }
         } catch (error) {
             console.error('[CART] Stock check failed:', error);
+            this.showToast('Unable to verify stock right now', 'error');
+            return false;
         }
         
         if (existingItem) {
@@ -176,7 +178,11 @@ const CartState = {
                 this.showToast(`Only ${stock} items available in stock`, 'error');
                 return;
             }
-        } catch (error) {}
+        } catch (error) {
+            console.error('[CART] Quantity stock check failed:', error);
+            this.showToast('Unable to verify stock right now', 'error');
+            return;
+        }
 
         item.quantity = newQty;
         this.saveCart();
