@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /api/
-Disallow: /api-docs
-
-Sitemap: https://la-vague.store/sitemap.xml
