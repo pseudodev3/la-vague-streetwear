@@ -5,7 +5,7 @@ info:
     Backend API for LA VAGUE Streetwear e-commerce platform.
     
     ## Authentication
-    Admin endpoints require a Bearer token obtained via `/api/admin/login`.
+    Admin login creates a server-backed session in an HttpOnly `la_vague_admin_session` cookie. The session key is never returned to browser JavaScript.
     
     ## Rate Limiting
     - General API: 100 requests per 15 minutes per IP
@@ -27,8 +27,6 @@ servers:
   - url: http://localhost:3001/api
     description: Local development
 
-security:
-  - BearerAuth: []
 
 tags:
   - name: Health
@@ -156,6 +154,8 @@ paths:
     get:
       tags: [Analytics]
       summary: Sales trend data
+      security:
+        - AdminSession: []
       parameters:
         - name: period
           in: query
@@ -170,6 +170,8 @@ paths:
     get:
       tags: [Analytics]
       summary: Customer metrics
+      security:
+        - AdminSession: []
       responses:
         '200':
           description: Total customers and lifetime value
@@ -205,10 +207,10 @@ paths:
 
 components:
   securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+    AdminSession:
+      type: apiKey
+      in: cookie
+      name: la_vague_admin_session
 
   schemas:
     OrderRequest:
