@@ -7,7 +7,7 @@
 export interface ProductColor {
     name: string;
     value: string;
-    imageIndex: number;
+    imageIndex?: number;
 }
 
 export interface ProductImage {
@@ -36,7 +36,9 @@ export interface Product {
     inventory: Record<string, number>;
     tags: string[];
     badge: string | null;
-    meta: ProductMeta;
+    meta?: ProductMeta;
+    average_rating?: number;
+    review_count?: number;
 }
 
 export interface Category {
