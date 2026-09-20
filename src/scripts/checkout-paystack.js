@@ -4,6 +4,7 @@
  */
 (function () {
     const API_URL = '/api';
+    const { escapeHTML } = window.BrowserSecurity;
 
     let PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || '';
     let configLoaded = false;
@@ -133,7 +134,7 @@
 
     function showPaymentPendingMessage(orderId) {
         pollAttempts = 0;
-        const safeOrderId = String(orderId).toUpperCase();
+        const safeOrderId = escapeHTML(String(orderId).toUpperCase());
         const content = `
             <div class="paystack-modal-icon paystack-modal-icon--pending" id="paystack-status-icon">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
@@ -149,7 +150,7 @@
             </div>
             <p class="paystack-modal-hint" id="paystack-status-hint">This usually takes a few seconds</p>
             <div class="paystack-modal-actions">
-                <button onclick="window.closePaystackModal()" class="paystack-modal-btn paystack-modal-btn--secondary">Close</button>
+                <button type="button" data-paystack-action="close" class="paystack-modal-btn paystack-modal-btn--secondary">Close</button>
             </div>
         `;
         showStyledModal(content);
@@ -249,6 +250,10 @@
         modal.id = 'paystack-modal';
         modal.innerHTML = `<div class="paystack-modal-overlay"><div class="paystack-modal-container">${content}</div></div>`;
         document.body.appendChild(modal);
+
+        modal.querySelector('[data-paystack-action="close"]')?.addEventListener('click', () => {
+            window.closePaystackModal();
+        });
     }
 
     window.closePaystackModal = function () {

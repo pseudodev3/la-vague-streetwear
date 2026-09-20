@@ -14,7 +14,14 @@ export interface ApiResponse<T = unknown> {
 export interface HealthCheckResponse {
     status: string;
     timestamp: string;
+    uptimeSeconds: number;
     database: string;
+}
+
+export interface ReadinessResponse {
+    status: 'ready' | 'not_ready';
+    timestamp: string;
+    database: 'reachable' | 'unavailable';
 }
 
 export interface ProductsResponse {

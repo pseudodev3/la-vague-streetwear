@@ -444,8 +444,7 @@ async function seedSettings() {
         { key: 'supportEmail', value: 'support@la-vague.store' },
         { key: 'freeShippingThreshold', value: '150000' },
         { key: 'standardShippingRate', value: '10000' },
-        { key: 'expressShippingRate', value: '25000' },
-        { key: 'currency_rates', value: JSON.stringify({ USD: 1, NGN: 1550, EUR: 0.94, GBP: 0.80 }) }
+        { key: 'expressShippingRate', value: '25000' }
     ];
 
     if (USE_POSTGRES) {

@@ -7,7 +7,7 @@
 export interface ProductColor {
     name: string;
     value: string;
-    imageIndex: number;
+    imageIndex?: number;
 }
 
 export interface ProductImage {
@@ -36,7 +36,9 @@ export interface Product {
     inventory: Record<string, number>;
     tags: string[];
     badge: string | null;
-    meta: ProductMeta;
+    meta?: ProductMeta;
+    average_rating?: number;
+    review_count?: number;
 }
 
 export interface Category {
@@ -67,19 +69,8 @@ export interface SizeGuides {
     pants: SizeGuide;
 }
 
-// Product API Types
-export interface ProductAPI {
-    getAll: () => Product[];
-    getById: (id: string) => Product | undefined;
-    getBySlug: (slug: string) => Product | undefined;
-    getByCategory: (category: string) => Product[];
-    getFeatured: () => Product[];
-    getNewArrivals: () => Product[];
-    getSale: () => Product[];
-    search: (query: string) => Product[];
-    checkInventory: (productId: string, color: string, size: string) => number;
-    getRelated: (productId: string, limit?: number) => Product[];
-    getCategories: () => Category[];
+// Storefront reference-data API. Sellable products come from /api/products.
+export interface ProductReferenceAPI {
     getSizeGuide: (type: string) => SizeGuide | null;
 }
 
@@ -136,23 +127,28 @@ export interface Order {
 
 // Global declarations
 declare global {
-    const PRODUCTS: Product[];
     const CATEGORIES: Category[];
     const SIZE_GUIDES: SizeGuides;
-    const ProductAPI: ProductAPI;
+    const ProductAPI: ProductReferenceAPI;
     const CartState: CartState & {
         saveCart: () => void;
         saveWishlist: () => void;
         updateCartCount: () => void;
         updateWishlistCount: () => void;
-        addToCart: (item: CartItem) => void;
+        addToCart: (item: CartItem) => Promise<boolean>;
         addToWishlist: (productId: string) => boolean;
         removeFromCart: (index: number) => void;
         removeFromWishlist: (index: number) => void;
-        updateCartItemQuantity: (index: number, delta: number) => void;
+        updateCartItemQuantity: (index: number, delta: number) => Promise<void>;
         showToast: (message: string, type?: string, action?: string | null) => void;
         renderCart: () => void;
         renderWishlist: () => void;
+    };
+    const BrowserSecurity: {
+        escapeHTML: (value: unknown) => string;
+        safeURL: (value: unknown, options?: { allowDataImage?: boolean }) => string;
+        safeClassToken: (value: unknown) => string;
+        safeColor: (value: unknown, fallback?: string) => string;
     };
 }
 

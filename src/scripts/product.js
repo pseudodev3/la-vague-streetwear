@@ -2,6 +2,8 @@
  * LA VAGUE - Product Detail Page JavaScript
  */
 
+const { escapeHTML: productEscapeHTML, safeURL: productSafeURL, safeClassToken: productSafeClassToken, safeColor: productSafeColor } = window.BrowserSecurity;
+
 // API Client for Product Detail
 const ProductDetailAPI = {
     async getProductBySlug(slug) {
@@ -76,7 +78,6 @@ const state = {
     selectedColor: null,
     selectedSize: null,
     quantity: 1,
-    usingStaticData: false,
     selectedRating: 0
 };
 
@@ -93,7 +94,6 @@ async function initProduct() {
     const dbProduct = await ProductDetailAPI.getProductBySlug(slug);
     if (dbProduct) {
         state.product = transformProduct(dbProduct);
-        state.usingStaticData = false;
     } else {
         const loading = document.getElementById('productLoading');
         if (loading) {
@@ -315,30 +315,36 @@ function renderProduct() {
     elements.productOriginalPrice.textContent = p.compareAtPrice ? CurrencyConfig.formatPrice(p.compareAtPrice) : '';
     elements.productShortDesc.textContent = p.description;
     elements.productDescription.textContent = p.description;
-    elements.productFeatures.innerHTML = p.features.map(f => `<li>${f}</li>`).join('');
+    elements.productFeatures.innerHTML = p.features.map(feature => `<li>${productEscapeHTML(feature)}</li>`).join('');
     
-    // Render Badge with Sold Out priority
+    // Render badge with sold-out priority.
     const badgeContainer = document.getElementById('productBadgeContainer');
     if (badgeContainer) {
         const inventory = typeof p.inventory === 'string' ? JSON.parse(p.inventory || '{}') : (p.inventory || {});
-        const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
+        const totalStock = Object.values(inventory).reduce(
+            (total, value) => total + (Number.parseInt(value, 10) || 0),
+            0
+        );
         const isSoldOut = totalStock === 0;
-        
+        const badge = String(p.badge || '').trim();
+
         if (isSoldOut) {
-            badgeContainer.innerHTML = `<span class="product-badge soldout" style="background: #6b7280 !important; color: white !important;">Sold Out</span>`;
-        } else if (p.badge && p.badge.toLowerCase() !== 'null' && p.badge.trim() !== '') {
-            badgeContainer.innerHTML = `<span class="product-badge ${p.badge.toLowerCase().replace(/\s+/g, '-')}">${p.badge}</span>`;
+            badgeContainer.innerHTML = '<span class="product-badge soldout">Sold Out</span>';
+        } else if (badge && badge.toLowerCase() !== 'null') {
+            badgeContainer.innerHTML = `<span class="product-badge ${productSafeClassToken(badge)}">${productEscapeHTML(badge)}</span>`;
         } else {
-            badgeContainer.innerHTML = '';
+            badgeContainer.replaceChildren();
         }
     }
 
     if (p.colors.length > 1) {
         elements.colorSelector.innerHTML = p.colors.map(color => `
-            <button class="color-btn ${state.selectedColor === color.name ? 'active' : ''}" 
-                    style="background-color: ${color.value}"
-                    onclick="window.selectColor('${color.name}')"
-                    title="${color.name}"></button>
+            <button type="button"
+                    class="color-btn ${state.selectedColor === color.name ? 'active' : ''}"
+                    style="background-color: ${productSafeColor(color.value)}"
+                    data-product-action="select-color"
+                    data-value="${productEscapeHTML(color.name)}"
+                    title="${productEscapeHTML(color.name)}"></button>
         `).join('');
     } else {
         elements.colorSelector.parentElement.style.display = 'none';
@@ -360,11 +366,16 @@ function renderSizes() {
         updateStockStatus();
         return;
     }
+
     elements.sizeSelector.innerHTML = p.sizes.map(size => {
-        const inStock = p.inventory[`${state.selectedColor}-${size}`] > 0;
-        return `<button class="size-btn ${state.selectedSize === size ? 'active' : ''} ${!inStock ? 'disabled' : ''}"
-                onclick="${inStock ? `window.selectSize('${size}')` : ''}" ${!inStock ? 'disabled' : ''}>${size}</button>`;
+        const inStock = Number(p.inventory[`${state.selectedColor}-${size}`] || 0) > 0;
+        return `<button type="button"
+                class="size-btn ${state.selectedSize === size ? 'active' : ''} ${!inStock ? 'disabled' : ''}"
+                data-product-action="select-size"
+                data-value="${productEscapeHTML(size)}"
+                ${!inStock ? 'disabled' : ''}>${productEscapeHTML(size)}</button>`;
     }).join('');
+
     elements.selectedSize.textContent = state.selectedSize || 'Select';
     updateStockStatus();
 }
@@ -408,34 +419,47 @@ function updateStockStatus() {
 
 function renderGallery() {
     const images = state.product.images || [];
-    const fallbackImage = {
-        src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000"><rect fill="%231f2937" width="800" height="1000"/><text fill="%239ca3af" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="32" dy=".3em">No Image</text></svg>',
-        alt: state.product.name
-    };
-    
+    const fallbackImage = { src: '/la-vague-red-wordmark.png', alt: state.product.name };
+
     if (images.length === 0) {
         elements.mainImage.src = fallbackImage.src;
-        elements.galleryThumbs.innerHTML = '';
+        elements.mainImage.alt = state.product.name;
+        elements.galleryThumbs.replaceChildren();
         return;
     }
-    
+
     const currentImage = images[state.currentImageIndex] || images[0] || fallbackImage;
-    elements.mainImage.src = currentImage.src;
-    elements.galleryThumbs.innerHTML = images.map((img, i) => `
-        <img src="${img.src}" class="gallery-thumb ${i === state.currentImageIndex ? 'active' : ''}" onclick="window.setImage(${i})">
-    `).join('');
+    elements.mainImage.src = productSafeURL(currentImage.src, { allowDataImage: true }) || fallbackImage.src;
+    elements.mainImage.alt = currentImage.alt || state.product.name;
+    elements.galleryThumbs.innerHTML = images.map((image, index) => {
+        const src = productEscapeHTML(productSafeURL(image.src, { allowDataImage: true }) || fallbackImage.src);
+        const alt = productEscapeHTML(image.alt || state.product.name);
+        return `
+            <button type="button" class="gallery-thumb-button" data-product-action="set-image" data-index="${index}" aria-label="View image ${index + 1}">
+                <img src="${src}" alt="${alt}" class="gallery-thumb ${index === state.currentImageIndex ? 'active' : ''}">
+            </button>
+        `;
+    }).join('');
 }
 
 async function renderRelatedProducts() {
     const all = await ProductDetailAPI.getAllProducts();
-    const related = all.filter(p => p.category === state.product.category && p.id !== state.product.id).slice(0, 4);
+    const related = all
+        .filter(product => product.category === state.product.category && product.id !== state.product.id)
+        .slice(0, 4);
     if (!elements.relatedGrid) return;
-    elements.relatedGrid.innerHTML = related.map(p => `
-        <article class="product-card" onclick="window.location.href='product.html?slug=${p.slug}'">
-            <img src="${p.images[0]?.src || ''}" alt="${p.name}">
-            <div class="product-info"><h3>${p.name}</h3><p>${CurrencyConfig.formatPrice(p.price)}</p></div>
-        </article>
-    `).join('');
+
+    elements.relatedGrid.innerHTML = related.map(product => {
+        const slug = encodeURIComponent(String(product.slug || product.id || ''));
+        const image = productEscapeHTML(productSafeURL(product.images?.[0]?.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
+        const name = productEscapeHTML(product.name);
+        return `
+            <a class="product-card" href="/product.html?slug=${slug}">
+                <img src="${image}" alt="${name}">
+                <div class="product-info"><h3>${name}</h3><p>${CurrencyConfig.formatPrice(Number(product.price) || 0)}</p></div>
+            </a>
+        `;
+    }).join('');
 }
 
 window.selectColor = (name) => { state.selectedColor = name; renderProduct(); };
@@ -443,6 +467,23 @@ window.selectSize = (size) => { state.selectedSize = size; renderSizes(); };
 window.setImage = (idx) => { state.currentImageIndex = idx; renderGallery(); };
 
 function bindEvents() {
+    elements.colorSelector?.addEventListener('click', event => {
+        const control = event.target.closest('[data-product-action="select-color"]');
+        if (control?.dataset.value) window.selectColor(control.dataset.value);
+    });
+
+    elements.sizeSelector?.addEventListener('click', event => {
+        const control = event.target.closest('[data-product-action="select-size"]');
+        if (control?.dataset.value && !control.disabled) window.selectSize(control.dataset.value);
+    });
+
+    elements.galleryThumbs?.addEventListener('click', event => {
+        const control = event.target.closest('[data-product-action="set-image"]');
+        if (!control) return;
+        const index = Number.parseInt(control.dataset.index, 10);
+        if (Number.isInteger(index)) window.setImage(index);
+    });
+
     elements.qtyMinus?.addEventListener('click', () => { 
         if (state.quantity > 1) { 
             state.quantity--; 
@@ -472,43 +513,15 @@ function bindEvents() {
 
     elements.addToCartBtn?.addEventListener('click', async () => {
         const size = state.selectedSize || 'OS';
-        
-        // Final stock check before adding to cart
-        let isAvailable = true;
-        if (!state.usingStaticData) {
-            try {
-                const API_URL = '/api';
-                const response = await fetch(`${API_URL}/products/inventory/check/${state.product.id}?color=${encodeURIComponent(state.selectedColor)}&size=${encodeURIComponent(size)}`);
-                
-                if (response.ok) {
-                    const stockCheck = await response.json();
-                    if (stockCheck && stockCheck.success && stockCheck.inStock === false) {
-                        isAvailable = false;
-                    }
-                } else if (response.status === 404) {
-                    // Fallback to local data if not found in DB
-                    const variantKey = `${state.selectedColor}-${size}`;
-                    const stock = state.product.inventory?.[variantKey] || 0;
-                    if (stock <= 0) isAvailable = false;
-                }
-            } catch (e) {
-                isAvailable = true; // Fallback to allowed on error
-            }
-        } else {
-            const variantKey = `${state.selectedColor}-${size}`;
-            const stock = state.product.inventory?.[variantKey] || 0;
-            if (stock <= 0) isAvailable = false;
-        }
-
-        if (!isAvailable) {
-            showToast('Sorry, this item is out of stock', 'error');
-            return;
-        }
 
         await CartState.addToCart({
-            id: state.product.id, name: state.product.name, price: state.product.price,
-            image: state.product.images[0].src, color: state.selectedColor,
-            size: size, quantity: state.quantity
+            id: state.product.id,
+            name: state.product.name,
+            price: state.product.price,
+            image: state.product.images?.[0]?.src || '',
+            color: state.selectedColor,
+            size,
+            quantity: state.quantity
         });
     });
     elements.wishlistToggleBtn?.addEventListener('click', () => {
@@ -526,13 +539,12 @@ function bindEvents() {
     const backdrop = document.getElementById('reviewModalBackdrop');
     
     if (btn && modal && backdrop) {
-        btn.onclick = (e) => {
-            e.preventDefault();
-            console.log('[PRODUCT] Write review clicked');
+        btn.addEventListener('click', event => {
+            event.preventDefault();
             modal.classList.add('active');
             backdrop.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Prevent scroll
-        };
+            document.body.style.overflow = 'hidden';
+        });
         
         const closeReviewModal = () => {
             modal.classList.remove('active');
@@ -541,8 +553,8 @@ function bindEvents() {
         };
         
         const closeX = document.getElementById('reviewModalCloseX');
-        if (closeX) closeX.onclick = closeReviewModal;
-        backdrop.onclick = closeReviewModal;
+        closeX?.addEventListener('click', closeReviewModal);
+        backdrop.addEventListener('click', closeReviewModal);
     } else {
         console.error('[PRODUCT] Review elements not found:', { btn: !!btn, modal: !!modal, backdrop: !!backdrop });
     }
@@ -658,18 +670,18 @@ function displayReviews(reviews, summary) {
         <div class="review-card">
             <div class="review-header">
                 <div class="review-meta">
-                    <span class="review-author">${escapeHtml(r.customer_name)}</span>
+                    <span class="review-author">${productEscapeHTML(r.customer_name)}</span>
                     ${r.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
                 </div>
                 <span class="review-date">${new Date(r.created_at).toLocaleDateString()}</span>
             </div>
             <div class="stars">${renderStars(r.rating)}</div>
-            <h4 class="review-title">${escapeHtml(r.title)}</h4>
-            <p class="review-text">${escapeHtml(r.review_text)}</p>
+            <h4 class="review-title">${productEscapeHTML(r.title)}</h4>
+            <p class="review-text">${productEscapeHTML(r.review_text)}</p>
             ${r.admin_response ? `
                 <div class="admin-response">
                     <div class="admin-response-label">Response from LA VAGUE</div>
-                    <p>${escapeHtml(r.admin_response)}</p>
+                    <p>${productEscapeHTML(r.admin_response)}</p>
                 </div>
             ` : ''}
         </div>
@@ -682,19 +694,19 @@ function renderStars(rating) {
     return html;
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 function showToast(message, type = 'success') {
     if (!elements.toastContainer) return;
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span class="toast-message">${message}</span>`;
     toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
     toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+
+    const content = document.createElement('span');
+    content.className = 'toast-message';
+    content.textContent = String(message);
+    toast.appendChild(content);
+
     elements.toastContainer.appendChild(toast);
     setTimeout(() => {
         toast.style.animation = 'lv-toast-out 160ms var(--lv-ease) forwards';

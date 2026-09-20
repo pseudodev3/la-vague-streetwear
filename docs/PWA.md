@@ -23,8 +23,8 @@ This document describes the PWA features implemented for LA VAGUE Streetwear.
 
 ```
 la-vague/
-├── sw.js                          # Service Worker
-├── site.webmanifest               # PWA Manifest
+├── public/sw.js                   # Service Worker
+├── public/site.webmanifest        # PWA Manifest
 ├── src/scripts/pwa-register.js    # Service Worker Registration
 ├── assets/icons/                  # Optional square PWA icons generated from the official logo
 │   ├── icon-72x72.png
@@ -35,7 +35,7 @@ la-vague/
 │   ├── icon-192x192.png
 │   ├── icon-384x384.png
 │   └── icon-512x512.png
-└── PWA.md                         # This file
+└── docs/PWA.md                    # This file
 ```
 
 ## Generating Icons

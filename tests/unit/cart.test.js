@@ -189,6 +189,24 @@ describe('CartState', () => {
     expect(getWishlist()).toEqual([]);
   });
 
+  it('renders cart product data as text instead of executable markup', async () => {
+    const payload = '<img src=x onerror="window.__xss = true">';
+    CartState.cart = [createMockCartItem({
+      id: 'lv-hoodie-001',
+      name: payload,
+      color: '<script>alert(1)</script>',
+      size: 'L',
+      quantity: 1
+    })];
+
+    await CartState.renderCart(false);
+
+    const cartItems = document.getElementById('cartItems');
+    expect(cartItems.querySelector('.cart-item-name').textContent).toBe(payload);
+    expect(cartItems.querySelector('[onerror]')).toBeNull();
+    expect(cartItems.querySelector('script')).toBeNull();
+  });
+
   it('updates the cart badge using total quantity', () => {
     CartState.cart = [
       createMockCartItem({ quantity: 2 }),

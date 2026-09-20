@@ -20,7 +20,7 @@ Build command: npm run build
 Publish directory: dist
 ```
 
-Do **not** publish the repository root. Vite builds the storefront and `scripts/copy-static-assets.js` copies the required runtime assets into `dist`.
+Do **not** publish the repository root. Vite builds the storefront into `dist`, copies `public/` to the deployed web root, and `scripts/copy-static-assets.js` copies the remaining browser source/runtime assets required by this multi-page build.
 
 ### API routing
 
@@ -180,7 +180,7 @@ After deployment, verify:
 A few direct Render references are expected:
 
 - `netlify.toml` — Netlify proxy upstream.
-- `openapi.yaml` — public API server documentation.
+- `public/openapi.yaml` — source for the deployed `/openapi.yaml` API documentation.
 - Paystack webhook configuration — Paystack must call the backend directly.
 
 Browser storefront scripts should otherwise use `/api`.

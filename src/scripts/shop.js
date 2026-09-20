@@ -7,6 +7,7 @@
 // API CONFIGURATION
 // ==========================================
 const API_URL = '/api';
+const { escapeHTML: shopEscapeHTML, safeURL: shopSafeURL, safeClassToken: shopSafeClassToken, safeColor: shopSafeColor } = window.BrowserSecurity;
 
 // API Client for Shop
 const ShopAPI = {
@@ -93,11 +94,11 @@ const state = {
     quickViewProduct: null,
     selectedColor: null,
     selectedSize: null,
-    selectedQuantity: 1,
-    usingStaticData: false
+    selectedQuantity: 1
 };
 
 let elements = {};
+let eventsBound = false;
 
 const getCart = () => typeof CartState !== 'undefined' ? CartState.cart : [];
 const getWishlist = () => typeof CartState !== 'undefined' ? CartState.wishlist : [];
@@ -162,10 +163,8 @@ async function initShop() {
     
     if (Array.isArray(apiProducts)) {
         state.products = apiProducts.map(transformProduct);
-        state.usingStaticData = false;
     } else {
         state.products = [];
-        state.usingStaticData = false;
         if (elements.emptyState) {
             elements.emptyState.innerHTML = '<h3>Store temporarily unavailable</h3><p>We could not load live products right now. Please refresh in a moment.</p>';
         }
@@ -206,49 +205,61 @@ function renderStarRating(rating) {
 
 function renderProducts() {
     if (!elements.productsGrid) return;
-    
+
     if (state.filteredProducts.length === 0) {
         elements.productsGrid.style.display = 'none';
         elements.emptyState.style.display = 'block';
         elements.resultsCount.textContent = '0 products';
         return;
     }
-    
+
     elements.productsGrid.style.display = 'grid';
     elements.emptyState.style.display = 'none';
     elements.resultsCount.textContent = `${state.filteredProducts.length} product${state.filteredProducts.length !== 1 ? 's' : ''}`;
-    
+
     elements.productsGrid.innerHTML = state.filteredProducts.map(product => {
-        const firstImage = product.images && product.images[0] ? product.images[0] : {
-            src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
-            alt: product.name
-        };
-        const secondImage = product.images && product.images[1] ? product.images[1] : null;
-        
-        // Robust stock calculation
-        const inventory = typeof product.inventory === 'string' ? JSON.parse(product.inventory || '{}') : (product.inventory || {});
-        const totalStock = Object.values(inventory).reduce((a, b) => a + (parseInt(b) || 0), 0);
+        const firstImage = product.images?.[0] || { src: '/la-vague-red-wordmark.png', alt: product.name };
+        const secondImage = product.images?.[1] || null;
+        const inventory = typeof product.inventory === 'string'
+            ? JSON.parse(product.inventory || '{}')
+            : (product.inventory || {});
+        const totalStock = Object.values(inventory).reduce(
+            (total, value) => total + (Number.parseInt(value, 10) || 0),
+            0
+        );
         const isSoldOut = totalStock === 0;
 
-        // DEBUG: Uncomment to see stock values in console
-        // console.log(`[SHOP] Product: ${product.name}, Total Stock: ${totalStock}, isSoldOut: ${isSoldOut}`);
+        const safeId = shopEscapeHTML(product.id);
+        const safeSlug = shopEscapeHTML(product.slug);
+        const safeName = shopEscapeHTML(product.name);
+        const categoryName = CATEGORIES.find(category => category.id === product.category)?.name || product.category;
+        const safeCategory = shopEscapeHTML(categoryName);
+        const firstSrc = shopEscapeHTML(shopSafeURL(firstImage.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
+        const firstAlt = shopEscapeHTML(firstImage.alt || product.name);
+        const secondSrc = secondImage
+            ? shopEscapeHTML(shopSafeURL(secondImage.src, { allowDataImage: true }))
+            : '';
+        const secondAlt = secondImage ? shopEscapeHTML(secondImage.alt || product.name) : '';
+        const badge = String(product.badge || '').trim();
+        const safeBadge = shopEscapeHTML(badge);
+        const badgeClass = shopSafeClassToken(badge);
+        const reviewCount = Math.max(0, Number.parseInt(product.review_count, 10) || 0);
 
-        // Badge priority logic: SOLD OUT always overwrites everything else
         let badgeHtml = '';
         if (isSoldOut) {
-            badgeHtml = '<span class="product-badge soldout" style="background: #6b7280 !important; color: white !important;">Sold Out</span>';
-        } else if (product.badge && product.badge.toLowerCase() !== 'null' && product.badge.trim() !== '') {
-            badgeHtml = `<span class="product-badge ${product.badge.toLowerCase().replace(/\s+/g, '-')}">${product.badge}</span>`;
+            badgeHtml = '<span class="product-badge soldout">Sold Out</span>';
+        } else if (badge && badge.toLowerCase() !== 'null') {
+            badgeHtml = `<span class="product-badge ${badgeClass}">${safeBadge}</span>`;
         }
 
         return `
-        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-product-id="${product.id}">
-            <div class="product-image-wrapper" onclick="window.openProductPage('${product.slug}')">
+        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-product-id="${safeId}" data-shop-action="open-product" data-slug="${safeSlug}" role="link" tabindex="0">
+            <div class="product-image-wrapper" data-shop-action="open-product" data-slug="${safeSlug}">
                 ${badgeHtml}
-                <img src="${firstImage.src}" alt="${firstImage.alt}" class="product-image" loading="lazy">
-                ${secondImage ? `<img src="${secondImage.src}" alt="${secondImage.alt}" class="product-image-hover" loading="lazy">` : ''}
+                <img src="${firstSrc}" alt="${firstAlt}" class="product-image" loading="lazy">
+                ${secondSrc ? `<img src="${secondSrc}" alt="${secondAlt}" class="product-image-hover" loading="lazy">` : ''}
                 <div class="product-actions">
-                    <button class="product-btn" onclick="event.stopPropagation(); window.addToCartFromCard('${product.id}')" ${isSoldOut ? 'disabled' : ''}>
+                    <button type="button" class="product-btn" data-shop-action="add-to-cart" data-product-id="${safeId}" ${isSoldOut ? 'disabled' : ''}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M6 6h15l-1.5 9h-12z"></path>
                             <circle cx="9" cy="20" r="1"></circle>
@@ -257,9 +268,9 @@ function renderProducts() {
                         </svg>
                         ${isSoldOut ? 'Sold Out' : 'Add to Cart'}
                     </button>
-                    <button class="product-btn" onclick="event.stopPropagation(); window.quickView('${product.id}')">Quick View</button>
-                    <button class="product-btn wishlist ${getWishlist().includes(product.id) ? 'active' : ''}" 
-                            onclick="event.stopPropagation(); window.toggleWishlist('${product.id}')">
+                    <button type="button" class="product-btn" data-shop-action="quick-view" data-product-id="${safeId}">Quick View</button>
+                    <button type="button" class="product-btn wishlist ${getWishlist().includes(product.id) ? 'active' : ''}"
+                            data-shop-action="wishlist" data-product-id="${safeId}" aria-label="Toggle wishlist">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="${getWishlist().includes(product.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                         </svg>
@@ -267,29 +278,30 @@ function renderProducts() {
                 </div>
             </div>
             <div class="product-info">
-                <p class="product-category">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
-                <h3 class="product-name" onclick="window.openProductPage('${product.slug}')">${product.name}</h3>
+                <p class="product-category">${safeCategory}</p>
+                <h3 class="product-name" data-shop-action="open-product" data-slug="${safeSlug}">${safeName}</h3>
                 <div class="product-price">
-                    <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
-                    ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
+                    <span class="current-price">${CurrencyConfig.formatPrice(Number(product.price) || 0)}</span>
+                    ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(Number(product.compareAtPrice) || 0)}</span>` : ''}
                 </div>
                 ${product.average_rating ? `
                     <div class="product-rating">
-                        <span class="star-rating-small">${renderStarRating(product.average_rating)}</span>
-                        <span class="rating-text">(${product.review_count || 0})</span>
+                        <span class="star-rating-small">${renderStarRating(Number(product.average_rating) || 0)}</span>
+                        <span class="rating-text">(${reviewCount})</span>
                     </div>
                 ` : ''}
-                ${product.colors && product.colors.length > 1 ? `
+                ${product.colors?.length > 1 ? `
                     <div class="product-colors">
-                        ${product.colors.map((color, i) => `
-                            <span class="color-dot ${i === 0 ? 'active' : ''}" style="background-color: ${color.value}" title="${color.name}"></span>
+                        ${product.colors.map((color, index) => `
+                            <span class="color-dot ${index === 0 ? 'active' : ''}" style="background-color: ${shopSafeColor(color.value)}" title="${shopEscapeHTML(color.name)}"></span>
                         `).join('')}
                     </div>
                 ` : ''}
             </div>
         </article>
-    `}).join('');
-    
+    `;
+    }).join('');
+
     initRevealAnimations();
 }
 
@@ -370,76 +382,84 @@ window.quickView = function(productId) {
 
 function renderQuickView() {
     const product = state.quickViewProduct;
-    const firstImage = product.images?.[0] || {
-        src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500"><rect fill="%23333" width="400" height="500"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" font-family="sans-serif" font-size="20">No Image</text></svg>',
-        alt: product.name
-    };
-    
-    const variantKey = `${state.selectedColor}-${state.selectedSize}`;
-    const stock = product.inventory?.[variantKey] || 0;
+    if (!product || !elements.quickViewContent) return;
 
-    // Adjust quantity if it exceeds stock
+    const firstImage = product.images?.[0] || { src: '/la-vague-red-wordmark.png', alt: product.name };
+    const variantKey = `${state.selectedColor}-${state.selectedSize}`;
+    const stock = Number(product.inventory?.[variantKey] || 0);
+
     if (stock > 0 && state.selectedQuantity > stock) {
         state.selectedQuantity = stock;
     } else if (stock === 0) {
         state.selectedQuantity = 1;
     }
-    
+
+    const safeImage = shopEscapeHTML(shopSafeURL(firstImage.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
+    const safeAlt = shopEscapeHTML(firstImage.alt || product.name);
+    const categoryName = CATEGORIES.find(category => category.id === product.category)?.name || product.category;
+    const safeCategory = shopEscapeHTML(categoryName);
+    const safeName = shopEscapeHTML(product.name);
+    const safeDescription = shopEscapeHTML(product.description || '');
+    const safeSelectedColor = shopEscapeHTML(state.selectedColor);
+    const safeSelectedSize = shopEscapeHTML(state.selectedSize);
+
     elements.quickViewContent.innerHTML = `
         <div class="quick-view-gallery">
-            <img src="${firstImage.src}" alt="${firstImage.alt || product.name}" id="quickViewImage">
+            <img src="${safeImage}" alt="${safeAlt}" id="quickViewImage">
         </div>
         <div class="quick-view-details">
-            <p class="quick-view-category">${CATEGORIES.find(c => c.id === product.category)?.name || product.category}</p>
-            <h2 class="quick-view-title">${product.name}</h2>
+            <p class="quick-view-category">${safeCategory}</p>
+            <h2 class="quick-view-title">${safeName}</h2>
             <div class="quick-view-price">
-                <span class="current-price">${CurrencyConfig.formatPrice(product.price)}</span>
-                ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(product.compareAtPrice)}</span>` : ''}
+                <span class="current-price">${CurrencyConfig.formatPrice(Number(product.price) || 0)}</span>
+                ${product.compareAtPrice ? `<span class="original-price">${CurrencyConfig.formatPrice(Number(product.compareAtPrice) || 0)}</span>` : ''}
             </div>
-            <p class="quick-view-description">${product.description || ''}</p>
-            
+            <p class="quick-view-description">${safeDescription}</p>
+
             <div class="quick-view-options">
-                ${product.colors && product.colors.length > 1 ? `
+                ${product.colors?.length > 1 ? `
                     <div class="option-section">
-                        <span class="option-label">Color: <strong>${state.selectedColor}</strong></span>
+                        <span class="option-label">Color: <strong>${safeSelectedColor}</strong></span>
                         <div class="color-options">
                             ${product.colors.map(color => `
-                                <button class="color-option ${state.selectedColor === color.name ? 'active' : ''}" 
-                                        style="background-color: ${color.value}"
-                                        onclick="window.selectColor('${color.name}')"
-                                        title="${color.name}"></button>
+                                <button type="button" class="color-option ${state.selectedColor === color.name ? 'active' : ''}"
+                                        style="background-color: ${shopSafeColor(color.value)}"
+                                        data-quick-action="select-color"
+                                        data-value="${shopEscapeHTML(color.name)}"
+                                        title="${shopEscapeHTML(color.name)}"></button>
                             `).join('')}
                         </div>
                     </div>
                 ` : ''}
-                
+
                 <div class="option-section">
                     <span class="option-label">
-                        Size: <strong>${state.selectedSize}</strong>
-                        ${product.sizeGuide ? `<span class="size-guide-link" onclick="window.openSizeGuide('${product.sizeGuide}')">Size Guide</span>` : ''}
+                        Size: <strong>${safeSelectedSize}</strong>
+                        ${product.sizeGuide ? `<button type="button" class="size-guide-link" data-quick-action="size-guide" data-value="${shopEscapeHTML(product.sizeGuide)}">Size Guide</button>` : ''}
                     </span>
                     <div class="size-options">
                         ${product.sizes?.map(size => {
-                            const inStock = product.inventory?.[`${state.selectedColor}-${size}`] > 0;
+                            const inStock = Number(product.inventory?.[`${state.selectedColor}-${size}`] || 0) > 0;
                             return `
-                                <button class="size-option ${state.selectedSize === size ? 'active' : ''} ${!inStock ? 'disabled' : ''}"
-                                        onclick="${inStock ? `window.selectSize('${size}')` : ''}"
+                                <button type="button" class="size-option ${state.selectedSize === size ? 'active' : ''} ${!inStock ? 'disabled' : ''}"
+                                        data-quick-action="select-size"
+                                        data-value="${shopEscapeHTML(size)}"
                                         ${!inStock ? 'disabled' : ''}>
-                                    ${size}
+                                    ${shopEscapeHTML(size)}
                                 </button>
                             `;
                         }).join('') || ''}
                     </div>
                 </div>
             </div>
-            
+
             <div class="quick-view-actions">
                 <div class="quantity-selector">
-                    <button class="qty-btn" onclick="window.updateQuantity(-1)" ${state.selectedQuantity <= 1 ? 'disabled' : ''}>−</button>
+                    <button type="button" class="qty-btn" data-quick-action="quantity" data-delta="-1" ${state.selectedQuantity <= 1 ? 'disabled' : ''}>−</button>
                     <span>${state.selectedQuantity}</span>
-                    <button class="qty-btn" onclick="window.updateQuantity(1)" ${state.selectedQuantity >= stock ? 'disabled' : ''}>+</button>
+                    <button type="button" class="qty-btn" data-quick-action="quantity" data-delta="1" ${state.selectedQuantity >= stock ? 'disabled' : ''}>+</button>
                 </div>
-                <button class="add-to-cart-btn" onclick="window.addToCartFromQuickView()" ${stock <= 0 ? 'disabled' : ''}>
+                <button type="button" class="add-to-cart-btn" data-quick-action="add-to-cart" ${stock <= 0 ? 'disabled' : ''}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M6 6h15l-1.5 9h-12z"></path>
                         <circle cx="9" cy="20" r="1"></circle>
@@ -480,27 +500,19 @@ window.updateQuantity = function(delta) {
 
 window.addToCartFromQuickView = async function() {
     const product = state.quickViewProduct;
-    if (!state.usingStaticData) {
-        const stockCheck = await ShopAPI.checkStock(product.id, state.selectedColor, state.selectedSize);
-        if (!stockCheck.inStock || stockCheck.available < state.selectedQuantity) {
-            showToast(`Only ${stockCheck.available} items available in this variant`, 'error');
-            return;
-        }
-    } else {
-        const variantKey = `${state.selectedColor}-${state.selectedSize}`;
-        const stock = product.inventory?.[variantKey] || 0;
-        if (state.selectedQuantity > stock) {
-            showToast(`Only ${stock} items available in stock`, 'error');
-            return;
-        }
-    }
-    CartState.addToCart({
-        id: product.id, name: product.name, price: product.price,
-        image: product.images?.[0]?.src || '', color: state.selectedColor,
-        size: state.selectedSize, quantity: state.selectedQuantity
+    if (!product) return;
+
+    const added = await CartState.addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0]?.src || '',
+        color: state.selectedColor,
+        size: state.selectedSize,
+        quantity: state.selectedQuantity
     });
-    showToast(`${product.name} added to cart`, 'success');
-    closeQuickView();
+
+    if (added) closeQuickView();
 };
 
 function openQuickView() {
@@ -520,16 +532,27 @@ function closeQuickView() {
 // ==========================================
 window.openSizeGuide = function(type) {
     const guide = ProductAPI.getSizeGuide(type);
-    if (!guide) return;
+    if (!guide || !elements.sizeGuideContent) return;
+
+    const measurements = Array.isArray(guide.measurements) ? guide.measurements : [];
+    const columns = measurements[0]
+        ? Object.keys(measurements[0]).filter(key => key !== 'size')
+        : [];
+
     elements.sizeGuideContent.innerHTML = `
-        <h4>${guide.name}</h4>
-        <p style="color: var(--color-text-muted); margin-bottom: 1rem;">All measurements are in ${guide.unit}</p>
+        <h4>${shopEscapeHTML(guide.name)}</h4>
+        <p class="size-guide-unit">All measurements are in ${shopEscapeHTML(guide.unit)}</p>
         <table class="size-table">
             <thead>
-                <tr><th>Size</th>${Object.keys(guide.measurements[0]).filter(k => k !== 'size').map(k => `<th>${k.charAt(0).toUpperCase() + k.slice(1)}</th>`).join('')}</tr>
+                <tr><th>Size</th>${columns.map(key => `<th>${shopEscapeHTML(key.charAt(0).toUpperCase() + key.slice(1))}</th>`).join('')}</tr>
             </thead>
             <tbody>
-                ${guide.measurements.map(m => `<tr><td><strong>${m.size}</strong></td>${Object.entries(m).filter(([k]) => k !== 'size').map(([_, v]) => `<td>${v}</td>`).join('')}</tr>`).join('')}
+                ${measurements.map(measurement => `
+                    <tr>
+                        <td><strong>${shopEscapeHTML(measurement.size)}</strong></td>
+                        ${columns.map(key => `<td>${shopEscapeHTML(measurement[key])}</td>`).join('')}
+                    </tr>
+                `).join('')}
             </tbody>
         </table>
     `;
@@ -546,45 +569,20 @@ function closeSizeGuide() {
 // CART & WISHLIST HELPERS
 // ==========================================
 window.addToCartFromCard = async function(productId) {
-    const product = state.products.find(p => p.id === productId);
+    const product = state.products.find(item => item.id === productId);
     if (!product) return;
+
     const color = product.colors?.[0]?.name || 'Default';
     const size = product.sizes?.[0] || 'OS';
-    
-    // Perform thorough stock check
-    let isAvailable = true;
-    if (!state.usingStaticData) {
-        try {
-            const response = await fetch(`${API_URL}/products/inventory/check/${product.id}?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`);
-            if (response.ok) {
-                const stockCheck = await response.json();
-                if (stockCheck && stockCheck.success && stockCheck.inStock === false) {
-                    isAvailable = false;
-                }
-            } else if (response.status === 404) {
-                // If product is not found in DB, it might be in static data
-                const variantKey = `${color}-${size}`;
-                const staticStock = product.inventory?.[variantKey] || 0;
-                if (staticStock <= 0) isAvailable = false;
-            }
-        } catch (e) {
-            console.warn('[SHOP] Stock check failed, allowing add');
-            isAvailable = true; 
-        }
-    } else {
-        const variantKey = `${color}-${size}`;
-        const stock = product.inventory?.[variantKey] || 0;
-        if (stock <= 0) isAvailable = false;
-    }
 
-    if (!isAvailable) {
-        showToast('Sorry, this item is out of stock', 'error');
-        return;
-    }
-    
-    CartState.addToCart({
-        id: product.id, name: product.name, price: product.price,
-        image: product.images?.[0]?.src || '', color: color, size: size, quantity: 1
+    await CartState.addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0]?.src || '',
+        color,
+        size,
+        quantity: 1
     });
 };
 
@@ -611,34 +609,49 @@ function closeSearch() {
 
 function handleSearch(query) {
     if (!query.trim()) {
-        if (elements.searchResults) elements.searchResults.innerHTML = '';
+        if (elements.searchResults) elements.searchResults.replaceChildren();
         return;
     }
+
     const searchTerm = query.toLowerCase();
-    const results = state.products.filter(p => 
-        p.name?.toLowerCase().includes(searchTerm) ||
-        p.category?.toLowerCase().includes(searchTerm)
+    const results = state.products.filter(product =>
+        product.name?.toLowerCase().includes(searchTerm) ||
+        product.category?.toLowerCase().includes(searchTerm)
     );
+
     if (results.length === 0) {
-        elements.searchResults.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--color-text-muted);">No products found for "${query}"</div>`;
+        const message = document.createElement('div');
+        message.className = 'search-message';
+        message.textContent = `No products found for "${query}"`;
+        elements.searchResults.replaceChildren(message);
         return;
     }
-    elements.searchResults.innerHTML = results.map(product => `
-        <div class="search-result-item" onclick="window.openProductPage('${product.slug}')">
-            <img src="${product.images?.[0]?.src || ''}" alt="${product.name}">
-            <div class="search-result-info"><h4>${product.name}</h4><p>${product.category}</p></div>
-            <span class="search-result-price">${CurrencyConfig.formatPrice(product.price)}</span>
-        </div>
-    `).join('');
+
+    elements.searchResults.innerHTML = results.map(product => {
+        const image = shopEscapeHTML(shopSafeURL(product.images?.[0]?.src, { allowDataImage: true }));
+        const safeName = shopEscapeHTML(product.name);
+        const safeCategory = shopEscapeHTML(product.category);
+        const slug = encodeURIComponent(String(product.slug || product.id || ''));
+        return `
+            <a class="search-result-item" href="/product.html?slug=${slug}">
+                ${image ? `<img src="${image}" alt="${safeName}">` : ''}
+                <div class="search-result-info"><h4>${safeName}</h4><p>${safeCategory}</p></div>
+                <span class="search-result-price">${CurrencyConfig.formatPrice(Number(product.price) || 0)}</span>
+            </a>
+        `;
+    }).join('');
 }
 
-function showToast(message, type = 'success', action = null) {
+function showToast(message, type = 'success') {
     if (!elements.toastContainer) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span class="toast-message">${message}</span>`;
     toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
     toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+    const content = document.createElement('span');
+    content.className = 'toast-message';
+    content.textContent = String(message);
+    toast.appendChild(content);
     elements.toastContainer.appendChild(toast);
     setTimeout(() => {
         toast.style.animation = 'lv-toast-out 160ms var(--lv-ease) forwards';
@@ -649,10 +662,55 @@ function showToast(message, type = 'success', action = null) {
 window.openProductPage = function(slug) {
     const skeleton = document.getElementById('pageSkeleton');
     if (skeleton) skeleton.style.display = 'flex';
-    setTimeout(() => { window.location.href = `product.html?slug=${slug}`; }, 100);
+    setTimeout(() => {
+        window.location.href = `/product.html?slug=${encodeURIComponent(String(slug || ''))}`;
+    }, 100);
 };
 
 function bindEvents() {
+    if (eventsBound) return;
+    eventsBound = true;
+
+    elements.productsGrid?.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const card = event.target.closest('.product-card[data-shop-action="open-product"]');
+        if (!card || event.target.closest('button')) return;
+        event.preventDefault();
+        window.openProductPage(card.dataset.slug);
+    });
+
+    elements.productsGrid?.addEventListener('click', event => {
+        const control = event.target.closest('[data-shop-action]');
+        if (!control) return;
+
+        const action = control.dataset.shopAction;
+        if (action === 'open-product') {
+            window.openProductPage(control.dataset.slug);
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        const productId = control.dataset.productId;
+        if (!productId) return;
+
+        if (action === 'add-to-cart') void window.addToCartFromCard(productId);
+        if (action === 'quick-view') window.quickView(productId);
+        if (action === 'wishlist') window.toggleWishlist(productId);
+    });
+
+    elements.quickViewContent?.addEventListener('click', event => {
+        const control = event.target.closest('[data-quick-action]');
+        if (!control) return;
+
+        const action = control.dataset.quickAction;
+        if (action === 'select-color') window.selectColor(control.dataset.value);
+        if (action === 'select-size') window.selectSize(control.dataset.value);
+        if (action === 'size-guide') window.openSizeGuide(control.dataset.value);
+        if (action === 'quantity') window.updateQuantity(Number.parseInt(control.dataset.delta, 10) || 0);
+        if (action === 'add-to-cart') void window.addToCartFromQuickView();
+    });
+
     elements.categoryFilters?.addEventListener('click', (e) => {
         if (e.target.classList.contains('filter-btn')) setCategory(e.target.dataset.category);
     });
@@ -701,7 +759,7 @@ function bindEvents() {
     elements.searchClose?.addEventListener('click', closeSearch);
     
     if (typeof SearchHelper !== 'undefined') {
-        SearchHelper.init(elements.searchInput, handleSearch, { delay: 300 });
+        SearchHelper.init(elements.searchInput, handleSearch, 300);
     }
 
     window.addEventListener('scroll', () => {

@@ -3,135 +3,55 @@
  * Works across all pages
  */
 
+const { escapeHTML: cartEscapeHTML, safeURL: cartSafeURL } = window.BrowserSecurity;
+
 // ==========================================
 // CURRENCY CONFIGURATION (NGN ONLY)
 // ==========================================
-const CurrencyConfig = {
-    // NGN is the only supported currency
-    defaultRates: {
-        NGN: 1
-    },
-    
-    // Current rates (NGN only)
-    rates: { NGN: 1 },
-    
-    // Currency symbols
-    symbols: {
-        NGN: '₦'
-    },
-    
-    // Currency names
-    names: {
-        NGN: 'NGN'
-    },
-    
-    // API base URL
-    get API_BASE_URL() {
-        return '/api';
-    },
-    
-    // Load rates using storage or defaults
-    init() {
-        // Try to load cached rates from localStorage
-        const cached = localStorage.getItem('currencyRates');
-        const cachedTime = localStorage.getItem('currencyRatesUpdated');
-        
-        if (cached && cachedTime) {
-            const age = Date.now() - parseInt(cachedTime);
-            // Use cache if less than 1 hour old
-            if (age < 60 * 60 * 1000) {
-                try {
-                    this.rates = JSON.parse(cached);
-                } catch (e) {
-                    this.rates = { ...this.defaultRates };
-                }
-            } else {
-                // Cache expired, use defaults and fetch fresh
-                this.rates = { ...this.defaultRates };
-                this.fetchRates();
-            }
-        } else {
-            // No cache, use defaults and fetch
-            this.rates = { ...this.defaultRates };
-            this.fetchRates();
-        }
-        
-        // Refresh rates every 30 minutes
-        setInterval(() => this.fetchRates(), 30 * 60 * 1000);
-    },
-    
-    // Fetch rates from server
-    async fetchRates() {
-        try {
-            const response = await fetch(`${this.API_BASE_URL}/config/currency-rates`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.rates) {
-                    this.rates = data.rates;
-                    // Cache in localStorage
-                    localStorage.setItem('currencyRates', JSON.stringify(this.rates));
-                    localStorage.setItem('currencyRatesUpdated', Date.now().toString());
-                    
-                    // Notify listeners that rates have been updated
-                    window.dispatchEvent(new CustomEvent('currencyRatesUpdated', { 
-                        detail: { rates: this.rates } 
-                    }));
-                }
-            }
-        } catch (error) {
-            console.error('[CURRENCY] Failed to fetch rates:', error);
-            // Keep using cached or default rates
-        }
-    },
-    
-    // Get current currency (always NGN)
+const ngnFormatter = new Intl.NumberFormat('en-NG', {
+    maximumFractionDigits: 0
+});
+
+const CurrencyConfig = Object.freeze({
     getCurrentCurrency() {
         return 'NGN';
     },
-    
-    // Set currency (no-op, always NGN)
+
     setCurrency(currency) {
-        // Currency switching disabled - always NGN
         return currency === 'NGN';
     },
-    
-    // Convert amount (always returns same amount - NGN only)
-    convert(amount, targetCurrency = null) {
-        // No conversion needed - always NGN
-        return amount;
+
+    convert(amount) {
+        return Number(amount) || 0;
     },
-    
-    // Format price for display (always NGN)
-    formatPrice(amount, currency = null) {
-        // Always format as NGN
-        const symbol = this.symbols.NGN;
-        // For NGN, show whole numbers without decimals
-        return `${symbol}${Math.round(amount).toLocaleString()}`;
+
+    formatPrice(amount) {
+        return `₦${ngnFormatter.format(Math.round(Number(amount) || 0))}`;
     },
-    
-    // Get all supported currencies (NGN only)
+
     getSupportedCurrencies() {
         return ['NGN'];
-    },
-    
-    // Get current rates for admin display (NGN only)
-    getCurrentRates() {
-        return { NGN: 1 };
     }
-};
+});
 
-// Initialize currency config on load
-CurrencyConfig.init();
-
-// Export to window for global access
 window.CurrencyConfig = CurrencyConfig;
 
 // ==========================================
 // SHARED STATE
 // ==========================================
+function readStoredArray(key) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(value) ? value : [];
+    } catch {
+        localStorage.removeItem(key);
+        return [];
+    }
+}
+
 const CartState = {
-    cart: JSON.parse(localStorage.getItem('cart')) || [],
-    wishlist: JSON.parse(localStorage.getItem('wishlist')) || [],
+    cart: readStoredArray('cart'),
+    wishlist: readStoredArray('wishlist'),
     
     saveCart() {
         localStorage.setItem('cart', JSON.stringify(this.cart));
@@ -182,10 +102,12 @@ const CartState = {
             const stock = await this.getAvailableStock(item.id, item.color, item.size);
             if (newTotalQty > stock) {
                 this.showToast(stock <= 0 ? 'Sorry, this item is out of stock' : `Only ${stock} items available in stock`, 'error');
-                return;
+                return false;
             }
         } catch (error) {
             console.error('[CART] Stock check failed:', error);
+            this.showToast('Unable to verify stock right now', 'error');
+            return false;
         }
         
         if (existingItem) {
@@ -196,6 +118,7 @@ const CartState = {
         
         this.saveCart();
         this.showToast(`${item.name} added to cart`, 'success', 'View Cart');
+        return true;
     },
 
     /**
@@ -265,7 +188,11 @@ const CartState = {
                 this.showToast(`Only ${stock} items available in stock`, 'error');
                 return;
             }
-        } catch (error) {}
+        } catch (error) {
+            console.error('[CART] Quantity stock check failed:', error);
+            this.showToast('Unable to verify stock right now', 'error');
+            return;
+        }
 
         item.quantity = newQty;
         this.saveCart();
@@ -277,27 +204,40 @@ const CartState = {
         if (!toastContainer) {
             toastContainer = document.createElement('div');
             toastContainer.id = 'toastContainer';
-            toastContainer.style.cssText = 'position: fixed; bottom: 2rem; right: 2rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem;';
+            toastContainer.className = 'toast-container';
             document.body.appendChild(toastContainer);
         }
-        
+
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        toast.innerHTML = `
-            <span class="toast-message">${message}</span>
-            ${action ? `<span class="toast-action" onclick="window.openCart(); this.parentElement.remove();">${action}</span>` : ''}
-        `;
-        
         toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
         toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+
+        const messageElement = document.createElement('span');
+        messageElement.className = 'toast-message';
+        messageElement.textContent = String(message);
+        toast.appendChild(messageElement);
+
+        if (action) {
+            const actionButton = document.createElement('button');
+            actionButton.type = 'button';
+            actionButton.className = 'toast-action';
+            actionButton.textContent = String(action);
+            actionButton.addEventListener('click', () => {
+                window.openCart();
+                toast.remove();
+            });
+            toast.appendChild(actionButton);
+        }
+
         toastContainer.appendChild(toast);
-        
+
         setTimeout(() => {
             toast.style.animation = 'lv-toast-out 160ms var(--lv-ease) forwards';
             setTimeout(() => toast.remove(), 180);
         }, 4000);
     },
-    
+
     async renderCart(isInitialLoad = true) {
         const cartItems = document.getElementById('cartItems');
         const cartSubtotal = document.getElementById('cartSubtotal');
@@ -313,7 +253,7 @@ const CartState = {
                         <path d="M6 6L5 3H2"></path>
                     </svg>
                     <p>Your cart is empty</p>
-                    <a href="shop.html" class="btn btn-primary" onclick="window.closeCart()">Continue Shopping</a>
+                    <a href="shop.html" class="btn btn-primary">Continue Shopping</a>
                 </div>
             `;
             if (cartSubtotal) cartSubtotal.textContent = CurrencyConfig.formatPrice(0);
@@ -355,25 +295,30 @@ const CartState = {
 
         cartItems.innerHTML = cartWithStock.map((item, index) => {
             const isAtMaxStock = item.quantity >= item.stock;
+            const safeImage = cartEscapeHTML(cartSafeURL(item.image, { allowDataImage: true }));
+            const safeName = cartEscapeHTML(item.name);
+            const safeColor = cartEscapeHTML(item.color);
+            const safeSize = cartEscapeHTML(item.size);
+            const quantity = Math.max(0, Number.parseInt(item.quantity, 10) || 0);
 
             return `
                 <div class="cart-item ${isInitialLoad ? 'wishlist-item-fade' : ''}" style="animation-delay: ${index * 0.1}s">
                     <div class="cart-item-image">
-                        <img src="${item.image}" alt="${item.name}">
+                        <img src="${safeImage}" alt="${safeName}">
                     </div>
                     <div class="cart-item-details">
-                        <h4 class="cart-item-name">${item.name}</h4>
-                        <p class="cart-item-variant">${item.color} / ${item.size}</p>
+                        <h4 class="cart-item-name">${safeName}</h4>
+                        <p class="cart-item-variant">${safeColor} / ${safeSize}</p>
                         <div class="cart-item-actions">
                             <div class="cart-item-qty">
-                                <button onclick="CartState.updateCartItemQuantity(${index}, -1)">−</button>
-                                <span>${item.quantity}</span>
-                                <button onclick="CartState.updateCartItemQuantity(${index}, 1)" ${isAtMaxStock ? 'disabled' : ''}>+</button>
+                                <button type="button" data-cart-action="decrease" data-index="${index}" aria-label="Decrease quantity">−</button>
+                                <span>${quantity}</span>
+                                <button type="button" data-cart-action="increase" data-index="${index}" aria-label="Increase quantity" ${isAtMaxStock ? 'disabled' : ''}>+</button>
                             </div>
-                            <span class="cart-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</span>
+                            <span class="cart-item-price">${CurrencyConfig.formatPrice(Number(item.price) * quantity)}</span>
                         </div>
                     </div>
-                    <button class="cart-item-remove" onclick="CartState.removeFromCart(${index})">
+                    <button type="button" class="cart-item-remove" data-cart-action="remove" data-index="${index}" aria-label="Remove item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 6L6 18M6 6l12 12"></path>
                         </svg>
@@ -381,7 +326,7 @@ const CartState = {
                 </div>
             `;
         }).join('');
-        
+
         const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         if (cartSubtotal) cartSubtotal.textContent = CurrencyConfig.formatPrice(subtotal);
     },
@@ -397,7 +342,7 @@ const CartState = {
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                     </svg>
                     <p>Your wishlist is empty</p>
-                    <a href="shop.html" class="btn btn-secondary" onclick="window.closeWishlist()">Continue Shopping</a>
+                    <a href="shop.html" class="btn btn-secondary">Continue Shopping</a>
                 </div>
             `;
             return;
@@ -463,34 +408,41 @@ const CartState = {
 
         wishlistItems.innerHTML = filteredProducts.map((product, index) => {
             const isSoldOut = product.stock <= 0;
-            const productImage = product.images?.[0]?.src || product.images?.[0] || '';
-            const productUrl = `product.html?slug=${product.slug}`;
+            const wishlistIndex = this.wishlist.indexOf(product.id);
+            const rawImage = product.images?.[0]?.src || product.images?.[0] || '';
+            const safeImage = cartEscapeHTML(cartSafeURL(rawImage, { allowDataImage: true }));
+            const safeName = cartEscapeHTML(product.name);
+            const safeCategory = cartEscapeHTML(product.category);
+            const safeColor = cartEscapeHTML(product.color);
+            const safeSize = cartEscapeHTML(product.size);
+            const safeId = cartEscapeHTML(product.id);
+            const safeSlug = encodeURIComponent(String(product.slug || product.id || ''));
 
             return `
                 <div class="cart-item ${isInitialLoad ? 'wishlist-item-fade' : ''}" style="animation-delay: ${index * 0.1}s">
-                    <a href="${productUrl}" class="cart-item-image">
-                        <img src="${productImage}" alt="${product.name}">
+                    <a href="/product.html?slug=${safeSlug}" class="cart-item-image">
+                        <img src="${safeImage}" alt="${safeName}">
                     </a>
                     <div class="cart-item-details">
-                        <h4 class="cart-item-name"><a href="${productUrl}">${product.name}</a></h4>
-                        <p class="cart-item-variant">${product.category}</p>
-                        <span class="cart-item-price">${CurrencyConfig.formatPrice(product.price)}</span>
+                        <h4 class="cart-item-name"><a href="/product.html?slug=${safeSlug}">${safeName}</a></h4>
+                        <p class="cart-item-variant">${safeCategory}</p>
+                        <span class="cart-item-price">${CurrencyConfig.formatPrice(Number(product.price) || 0)}</span>
                     </div>
                     <div class="cart-item-actions">
-                        <button class="btn btn-primary btn-sm ${isSoldOut ? 'disabled' : ''}" 
-                                ${isSoldOut ? 'disabled' : ''}
-                                onclick="CartState.addToCart({
-                            id: '${product.id}',
-                            name: '${product.name.replace(/'/g, "\\'")}',
-                            price: ${product.price},
-                            image: '${productImage}',
-                            color: '${product.color}',
-                            size: '${product.size}',
-                            quantity: 1
-                        }); if (!${isSoldOut}) CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)});">
-                            ${isSoldOut ? 'Sold Out' : 'Add to Cart'}
-                        </button>
-                        <button class="cart-item-remove" onclick="CartState.removeFromWishlist(${this.wishlist.indexOf(product.id)})">
+                        <button
+                            type="button"
+                            class="btn btn-primary btn-sm ${isSoldOut ? 'disabled' : ''}"
+                            data-wishlist-action="add"
+                            data-wishlist-index="${wishlistIndex}"
+                            data-product-id="${safeId}"
+                            data-product-name="${safeName}"
+                            data-product-price="${Number(product.price) || 0}"
+                            data-product-image="${safeImage}"
+                            data-product-color="${safeColor}"
+                            data-product-size="${safeSize}"
+                            ${isSoldOut ? 'disabled' : ''}
+                        >${isSoldOut ? 'Sold Out' : 'Add to Cart'}</button>
+                        <button type="button" class="cart-item-remove" data-wishlist-action="remove" data-wishlist-index="${wishlistIndex}" aria-label="Remove from wishlist">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 6L6 18M6 6l12 12"></path>
                             </svg>
@@ -507,29 +459,43 @@ const CartState = {
      */
     checkAbandonedCart() {
         if (this.cart.length === 0) return;
-        
+
         const lastVisit = localStorage.getItem('lastVisit');
         const now = Date.now();
         localStorage.setItem('lastVisit', now);
 
-        // If user returns after more than 1 hour (3600000 ms)
-        if (lastVisit && (now - parseInt(lastVisit) > 3600000)) {
+        if (lastVisit && now - Number.parseInt(lastVisit, 10) > 60 * 60 * 1000) {
             setTimeout(() => {
                 const toast = document.createElement('div');
                 toast.className = 'recovery-toast';
-                toast.innerHTML = `
-                    <div class="recovery-content">
-                        <h5>WELCOME BACK</h5>
-                        <p>You have ${this.cart.length} items waiting in your cart.</p>
-                    </div>
-                    <div class="recovery-actions">
-                        <button class="btn btn-primary btn-sm" onclick="window.openCart(); this.parentElement.parentElement.remove();">VIEW CART</button>
-                        <button class="btn btn-secondary btn-sm" onclick="this.parentElement.parentElement.remove();">DISMISS</button>
-                    </div>
-                `;
+
+                const content = document.createElement('div');
+                content.className = 'recovery-content';
+                const title = document.createElement('h5');
+                title.textContent = 'WELCOME BACK';
+                const copy = document.createElement('p');
+                copy.textContent = `You have ${this.cart.length} items waiting in your cart.`;
+                content.append(title, copy);
+
+                const actions = document.createElement('div');
+                actions.className = 'recovery-actions';
+                const viewButton = document.createElement('button');
+                viewButton.type = 'button';
+                viewButton.className = 'btn btn-primary btn-sm';
+                viewButton.textContent = 'VIEW CART';
+                viewButton.addEventListener('click', () => {
+                    window.openCart();
+                    toast.remove();
+                });
+                const dismissButton = document.createElement('button');
+                dismissButton.type = 'button';
+                dismissButton.className = 'btn btn-secondary btn-sm';
+                dismissButton.textContent = 'DISMISS';
+                dismissButton.addEventListener('click', () => toast.remove());
+                actions.append(viewButton, dismissButton);
+
+                toast.append(content, actions);
                 document.body.appendChild(toast);
-                
-                // Auto remove after 10 seconds
                 setTimeout(() => toast.remove(), 10000);
             }, 2000);
         }
@@ -607,37 +573,72 @@ window.closeWishlist = function() {
 // ==========================================
 // INITIALIZATION
 // ==========================================
+function bindOnce(element, key, eventName, handler) {
+    if (!element || element.dataset[key] === 'true') return;
+    element.dataset[key] = 'true';
+    element.addEventListener(eventName, handler);
+}
+
 function initCartUI() {
-    // Update counts on page load
     CartState.updateCartCount();
     CartState.updateWishlistCount();
-    
-    // Bind cart button clicks
-    document.querySelectorAll('#cartBtn, .cart-btn').forEach(btn => {
-        // Remove existing listeners if any to prevent double-binding
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+
+    document.querySelectorAll('#cartBtn, .cart-btn').forEach(button => {
+        bindOnce(button, 'cartOpenBound', 'click', event => {
+            event.preventDefault();
             window.openCart();
         });
     });
-    
-    // Bind wishlist button clicks
-    document.querySelectorAll('#wishlistBtn, .wishlist-btn').forEach(btn => {
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+
+    document.querySelectorAll('#wishlistBtn, .wishlist-btn').forEach(button => {
+        bindOnce(button, 'wishlistOpenBound', 'click', event => {
+            event.preventDefault();
             window.openWishlist();
         });
     });
-    
-    // Bind close buttons
-    document.getElementById('cartClose')?.addEventListener('click', window.closeCart);
-    document.getElementById('cartOverlay')?.addEventListener('click', window.closeCart);
-    document.getElementById('wishlistClose')?.addEventListener('click', window.closeWishlist);
-    document.getElementById('wishlistOverlay')?.addEventListener('click', window.closeWishlist);
+
+    bindOnce(document.getElementById('cartClose'), 'cartCloseBound', 'click', window.closeCart);
+    bindOnce(document.getElementById('cartOverlay'), 'cartOverlayBound', 'click', window.closeCart);
+    bindOnce(document.getElementById('wishlistClose'), 'wishlistCloseBound', 'click', window.closeWishlist);
+    bindOnce(document.getElementById('wishlistOverlay'), 'wishlistOverlayBound', 'click', window.closeWishlist);
+
+    bindOnce(document.getElementById('cartSidebar'), 'cartActionsBound', 'click', event => {
+        const control = event.target.closest('[data-cart-action]');
+        if (!control) return;
+
+        const index = Number.parseInt(control.dataset.index, 10);
+        if (!Number.isInteger(index)) return;
+
+        if (control.dataset.cartAction === 'decrease') void CartState.updateCartItemQuantity(index, -1);
+        if (control.dataset.cartAction === 'increase') void CartState.updateCartItemQuantity(index, 1);
+        if (control.dataset.cartAction === 'remove') CartState.removeFromCart(index);
+    });
+
+    bindOnce(document.getElementById('wishlistSidebar'), 'wishlistActionsBound', 'click', async event => {
+        const control = event.target.closest('[data-wishlist-action]');
+        if (!control) return;
+
+        const index = Number.parseInt(control.dataset.wishlistIndex, 10);
+        if (!Number.isInteger(index)) return;
+
+        if (control.dataset.wishlistAction === 'remove') {
+            CartState.removeFromWishlist(index);
+            return;
+        }
+
+        if (control.dataset.wishlistAction === 'add') {
+            const added = await CartState.addToCart({
+                id: control.dataset.productId || '',
+                name: control.dataset.productName || '',
+                price: Number(control.dataset.productPrice) || 0,
+                image: control.dataset.productImage || '',
+                color: control.dataset.productColor || '',
+                size: control.dataset.productSize || '',
+                quantity: 1
+            });
+            if (added) CartState.removeFromWishlist(index);
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

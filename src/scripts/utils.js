@@ -1,7 +1,56 @@
 /**
  * LA VAGUE - Utility Functions
- * Input masking, debouncing, button states, image optimization
+ * Shared browser safety, input masking, debouncing and UI helpers.
  */
+
+const BrowserSecurity = Object.freeze({
+    escapeHTML(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    },
+
+    safeURL(value, { allowDataImage = false } = {}) {
+        const raw = String(value ?? '').trim();
+        if (!raw) return '';
+
+        if (
+            allowDataImage &&
+            /^data:image\/(?:png|jpe?g|gif|webp|avif);base64,[a-z0-9+/=\s]+$/i.test(raw)
+        ) {
+            return raw;
+        }
+
+        try {
+            const url = new URL(raw, window.location.origin);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+            return url.href;
+        } catch {
+            return '';
+        }
+    },
+
+    safeClassToken(value) {
+        return String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    },
+
+    safeColor(value, fallback = '#111111') {
+        const color = String(value ?? '').trim();
+        if (/^#[0-9a-f]{3,8}$/i.test(color)) return color;
+        if (/^(?:rgb|hsl)a?\([0-9.%\s,+-]+\)$/i.test(color)) return color;
+        if (/^[a-z]{3,24}$/i.test(color)) return color;
+        return fallback;
+    }
+});
+
+window.BrowserSecurity = BrowserSecurity;
 
 const InputMasks = {
     creditCard(input) {

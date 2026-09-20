@@ -3,6 +3,7 @@
  */
 (function() {
     const API_BASE_URL = '/api';
+    const { escapeHTML, safeURL } = window.BrowserSecurity;
     
     const trackForm = document.getElementById('trackOrderForm');
     const trackBtn = document.getElementById('trackBtn');
@@ -130,25 +131,39 @@
     
     function buildItemsList(order) {
         const container = document.getElementById('orderItems');
-        const items = order.items || [];
-        
+        const items = Array.isArray(order.items) ? order.items : [];
+
         if (items.length === 0) {
-            container.innerHTML = '<p style="color: var(--color-text-muted);">No item details available.</p>';
+            const empty = document.createElement('p');
+            empty.className = 'order-items-empty';
+            empty.textContent = 'No item details available.';
+            container.replaceChildren(empty);
             return;
         }
-        
-        container.innerHTML = items.map(item => `
-            <div class="order-item">
-                <img src="${item.image || '/assets/hoodie.jpg'}" alt="${item.name}" class="order-item-image">
-                <div class="order-item-details">
-                    <div class="order-item-name">${item.name}</div>
-                    <div class="order-item-variant">${item.color || ''} / ${item.size || ''} × ${item.quantity}</div>
+
+        container.innerHTML = items.map(item => {
+            const image = escapeHTML(
+                safeURL(item.image, { allowDataImage: true }) || '/la-vague-red-wordmark.png'
+            );
+            const name = escapeHTML(item.name);
+            const color = escapeHTML(item.color || '');
+            const size = escapeHTML(item.size || '');
+            const quantity = Math.max(1, Number.parseInt(item.quantity, 10) || 1);
+            const price = Number(item.price) || 0;
+
+            return `
+                <div class="order-item">
+                    <img src="${image}" alt="${name}" class="order-item-image">
+                    <div class="order-item-details">
+                        <div class="order-item-name">${name}</div>
+                        <div class="order-item-variant">${color} / ${size} × ${quantity}</div>
+                    </div>
+                    <div class="order-item-price">${CurrencyConfig.formatPrice(price * quantity)}</div>
                 </div>
-                <div class="order-item-price">${CurrencyConfig.formatPrice(item.price * item.quantity)}</div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
-    
+
     function getItemCount(order) {
         const items = order.items || [];
         return items.reduce((sum, item) => sum + (item.quantity || 1), 0);
@@ -185,51 +200,5 @@
         trackForm.dispatchEvent(new Event('submit'));
     }
 
-    // Initialize locale selector for track order page (Language only)
-    function initTrackOrderLocale() {
-        const localeBtn = document.getElementById('localeBtn');
-        const localeDropdown = document.getElementById('localeDropdown');
-        
-        if (!localeBtn || !localeDropdown) return;
-        
-        const currentLang = localStorage.getItem('preferredLanguage') || 'en';
-        
-        // Update display - language only
-        const localeCurrent = document.getElementById('localeCurrent');
-        if (localeCurrent) {
-            localeCurrent.textContent = currentLang.toUpperCase();
-        }
-        
-        // Language options
-        document.querySelectorAll('#languageOptions .locale-option').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.lang === currentLang);
-            btn.addEventListener('click', () => {
-                localStorage.setItem('preferredLanguage', btn.dataset.lang);
-                document.documentElement.lang = btn.dataset.lang;
-                document.documentElement.dir = btn.dataset.lang === 'ar' ? 'rtl' : 'ltr';
-                window.location.reload();
-            });
-        });
-        
-        // Toggle dropdown
-        localeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            localeDropdown.classList.toggle('active');
-        });
-        
-        // Close on outside click
-        document.addEventListener('click', () => {
-            localeDropdown.classList.remove('active');
-        });
-        
-        localeDropdown.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-    }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initTrackOrderLocale);
-    } else {
-        initTrackOrderLocale();
-    }
 })();

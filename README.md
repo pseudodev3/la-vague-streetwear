@@ -101,7 +101,7 @@ CLOUDINARY_API_SECRET=...
 SENTRY_DSN=...
 ```
 
-Brevo SMTP, Gmail, generic SMTP, and SendGrid are also supported. See `.env.example` and `DEPLOYMENT.md` for the full configuration.
+Brevo SMTP, Gmail, generic SMTP, and SendGrid are also supported. See `.env.example` and `docs/DEPLOYMENT.md` for the full configuration.
 
 ## Production Deployment
 
@@ -187,6 +187,9 @@ Current hardening includes:
 - admin authentication enforced server-side
 - HTTPS enforcement in production
 - Netlify CSP, HSTS, referrer, framing, and MIME-sniffing headers
+- CSP blocks inline executable scripts and script attributes
+- shared browser escaping and URL validation for dynamic storefront rendering
+- production source maps disabled
 - no Express static serving of the repository root
 - production secrets excluded through `.gitignore`
 - Sentry error reporting
@@ -242,6 +245,8 @@ npm run check
 │   ├── services/
 │   ├── scripts/
 │   └── styles/
+├── public/                 # files deployed at web-root URLs
+├── docs/                   # deployment and PWA documentation
 ├── email-templates/
 ├── scripts/
 ├── tests/
@@ -254,9 +259,9 @@ npm run check
 
 ## Documentation
 
-- `DEPLOYMENT.md` — current Netlify/Render deployment setup
-- `PWA.md` — service-worker/PWA notes
-- `openapi.yaml` — API documentation
+- `docs/DEPLOYMENT.md` — current Netlify/Render deployment setup
+- `docs/PWA.md` — service-worker/PWA notes
+- `public/openapi.yaml` — OpenAPI source deployed as `/openapi.yaml`
 - `.env.example` — environment variable template
 
 ## License
