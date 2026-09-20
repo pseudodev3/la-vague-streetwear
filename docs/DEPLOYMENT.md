@@ -59,7 +59,7 @@ For database-aware monitoring, use:
 https://la-vague-api.onrender.com/api/ready
 ```
 
-The readiness endpoint returns `503` when PostgreSQL is unavailable, while the liveness endpoint remains independent so a transient database outage does not automatically cause a restart loop.
+The readiness endpoint returns `503` when PostgreSQL is unavailable, while the liveness endpoint remains independent so a transient database outage does not automatically cause a restart loop. Both infrastructure endpoints bypass the customer-facing API rate-limit budget so Render health checks cannot be converted into `429` responses.
 
 ### Required environment variables
 
