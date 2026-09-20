@@ -7,7 +7,7 @@
     'use strict';
 
     const NOTICE_KEY = 'la-vague-storage-notice';
-    const NOTICE_VERSION = '2.0';
+    const NOTICE_VERSION = '3.0';
 
     function hasAcknowledged() {
         try {
@@ -147,7 +147,7 @@
         banner.innerHTML = `
             <div class="cookie-consent-content">
                 <div class="cookie-consent-copy">
-                    <span class="cookie-consent-kicker">Browser storage</span>
+                    <span class="cookie-consent-kicker">Privacy & storage</span>
                     <p class="cookie-consent-text">
                         We use necessary browser storage for security and to keep your cart and wishlist working.
                         We do not currently use advertising or analytics cookies.

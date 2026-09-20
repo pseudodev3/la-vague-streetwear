@@ -2,7 +2,8 @@ import express from 'express';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { asyncHandler, APIError } from '../middleware/errorHandler.js';
-import { verifyAdminToken } from '../middleware/auth.js';
+import { verifyAdminSession, setAdminSessionCookie, clearAdminSessionCookie } from '../middleware/auth.js';
+import { csrfProtection } from '../middleware/csrf.js';
 import { query, USE_POSTGRES } from '../config/db.js';
 import { logAudit } from '../utils/audit.js';
 import { cacheService } from '../utils/cache.js';
@@ -22,6 +23,9 @@ import {
 } from '../../email-templates/index.js';
 
 const router = express.Router();
+
+// Cookie-authenticated admin mutations use the same double-submit CSRF protection as checkout.
+router.use(csrfProtection);
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -86,21 +90,28 @@ export default function (productService, inventoryService) {
             await query('INSERT INTO admin_sessions (session_key, expires_at) VALUES (?, ?)', [token, expiresAt.toISOString()]);
         }
 
-        res.json({ success: true, token });
+        setAdminSessionCookie(res, token);
+        res.json({ success: true });
     }));
 
+    // Session state
+    router.get('/session', verifyAdminSession, (req, res) => {
+        res.json({ success: true, authenticated: true });
+    });
+
     // Logout
-    router.post('/logout', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.post('/logout', verifyAdminSession, asyncHandler(async (req, res) => {
         if (USE_POSTGRES) {
-            await query('DELETE FROM admin_sessions WHERE session_key = $1', [req.adminToken]);
+            await query('DELETE FROM admin_sessions WHERE session_key = $1', [req.adminSessionKey]);
         } else {
-            await query('DELETE FROM admin_sessions WHERE session_key = ?', [req.adminToken]);
+            await query('DELETE FROM admin_sessions WHERE session_key = ?', [req.adminSessionKey]);
         }
+        clearAdminSessionCookie(res);
         res.json({ success: true });
     }));
 
     // Orders
-    router.get('/orders', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/orders', verifyAdminSession, asyncHandler(async (req, res) => {
         const result = await query('SELECT * FROM orders ORDER BY created_at DESC');
         const orders = result.rows.map(o => ({
             ...o,
@@ -110,7 +121,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, orders });
     }));
 
-    router.post('/orders/:id/status', verifyAdminToken, validateUpdateOrderStatus, asyncHandler(async (req, res) => {
+    router.post('/orders/:id/status', verifyAdminSession, validateUpdateOrderStatus, asyncHandler(async (req, res) => {
         const { status } = req.body;
         const { id } = req.params;
 
@@ -137,12 +148,12 @@ export default function (productService, inventoryService) {
     }));
 
     // Order Notes
-    router.get('/orders/:id/notes', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/orders/:id/notes', verifyAdminSession, asyncHandler(async (req, res) => {
         const result = await query('SELECT * FROM order_notes WHERE order_id = $1 ORDER BY created_at DESC', [req.params.id]);
         res.json({ success: true, notes: result.rows });
     }));
 
-    router.post('/orders/:id/notes', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.post('/orders/:id/notes', verifyAdminSession, asyncHandler(async (req, res) => {
         const { id } = req.params;
         const { note, isInternal = true } = req.body;
         if (!note?.trim()) throw new APIError('Note is required', 400);
@@ -153,7 +164,7 @@ export default function (productService, inventoryService) {
     }));
 
     // Stats & Analytics
-    router.get('/stats', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/stats', verifyAdminSession, asyncHandler(async (req, res) => {
         let totalOrders, pendingOrders, totalRevenue, recentOrdersResult;
         if (USE_POSTGRES) {
             totalOrders = await query('SELECT COUNT(*) FROM orders');
@@ -177,7 +188,7 @@ export default function (productService, inventoryService) {
         });
     }));
 
-    router.get('/analytics/sales', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/analytics/sales', verifyAdminSession, asyncHandler(async (req, res) => {
         const { period = '30d' } = req.query;
         const days = parseInt(period) || 30;
         const dateFormat = USE_POSTGRES ? 'DATE(created_at)' : 'date(created_at)';
@@ -191,7 +202,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, data: result.rows });
     }));
 
-    router.get('/analytics/top-products', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/analytics/top-products', verifyAdminSession, asyncHandler(async (req, res) => {
         const { limit = 10 } = req.query;
         let orders;
         const interval = USE_POSTGRES ? 'NOW() - INTERVAL \'30 days\'' : 'datetime(\'now\', \'-30 days\')';
@@ -210,7 +221,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, products: topProducts });
     }));
 
-    router.get('/analytics/customers', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/analytics/customers', verifyAdminSession, asyncHandler(async (req, res) => {
         const interval = USE_POSTGRES ? 'NOW() - INTERVAL \'30 days\'' : 'datetime(\'now\', \'-30 days\')';
         const interval7 = USE_POSTGRES ? 'NOW() - INTERVAL \'7 days\'' : 'datetime(\'now\', \'-7 days\')';
 
@@ -225,24 +236,24 @@ export default function (productService, inventoryService) {
     }));
 
     // Product Management
-    router.get('/products', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/products', verifyAdminSession, asyncHandler(async (req, res) => {
         const { category, search, limit, offset } = req.query;
         const products = await productService.getAll({ category, search, limit, offset });
         res.json({ success: true, products });
     }));
 
-    router.get('/products/stats', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/products/stats', verifyAdminSession, asyncHandler(async (req, res) => {
         const stats = await productService.getStats();
         res.json({ success: true, stats });
     }));
 
-    router.get('/products/:id', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/products/:id', verifyAdminSession, asyncHandler(async (req, res) => {
         const product = await productService.getById(req.params.id);
         if (!product) throw new APIError('Product not found', 404);
         res.json({ success: true, product });
     }));
 
-    router.get('/products/:id/images', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/products/:id/images', verifyAdminSession, asyncHandler(async (req, res) => {
         const result = await query('SELECT id, name, images FROM products WHERE id = $1', [req.params.id]);
         if (result.rows.length === 0) throw new APIError('Product not found', 404);
         const p = result.rows[0];
@@ -250,13 +261,13 @@ export default function (productService, inventoryService) {
     }));
 
 
-    router.post('/products', verifyAdminToken, upload.array('images', 5), asyncHandler(async (req, res) => {
+    router.post('/products', verifyAdminSession, upload.array('images', 5), asyncHandler(async (req, res) => {
         const product = await productService.create(req.body, req.files);
         cacheService.del('products_all');
         res.status(201).json({ success: true, product });
     }));
 
-    router.put('/products/:id', verifyAdminToken, upload.array('images', 5), asyncHandler(async (req, res) => {
+    router.put('/products/:id', verifyAdminSession, upload.array('images', 5), asyncHandler(async (req, res) => {
         const product = await productService.update(req.params.id, req.body, req.files);
         cacheService.del('products_all');
         cacheService.del(`product_${req.params.id}`);
@@ -264,7 +275,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, product });
     }));
 
-    router.delete('/products/:id', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.delete('/products/:id', verifyAdminSession, asyncHandler(async (req, res) => {
         const result = await productService.delete(req.params.id);
         cacheService.del('products_all');
         cacheService.del(`product_${req.params.id}`);
@@ -272,19 +283,19 @@ export default function (productService, inventoryService) {
     }));
 
     // Inventory
-    router.get('/inventory/low-stock', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/inventory/low-stock', verifyAdminSession, asyncHandler(async (req, res) => {
         const threshold = parseInt(req.query.threshold) || 5;
         const lowStock = await inventoryService.getLowStock(threshold);
         res.json({ success: true, lowStock, threshold });
     }));
 
-    router.post('/inventory/release/:orderId', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.post('/inventory/release/:orderId', verifyAdminSession, asyncHandler(async (req, res) => {
         const { orderId } = req.params;
         await inventoryService.cancelReservation(orderId);
         res.json({ success: true, message: 'Reservation released' });
     }));
 
-    router.get('/inventory/movements', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/inventory/movements', verifyAdminSession, asyncHandler(async (req, res) => {
         const { productId, limit = 50, offset = 0 } = req.query;
         let sql = 'SELECT * FROM inventory_movements';
         const params = [];
@@ -296,14 +307,14 @@ export default function (productService, inventoryService) {
     }));
 
     // Settings
-    router.get('/settings', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/settings', verifyAdminSession, asyncHandler(async (req, res) => {
         const result = await query('SELECT * FROM settings');
         const settings = {};
         result.rows.forEach(row => { settings[row.key] = row.value; });
         res.json({ success: true, settings });
     }));
 
-    router.post('/settings', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.post('/settings', verifyAdminSession, asyncHandler(async (req, res) => {
         const { settings } = req.body;
         for (const [key, value] of Object.entries(settings)) {
             if (USE_POSTGRES) {
@@ -316,7 +327,7 @@ export default function (productService, inventoryService) {
     }));
 
     // Coupons
-    router.get('/coupons', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/coupons', verifyAdminSession, asyncHandler(async (req, res) => {
         const result = await query('SELECT * FROM coupons ORDER BY created_at DESC');
         const coupons = result.rows.map(c => ({
             ...c,
@@ -326,7 +337,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, coupons });
     }));
 
-    router.post('/coupons', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.post('/coupons', verifyAdminSession, asyncHandler(async (req, res) => {
         const { code, type, value, min_order_amount, max_discount_amount, usage_limit, per_customer_limit, start_date, end_date, applicable_categories, applicable_products } = req.body;
         const id = `cpn-${Date.now()}`;
         const isActive = USE_POSTGRES ? true : 1;
@@ -338,7 +349,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, coupon: { id, code: code.toUpperCase() } });
     }));
 
-    router.delete('/coupons/:id', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.delete('/coupons/:id', verifyAdminSession, asyncHandler(async (req, res) => {
         const { id } = req.params;
         if (USE_POSTGRES) {
             await query('DELETE FROM coupons WHERE id = $1', [id]);
@@ -350,7 +361,7 @@ export default function (productService, inventoryService) {
     }));
 
     // Reviews
-    router.get('/reviews', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/reviews', verifyAdminSession, asyncHandler(async (req, res) => {
         const { status, productId } = req.query;
         let sql = 'SELECT r.*, p.name as product_name FROM reviews r JOIN products p ON r.product_id = p.id WHERE 1=1';
         const params = [];
@@ -361,7 +372,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, reviews: result.rows.map(r => ({ ...r, photos: safeParseJSON(r.photos, []) })) });
     }));
 
-    router.put('/reviews/:id/status', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.put('/reviews/:id/status', verifyAdminSession, asyncHandler(async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
 
@@ -410,7 +421,7 @@ export default function (productService, inventoryService) {
         if (slug) cacheService.del(`product_${slug}`);
     }
     // Bulk recalculate all product ratings (useful for fixing existing data)
-    router.post('/reviews/recalculate-all', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.post('/reviews/recalculate-all', verifyAdminSession, asyncHandler(async (req, res) => {
         const productsResult = await query('SELECT id FROM products');
         let updated = 0;
 
@@ -422,7 +433,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, message: `Recalculated ratings for ${updated} products` });
     }));
 
-    router.put('/reviews/:id/verified', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.put('/reviews/:id/verified', verifyAdminSession, asyncHandler(async (req, res) => {
         const { id } = req.params;
         const { verified } = req.body;
 
@@ -431,12 +442,12 @@ export default function (productService, inventoryService) {
     }));
 
     // Waitlist
-    router.get('/products/:id/waitlist', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/products/:id/waitlist', verifyAdminSession, asyncHandler(async (req, res) => {
         const result = await query('SELECT * FROM waitlist WHERE product_id = $1 ORDER BY created_at DESC', [req.params.id]);
         res.json({ success: true, waitlist: result.rows });
     }));
 
-    router.post('/products/:id/notify-waitlist', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.post('/products/:id/notify-waitlist', verifyAdminSession, asyncHandler(async (req, res) => {
         const { id } = req.params;
         const waitlist = (await query('SELECT * FROM waitlist WHERE product_id = $1 AND status = \'waiting\'', [id])).rows;
         await query('UPDATE waitlist SET status = \'notified\', notified_at = CURRENT_TIMESTAMP WHERE product_id = $1 AND status = \'waiting\'', [id]);
@@ -444,7 +455,7 @@ export default function (productService, inventoryService) {
     }));
 
     // Customers
-    router.get('/customers', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/customers', verifyAdminSession, asyncHandler(async (req, res) => {
         const { search, limit = 50, offset = 0 } = req.query;
         let sql = 'SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value, MAX(created_at) as last_order_date FROM orders';
         const params = [];
@@ -455,7 +466,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, customers: result.rows });
     }));
 
-    router.get('/customers/:email', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/customers/:email', verifyAdminSession, asyncHandler(async (req, res) => {
         const email = decodeURIComponent(req.params.email);
         const customer = (await query('SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value FROM orders WHERE customer_email = $1 GROUP BY customer_email, customer_name, customer_phone', [email])).rows[0];
         const orders = (await query('SELECT * FROM orders WHERE customer_email = $1 ORDER BY created_at DESC', [email])).rows;
@@ -464,7 +475,7 @@ export default function (productService, inventoryService) {
     }));
 
     // Exports
-    router.get('/export/orders', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/export/orders', verifyAdminSession, asyncHandler(async (req, res) => {
         const { startDate, endDate } = req.query;
         let sql = 'SELECT * FROM orders WHERE 1=1';
         const params = [];
@@ -479,7 +490,7 @@ export default function (productService, inventoryService) {
     }));
 
     // Reports
-    router.get('/reports/sales', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/reports/sales', verifyAdminSession, asyncHandler(async (req, res) => {
         const { startDate, endDate } = req.query;
         let sql = 'SELECT COUNT(*) as total_orders, COALESCE(SUM(total), 0) as total_revenue, COALESCE(SUM(subtotal), 0) as total_subtotal, COALESCE(SUM(shipping_cost), 0) as total_shipping, COALESCE(SUM(discount), 0) as total_discount, COALESCE(AVG(total), 0) as average_order_value FROM orders WHERE payment_status = \'paid\'';
         const params = [];
@@ -489,7 +500,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, report: result.rows[0] });
     }));
 
-    router.get('/reports/sales-daily', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/reports/sales-daily', verifyAdminSession, asyncHandler(async (req, res) => {
         const { startDate, endDate } = req.query;
         const dateFormat = USE_POSTGRES ? 'DATE(created_at)' : 'date(created_at)';
         let sql = `SELECT ${dateFormat} as date, COUNT(*) as orders, COALESCE(SUM(total), 0) as revenue FROM orders WHERE payment_status = 'paid'`;
@@ -501,7 +512,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, daily: result.rows });
     }));
 
-    router.get('/reports/top-products', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/reports/top-products', verifyAdminSession, asyncHandler(async (req, res) => {
         const { startDate, endDate, limit = 10 } = req.query;
         // Using a similar logic to analytics/top-products but with date filtering
         let sql = 'SELECT items FROM orders WHERE payment_status = \'paid\'';
@@ -523,7 +534,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, products });
     }));
 
-    router.get('/reports/sales-by-category', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/reports/sales-by-category', verifyAdminSession, asyncHandler(async (req, res) => {
         const { startDate, endDate } = req.query;
         // This is complex due to JSON items, using simplified logic similar to top-products
         const orders = (await query('SELECT items, total FROM orders WHERE payment_status = \'paid\'')).rows;
@@ -533,7 +544,7 @@ export default function (productService, inventoryService) {
         res.json({ success: true, categories: [] });
     }));
 
-    router.get('/reports/export', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/reports/export', verifyAdminSession, asyncHandler(async (req, res) => {
         const { startDate, endDate, type = 'orders' } = req.query;
         let sql = 'SELECT * FROM orders WHERE 1=1';
         const params = [];
@@ -544,7 +555,7 @@ export default function (productService, inventoryService) {
     }));
 
     // Audit Logs
-    router.get('/audit-logs', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/audit-logs', verifyAdminSession, asyncHandler(async (req, res) => {
         const { entityType, entityId, action, limit = 50, offset = 0 } = req.query;
         let sql = 'SELECT * FROM audit_logs WHERE 1=1';
         const params = [];
@@ -558,42 +569,42 @@ export default function (productService, inventoryService) {
     }));
 
     // Email Operations
-    router.post('/email/test-config', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.post('/email/test-config', verifyAdminSession, asyncHandler(async (req, res) => {
         const result = await testEmailConfig();
         res.json(result);
     }));
 
-    router.get('/email/preview/:status', verifyAdminToken, (req, res) => {
+    router.get('/email/preview/:status', verifyAdminSession, (req, res) => {
         const { status } = req.params;
         const result = previewEmail(status);
         res.json({ success: true, status, ...result });
     });
 
-    router.post('/email/send-test', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.post('/email/send-test', verifyAdminSession, asyncHandler(async (req, res) => {
         const { email, status } = req.body;
         await sendTestEmail(email, status);
         res.json({ success: true, message: 'Test email sent' });
     }));
 
-    router.get('/email/queue-stats', verifyAdminToken, (req, res) => {
+    router.get('/email/queue-stats', verifyAdminSession, (req, res) => {
         res.json({ success: true, stats: getEmailQueueStats() });
     });
 
     // Inventory Updates
-    router.get('/inventory/:productId', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/inventory/:productId', verifyAdminSession, asyncHandler(async (req, res) => {
         const { color, size } = req.query;
         const stock = await inventoryService.getStock(req.params.productId, color, size);
         res.json({ success: true, stock });
     }));
 
-    router.post('/inventory/:productId', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.post('/inventory/:productId', verifyAdminSession, asyncHandler(async (req, res) => {
         const { color, size, quantity } = req.body;
         const result = await inventoryService.updateStock(req.params.productId, color, size, quantity);
         res.json({ success: true, ...result });
     }));
 
     // Reports Extension
-    router.get('/export/products', verifyAdminToken, asyncHandler(async (req, res) => {
+    router.get('/export/products', verifyAdminSession, asyncHandler(async (req, res) => {
         const result = await query('SELECT * FROM products ORDER BY name');
         const csv = `ID,Name,Price,Inventory\n${result.rows.map(p => `${p.id},"${p.name}",${p.price},"${p.inventory}"`).join('\n')}`;
         res.setHeader('Content-Type', 'text/csv');
