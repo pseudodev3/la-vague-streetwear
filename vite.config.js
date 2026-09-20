@@ -8,7 +8,7 @@ const page = filename => resolve(__dirname, filename);
 
 export default defineConfig({
   root: '.',
-  publicDir: false,
+  publicDir: 'public',
   build: {
     outDir: 'dist',
     emptyOutDir: true,
