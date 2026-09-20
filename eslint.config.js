@@ -20,8 +20,8 @@ const browserAppGlobals = {
     SwaggerUIBundle: 'readonly',
     SwaggerUIStandalonePreset: 'readonly',
 
-    // Classic-script admin actions are attached to window and referenced by name
-    // from generated inline handlers.
+    // Classic-script admin actions are attached to window and referenced by
+    // DOM listeners created by the admin dashboard.
     viewOrder: 'readonly',
     saveOrderStatus: 'readonly',
     editProduct: 'readonly',
@@ -92,7 +92,7 @@ export default [
         }
     },
     {
-        files: ['sw.js'],
+        files: ['public/sw.js'],
         languageOptions: {
             globals: {
                 ...globals.serviceworker
