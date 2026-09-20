@@ -4,7 +4,7 @@ Current production architecture:
 
 - **Frontend:** Netlify
 - **Backend API:** Render
-- **Database:** PostgreSQL
+- **Database:** Aiven PostgreSQL
 - **Payments:** Paystack
 - **Email:** Brevo API or SMTP
 - **Frontend API access:** same-origin `/api` through the Netlify proxy
@@ -74,7 +74,28 @@ PAYSTACK_SECRET_KEY=...
 PAYSTACK_PUBLIC_KEY=...
 ```
 
-PostgreSQL TLS is enabled in production. Use the environment overrides in `src/config/db.js` only when your database provider requires them.
+`DATABASE_URL` is the Aiven PostgreSQL service URI and is configured directly in the Render dashboard. Render hosts the API only; it does not own the production database. PostgreSQL TLS is enabled in production. Use the environment overrides in `src/config/db.js` only when Aiven requires them.
+
+
+## Backend uptime monitoring
+
+The Render API is currently on the Free web-service plan. Render can spin a Free service down after an idle period, so the repository includes `.github/workflows/backend-watch.yml` as a lightweight external probe.
+
+The watcher:
+
+- runs every 10 minutes on the default branch, offset from the top of the hour
+- checks `/api/health` first and records response latency plus `uptimeSeconds`
+- checks `/api/ready` separately so Aiven connectivity is visible without coupling it to Render's liveness health check
+- can be run manually from GitHub Actions
+- also runs when its own infrastructure/config files change
+
+Interpretation:
+
+- a slow first liveness response together with very low `uptimeSeconds` is a cold-start / wake-up signature
+- a fast response with very low `uptimeSeconds` is a recent process-start/restart signature
+- if watcher runs remain less than 15 minutes apart but `uptimeSeconds` repeatedly resets, investigate Render restarts or health-check failures rather than ordinary idle sleep
+
+This watcher is best-effort monitoring and keep-warm traffic, not an availability guarantee. GitHub scheduled workflows can be delayed. For production-grade always-on API availability, use always-on compute or a dedicated uptime service.
 
 ## Email
 
@@ -135,11 +156,9 @@ Admin browser requests use the same-origin `/api` route and the authenticated ad
 
 ## Database
 
-Production uses PostgreSQL via `DATABASE_URL`. The old SQLite-on-Render-disk deployment model is obsolete and should not be used for production.
+Production uses **Aiven PostgreSQL** via `DATABASE_URL`. The old SQLite-on-Render-disk deployment model is obsolete and should not be used for production. `render.yaml` deliberately declares `DATABASE_URL` as `sync: false`; the real Aiven connection string belongs in the Render environment and must never be committed.
 
 The API retries transient PostgreSQL connection and initialization failures during startup. Pool-level idle-client errors are logged instead of being allowed to terminate the Node process.
-
-If the database in `render.yaml` is deployed on Render's Free database plan, treat it as temporary infrastructure rather than durable production storage. Replace it with a persistent Postgres provider or a paid Render database before relying on it for long-lived production data.
 
 ## Local development
 

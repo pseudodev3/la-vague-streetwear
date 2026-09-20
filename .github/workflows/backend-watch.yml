@@ -1,0 +1,98 @@
+name: Backend Watch
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Offset from the top of the hour to reduce GitHub scheduler congestion.
+    - cron: '3,13,23,33,43,53 * * * *'
+  push:
+    paths:
+      - '.github/workflows/backend-watch.yml'
+      - 'render.yaml'
+      - 'docs/DEPLOYMENT.md'
+      - 'README.md'
+      - '.env.example'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-watch
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe Render API
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check liveness and Aiven readiness
+        env:
+          BASE_URL: https://la-vague-api.onrender.com
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          started_at=$(date +%s)
+          health_json=$(curl             --fail-with-body             --silent             --show-error             --retry 5             --retry-all-errors             --retry-delay 5             --connect-timeout 10             --max-time 90             "$BASE_URL/api/health")
+          elapsed=$(( $(date +%s) - started_at ))
+
+          printf '%s' "$health_json" > /tmp/la-vague-health.json
+
+          HEALTH_ELAPSED="$elapsed" python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          with open('/tmp/la-vague-health.json', encoding='utf-8') as handle:
+              health = json.load(handle)
+
+          status = health.get('status')
+          uptime = int(health.get('uptimeSeconds', -1))
+          elapsed = int(os.environ['HEALTH_ELAPSED'])
+
+          if status != 'ok' or uptime < 0:
+              print(f'Invalid liveness payload: {health}', file=sys.stderr)
+              raise SystemExit(1)
+
+          if elapsed >= 8 and uptime <= 180:
+              signature = 'cold-start / wake-up signature'
+          elif uptime <= 180:
+              signature = 'recent process start/restart signature'
+          else:
+              signature = 'already warm'
+
+          print(f'Liveness: ok | response={elapsed}s | uptimeSeconds={uptime} | {signature}')
+
+          summary = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summary:
+              with open(summary, 'a', encoding='utf-8') as handle:
+                  handle.write('## Backend watch\n\n')
+                  handle.write(f'- Liveness response: **{elapsed}s**\n')
+                  handle.write(f'- Process uptime: **{uptime}s**\n')
+                  handle.write(f'- Runtime signature: **{signature}**\n')
+          PY
+
+          ready_json=$(curl             --fail-with-body             --silent             --show-error             --retry 2             --retry-all-errors             --retry-delay 3             --connect-timeout 10             --max-time 30             "$BASE_URL/api/ready")
+
+          printf '%s' "$ready_json" > /tmp/la-vague-ready.json
+
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          with open('/tmp/la-vague-ready.json', encoding='utf-8') as handle:
+              ready = json.load(handle)
+
+          if ready.get('status') != 'ready' or ready.get('database') != 'reachable':
+              print(f'Invalid readiness payload: {ready}', file=sys.stderr)
+              raise SystemExit(1)
+
+          print('Readiness: ready | Aiven PostgreSQL reachable')
+
+          summary = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summary:
+              with open(summary, 'a', encoding='utf-8') as handle:
+                  handle.write('- Aiven readiness: **reachable**\n')
+          PY
