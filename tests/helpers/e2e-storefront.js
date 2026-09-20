@@ -52,23 +52,15 @@ export async function mockStorefrontAPI(page) {
     }
 
     if (path.endsWith('/reviews')) {
+      const isWrite = route.request().method() !== 'GET';
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true })
-      });
-      return;
-    }
-
-    if (path.includes('/reviews')) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          reviews: [],
-          summary: { total: 0, average: 0 }
-        })
+        body: JSON.stringify(
+          isWrite
+            ? { success: true }
+            : { success: true, reviews: [], summary: { total: 0, average: 0 } }
+        )
       });
       return;
     }
