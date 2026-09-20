@@ -4,6 +4,7 @@
  */
 (function () {
     const API_URL = '/api';
+    const { escapeHTML } = window.BrowserSecurity;
 
     let PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || '';
     let configLoaded = false;
@@ -160,7 +161,6 @@
         if (pollInterval) clearInterval(pollInterval);
         checkAndUpdateStatus(orderId);
         pollInterval = setInterval(() => {
-    const { escapeHTML } = window.BrowserSecurity;
             pollAttempts += 1;
             const progressBar = document.getElementById('paystack-progress-bar');
             if (progressBar) {
