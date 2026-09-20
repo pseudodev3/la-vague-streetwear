@@ -15,7 +15,7 @@ env:
 
 jobs:
   validate:
-    name: Validate
+    name: CI/CD Pipeline
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
