@@ -95,7 +95,7 @@
             <div class="cookie-consent-content">
                 <div class="cookie-consent-text">
                     <h3>🍪 Cookie Preferences</h3>
-                    <p>We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies. <a href="/privacy-policy.html" class="cookie-consent-link">Learn more</a></p>
+                    <p>We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies. <a href="/privacy-policy" class="cookie-consent-link">Learn more</a></p>
                 </div>
                 <div class="cookie-consent-actions">
                     <button type="button" class="cookie-btn cookie-btn-secondary" id="cookie-preferences-btn">
