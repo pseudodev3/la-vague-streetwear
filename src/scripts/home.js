@@ -6,8 +6,6 @@ const { escapeHTML, safeURL, safeClassToken } = window.BrowserSecurity;
 
 // State - kept global for cross-function access
 const state = {
-    cart: JSON.parse(localStorage.getItem('cart')) || [],
-    wishlist: JSON.parse(localStorage.getItem('wishlist')) || [],
     currentLook: 0,
     lookbookImages: [
         { src: '/assets/urbannights.jpg', title: 'Urban Nights', number: '01' },
@@ -60,12 +58,6 @@ async function initHome() {
     };
 
     await renderFeaturedProducts();
-    
-    // Sync with shared CartState if available
-    if (typeof CartState !== 'undefined') {
-        state.cart = CartState.cart;
-        state.wishlist = CartState.wishlist;
-    }
     
     updateCartCount();
     updateWishlistCount();
