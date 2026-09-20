@@ -45,8 +45,8 @@ tags:
     description: Discount codes and promotions
   - name: Analytics
     description: Admin performance insights
-  - name: GDPR
-    description: Privacy compliance
+  - name: Privacy
+    description: Privacy rights requests
   - name: Admin
     description: Backend management operations
 
@@ -177,7 +177,7 @@ paths:
   # Privacy rights requests
   /gdpr/export:
     post:
-      tags: [GDPR]
+      tags: [Privacy]
       summary: Request personal-data export
       description: Self-service export is disabled until requester identity verification is available. Contact support@la-vague.store.
       responses:
@@ -186,7 +186,7 @@ paths:
 
   /gdpr/delete:
     post:
-      tags: [GDPR]
+      tags: [Privacy]
       summary: Request personal-data deletion
       description: Self-service deletion is disabled until requester identity verification is available. Contact support@la-vague.store.
       responses:
