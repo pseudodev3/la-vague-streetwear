@@ -35,7 +35,7 @@ la-vague/
 │   ├── icon-192x192.png
 │   ├── icon-384x384.png
 │   └── icon-512x512.png
-└── PWA.md                         # This file
+└── docs/PWA.md                    # This file
 ```
 
 ## Generating Icons
