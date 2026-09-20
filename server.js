@@ -167,6 +167,12 @@ const apiLimiter = rateLimit({
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
+    // Infrastructure probes must never be blocked by the customer-facing API budget.
+    // Render treats non-2xx/3xx health responses as failures and can restart an
+    // otherwise healthy instance after sustained failed checks.
+    skip: req =>
+        req.originalUrl === '/api/health' ||
+        req.originalUrl === '/api/ready',
     message: { success: false, error: 'Too many requests.', code: 'RATE_LIMIT' }
 });
 app.use('/api/', apiLimiter);

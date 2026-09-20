@@ -5,7 +5,7 @@ Production e-commerce platform for **LA VAGUE**, a Nigerian streetwear brand.
 - Storefront: https://la-vague.store
 - Frontend hosting: Netlify
 - API hosting: Render
-- Database: PostgreSQL in production, SQLite fallback for local development
+- Database: Aiven PostgreSQL in production, SQLite fallback for local development
 - Payments: Paystack
 - Media: Cloudinary
 - Email: Brevo API/SMTP, generic SMTP, Gmail, or SendGrid
@@ -26,7 +26,7 @@ Netlify (dist/)
   v
 Render API (server.js)
   |
-  +--> PostgreSQL
+  +--> Aiven PostgreSQL
   +--> Paystack
   +--> Cloudinary
   +--> Email provider
@@ -133,7 +133,7 @@ Start: node server.js
 Health: /api/health
 ```
 
-Production secrets should be configured in the Render dashboard rather than committed to the repository.
+Production secrets should be configured in the Render dashboard rather than committed to the repository. The production `DATABASE_URL` points to Aiven PostgreSQL; Render hosts only the API process.
 
 ## Payments
 
@@ -204,7 +204,7 @@ Use:
 GET /api/health
 ```
 
-Monitoring services should check this endpoint rather than `/` on the Render API service, because the API root intentionally does not serve the storefront.
+Monitoring services should check this endpoint rather than `/` on the Render API service, because the API root intentionally does not serve the storefront. `.github/workflows/backend-watch.yml` probes liveness and Aiven-backed readiness every 10 minutes as a best-effort uptime diagnostic/keep-warm check.
 
 Use `GET /api/ready` when you specifically need to verify database connectivity. The liveness endpoint stays independent from PostgreSQL so a temporary database outage does not itself create a service restart loop.
 
