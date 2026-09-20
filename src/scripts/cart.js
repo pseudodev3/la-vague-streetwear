@@ -3,7 +3,7 @@
  * Works across all pages
  */
 
-const { escapeHTML, safeURL } = window.BrowserSecurity;
+const { escapeHTML: cartEscapeHTML, safeURL: cartSafeURL } = window.BrowserSecurity;
 
 // ==========================================
 // CURRENCY CONFIGURATION (NGN ONLY)
@@ -295,10 +295,10 @@ const CartState = {
 
         cartItems.innerHTML = cartWithStock.map((item, index) => {
             const isAtMaxStock = item.quantity >= item.stock;
-            const safeImage = escapeHTML(safeURL(item.image, { allowDataImage: true }));
-            const safeName = escapeHTML(item.name);
-            const safeColor = escapeHTML(item.color);
-            const safeSize = escapeHTML(item.size);
+            const safeImage = cartEscapeHTML(cartSafeURL(item.image, { allowDataImage: true }));
+            const safeName = cartEscapeHTML(item.name);
+            const safeColor = cartEscapeHTML(item.color);
+            const safeSize = cartEscapeHTML(item.size);
             const quantity = Math.max(0, Number.parseInt(item.quantity, 10) || 0);
 
             return `
@@ -410,12 +410,12 @@ const CartState = {
             const isSoldOut = product.stock <= 0;
             const wishlistIndex = this.wishlist.indexOf(product.id);
             const rawImage = product.images?.[0]?.src || product.images?.[0] || '';
-            const safeImage = escapeHTML(safeURL(rawImage, { allowDataImage: true }));
-            const safeName = escapeHTML(product.name);
-            const safeCategory = escapeHTML(product.category);
-            const safeColor = escapeHTML(product.color);
-            const safeSize = escapeHTML(product.size);
-            const safeId = escapeHTML(product.id);
+            const safeImage = cartEscapeHTML(cartSafeURL(rawImage, { allowDataImage: true }));
+            const safeName = cartEscapeHTML(product.name);
+            const safeCategory = cartEscapeHTML(product.category);
+            const safeColor = cartEscapeHTML(product.color);
+            const safeSize = cartEscapeHTML(product.size);
+            const safeId = cartEscapeHTML(product.id);
             const safeSlug = encodeURIComponent(String(product.slug || product.id || ''));
 
             return `

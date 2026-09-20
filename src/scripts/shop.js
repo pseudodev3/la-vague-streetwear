@@ -7,7 +7,7 @@
 // API CONFIGURATION
 // ==========================================
 const API_URL = '/api';
-const { escapeHTML, safeURL, safeClassToken, safeColor } = window.BrowserSecurity;
+const { escapeHTML: shopEscapeHTML, safeURL: shopSafeURL, safeClassToken: shopSafeClassToken, safeColor: shopSafeColor } = window.BrowserSecurity;
 
 // API Client for Shop
 const ShopAPI = {
@@ -229,20 +229,20 @@ function renderProducts() {
         );
         const isSoldOut = totalStock === 0;
 
-        const safeId = escapeHTML(product.id);
-        const safeSlug = escapeHTML(product.slug);
-        const safeName = escapeHTML(product.name);
+        const safeId = shopEscapeHTML(product.id);
+        const safeSlug = shopEscapeHTML(product.slug);
+        const safeName = shopEscapeHTML(product.name);
         const categoryName = CATEGORIES.find(category => category.id === product.category)?.name || product.category;
-        const safeCategory = escapeHTML(categoryName);
-        const firstSrc = escapeHTML(safeURL(firstImage.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
-        const firstAlt = escapeHTML(firstImage.alt || product.name);
+        const safeCategory = shopEscapeHTML(categoryName);
+        const firstSrc = shopEscapeHTML(shopSafeURL(firstImage.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
+        const firstAlt = shopEscapeHTML(firstImage.alt || product.name);
         const secondSrc = secondImage
-            ? escapeHTML(safeURL(secondImage.src, { allowDataImage: true }))
+            ? shopEscapeHTML(shopSafeURL(secondImage.src, { allowDataImage: true }))
             : '';
-        const secondAlt = secondImage ? escapeHTML(secondImage.alt || product.name) : '';
+        const secondAlt = secondImage ? shopEscapeHTML(secondImage.alt || product.name) : '';
         const badge = String(product.badge || '').trim();
-        const safeBadge = escapeHTML(badge);
-        const badgeClass = safeClassToken(badge);
+        const safeBadge = shopEscapeHTML(badge);
+        const badgeClass = shopSafeClassToken(badge);
         const reviewCount = Math.max(0, Number.parseInt(product.review_count, 10) || 0);
 
         let badgeHtml = '';
@@ -293,7 +293,7 @@ function renderProducts() {
                 ${product.colors?.length > 1 ? `
                     <div class="product-colors">
                         ${product.colors.map((color, index) => `
-                            <span class="color-dot ${index === 0 ? 'active' : ''}" style="background-color: ${safeColor(color.value)}" title="${escapeHTML(color.name)}"></span>
+                            <span class="color-dot ${index === 0 ? 'active' : ''}" style="background-color: ${shopSafeColor(color.value)}" title="${shopEscapeHTML(color.name)}"></span>
                         `).join('')}
                     </div>
                 ` : ''}
@@ -394,14 +394,14 @@ function renderQuickView() {
         state.selectedQuantity = 1;
     }
 
-    const safeImage = escapeHTML(safeURL(firstImage.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
-    const safeAlt = escapeHTML(firstImage.alt || product.name);
+    const safeImage = shopEscapeHTML(shopSafeURL(firstImage.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
+    const safeAlt = shopEscapeHTML(firstImage.alt || product.name);
     const categoryName = CATEGORIES.find(category => category.id === product.category)?.name || product.category;
-    const safeCategory = escapeHTML(categoryName);
-    const safeName = escapeHTML(product.name);
-    const safeDescription = escapeHTML(product.description || '');
-    const safeSelectedColor = escapeHTML(state.selectedColor);
-    const safeSelectedSize = escapeHTML(state.selectedSize);
+    const safeCategory = shopEscapeHTML(categoryName);
+    const safeName = shopEscapeHTML(product.name);
+    const safeDescription = shopEscapeHTML(product.description || '');
+    const safeSelectedColor = shopEscapeHTML(state.selectedColor);
+    const safeSelectedSize = shopEscapeHTML(state.selectedSize);
 
     elements.quickViewContent.innerHTML = `
         <div class="quick-view-gallery">
@@ -423,10 +423,10 @@ function renderQuickView() {
                         <div class="color-options">
                             ${product.colors.map(color => `
                                 <button type="button" class="color-option ${state.selectedColor === color.name ? 'active' : ''}"
-                                        style="background-color: ${safeColor(color.value)}"
+                                        style="background-color: ${shopSafeColor(color.value)}"
                                         data-quick-action="select-color"
-                                        data-value="${escapeHTML(color.name)}"
-                                        title="${escapeHTML(color.name)}"></button>
+                                        data-value="${shopEscapeHTML(color.name)}"
+                                        title="${shopEscapeHTML(color.name)}"></button>
                             `).join('')}
                         </div>
                     </div>
@@ -435,7 +435,7 @@ function renderQuickView() {
                 <div class="option-section">
                     <span class="option-label">
                         Size: <strong>${safeSelectedSize}</strong>
-                        ${product.sizeGuide ? `<button type="button" class="size-guide-link" data-quick-action="size-guide" data-value="${escapeHTML(product.sizeGuide)}">Size Guide</button>` : ''}
+                        ${product.sizeGuide ? `<button type="button" class="size-guide-link" data-quick-action="size-guide" data-value="${shopEscapeHTML(product.sizeGuide)}">Size Guide</button>` : ''}
                     </span>
                     <div class="size-options">
                         ${product.sizes?.map(size => {
@@ -443,9 +443,9 @@ function renderQuickView() {
                             return `
                                 <button type="button" class="size-option ${state.selectedSize === size ? 'active' : ''} ${!inStock ? 'disabled' : ''}"
                                         data-quick-action="select-size"
-                                        data-value="${escapeHTML(size)}"
+                                        data-value="${shopEscapeHTML(size)}"
                                         ${!inStock ? 'disabled' : ''}>
-                                    ${escapeHTML(size)}
+                                    ${shopEscapeHTML(size)}
                                 </button>
                             `;
                         }).join('') || ''}
@@ -540,17 +540,17 @@ window.openSizeGuide = function(type) {
         : [];
 
     elements.sizeGuideContent.innerHTML = `
-        <h4>${escapeHTML(guide.name)}</h4>
-        <p class="size-guide-unit">All measurements are in ${escapeHTML(guide.unit)}</p>
+        <h4>${shopEscapeHTML(guide.name)}</h4>
+        <p class="size-guide-unit">All measurements are in ${shopEscapeHTML(guide.unit)}</p>
         <table class="size-table">
             <thead>
-                <tr><th>Size</th>${columns.map(key => `<th>${escapeHTML(key.charAt(0).toUpperCase() + key.slice(1))}</th>`).join('')}</tr>
+                <tr><th>Size</th>${columns.map(key => `<th>${shopEscapeHTML(key.charAt(0).toUpperCase() + key.slice(1))}</th>`).join('')}</tr>
             </thead>
             <tbody>
                 ${measurements.map(measurement => `
                     <tr>
-                        <td><strong>${escapeHTML(measurement.size)}</strong></td>
-                        ${columns.map(key => `<td>${escapeHTML(measurement[key])}</td>`).join('')}
+                        <td><strong>${shopEscapeHTML(measurement.size)}</strong></td>
+                        ${columns.map(key => `<td>${shopEscapeHTML(measurement[key])}</td>`).join('')}
                     </tr>
                 `).join('')}
             </tbody>
@@ -628,9 +628,9 @@ function handleSearch(query) {
     }
 
     elements.searchResults.innerHTML = results.map(product => {
-        const image = escapeHTML(safeURL(product.images?.[0]?.src, { allowDataImage: true }));
-        const safeName = escapeHTML(product.name);
-        const safeCategory = escapeHTML(product.category);
+        const image = shopEscapeHTML(shopSafeURL(product.images?.[0]?.src, { allowDataImage: true }));
+        const safeName = shopEscapeHTML(product.name);
+        const safeCategory = shopEscapeHTML(product.category);
         const slug = encodeURIComponent(String(product.slug || product.id || ''));
         return `
             <a class="search-result-item" href="/product.html?slug=${slug}">

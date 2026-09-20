@@ -2,7 +2,7 @@
  * LA VAGUE - Homepage JavaScript
  */
 
-const { escapeHTML, safeURL, safeClassToken } = window.BrowserSecurity;
+const { escapeHTML: homeEscapeHTML, safeURL: homeSafeURL, safeClassToken: homeSafeClassToken } = window.BrowserSecurity;
 
 // State - kept global for cross-function access
 const state = {
@@ -157,24 +157,24 @@ async function renderFeaturedProducts() {
         const isSoldOut = totalStock === 0;
 
         const badge = String(product.badge || '').trim();
-        const badgeClass = safeClassToken(badge);
+        const badgeClass = homeSafeClassToken(badge);
         let badgeHtml = '';
         if (isSoldOut) {
             badgeHtml = '<span class="product-badge soldout">Sold Out</span>';
         } else if (badge && badge.toLowerCase() !== 'null') {
-            badgeHtml = `<span class="product-badge ${badgeClass}">${escapeHTML(badge)}</span>`;
+            badgeHtml = `<span class="product-badge ${badgeClass}">${homeEscapeHTML(badge)}</span>`;
         }
 
         const categoryName = CATEGORIES.find(category => category.id === product.category)?.name || product.category;
         const firstImage = product.images?.[0] || { src: '/la-vague-red-wordmark.png', alt: product.name };
         const secondImage = product.images?.[1] || null;
-        const firstSrc = escapeHTML(safeURL(firstImage.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
-        const firstAlt = escapeHTML(firstImage.alt || product.name);
+        const firstSrc = homeEscapeHTML(homeSafeURL(firstImage.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
+        const firstAlt = homeEscapeHTML(firstImage.alt || product.name);
         const secondSrc = secondImage
-            ? escapeHTML(safeURL(secondImage.src, { allowDataImage: true }))
+            ? homeEscapeHTML(homeSafeURL(secondImage.src, { allowDataImage: true }))
             : '';
-        const secondAlt = secondImage ? escapeHTML(secondImage.alt || product.name) : '';
-        const safeSlug = escapeHTML(product.slug || product.id || '');
+        const secondAlt = secondImage ? homeEscapeHTML(secondImage.alt || product.name) : '';
+        const safeSlug = homeEscapeHTML(product.slug || product.id || '');
         const reviewCount = Math.max(0, Number.parseInt(product.review_count, 10) || 0);
 
         return `
@@ -185,8 +185,8 @@ async function renderFeaturedProducts() {
                 ${secondSrc ? `<img src="${secondSrc}" alt="${secondAlt}" class="product-image-hover" loading="lazy">` : ''}
             </div>
             <div class="product-info">
-                <p class="product-category">${escapeHTML(categoryName)}</p>
-                <h3 class="product-name">${escapeHTML(product.name)}</h3>
+                <p class="product-category">${homeEscapeHTML(categoryName)}</p>
+                <h3 class="product-name">${homeEscapeHTML(product.name)}</h3>
                 <div class="product-price">
                     <span class="current-price">${CurrencyConfig.formatPrice(Number(product.price) || 0)}</span>
                 </div>
@@ -271,16 +271,16 @@ async function handleSearch(query) {
     }
 
     elements.searchResults.innerHTML = results.map(product => {
-        const image = escapeHTML(safeURL(product.images?.[0]?.src, { allowDataImage: true }));
+        const image = homeEscapeHTML(homeSafeURL(product.images?.[0]?.src, { allowDataImage: true }));
         const category = CATEGORIES.find(item => item.id === product.category)?.name || product.category || '';
         const slug = encodeURIComponent(String(product.slug || product.id || ''));
-        const safeName = escapeHTML(product.name);
+        const safeName = homeEscapeHTML(product.name);
         return `
             <a class="search-result-item" href="/product.html?slug=${slug}">
                 ${image ? `<img src="${image}" alt="${safeName}">` : ''}
                 <div class="search-result-info">
                     <h4>${safeName}</h4>
-                    <p>${escapeHTML(category)}</p>
+                    <p>${homeEscapeHTML(category)}</p>
                 </div>
                 <span class="search-result-price">${CurrencyConfig.formatPrice(Number(product.price) || 0)}</span>
             </a>

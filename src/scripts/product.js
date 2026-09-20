@@ -2,7 +2,7 @@
  * LA VAGUE - Product Detail Page JavaScript
  */
 
-const { escapeHTML, safeURL, safeClassToken, safeColor } = window.BrowserSecurity;
+const { escapeHTML: productEscapeHTML, safeURL: productSafeURL, safeClassToken: productSafeClassToken, safeColor: productSafeColor } = window.BrowserSecurity;
 
 // API Client for Product Detail
 const ProductDetailAPI = {
@@ -315,7 +315,7 @@ function renderProduct() {
     elements.productOriginalPrice.textContent = p.compareAtPrice ? CurrencyConfig.formatPrice(p.compareAtPrice) : '';
     elements.productShortDesc.textContent = p.description;
     elements.productDescription.textContent = p.description;
-    elements.productFeatures.innerHTML = p.features.map(feature => `<li>${escapeHTML(feature)}</li>`).join('');
+    elements.productFeatures.innerHTML = p.features.map(feature => `<li>${productEscapeHTML(feature)}</li>`).join('');
     
     // Render badge with sold-out priority.
     const badgeContainer = document.getElementById('productBadgeContainer');
@@ -331,7 +331,7 @@ function renderProduct() {
         if (isSoldOut) {
             badgeContainer.innerHTML = '<span class="product-badge soldout">Sold Out</span>';
         } else if (badge && badge.toLowerCase() !== 'null') {
-            badgeContainer.innerHTML = `<span class="product-badge ${safeClassToken(badge)}">${escapeHTML(badge)}</span>`;
+            badgeContainer.innerHTML = `<span class="product-badge ${productSafeClassToken(badge)}">${productEscapeHTML(badge)}</span>`;
         } else {
             badgeContainer.replaceChildren();
         }
@@ -341,10 +341,10 @@ function renderProduct() {
         elements.colorSelector.innerHTML = p.colors.map(color => `
             <button type="button"
                     class="color-btn ${state.selectedColor === color.name ? 'active' : ''}"
-                    style="background-color: ${safeColor(color.value)}"
+                    style="background-color: ${productSafeColor(color.value)}"
                     data-product-action="select-color"
-                    data-value="${escapeHTML(color.name)}"
-                    title="${escapeHTML(color.name)}"></button>
+                    data-value="${productEscapeHTML(color.name)}"
+                    title="${productEscapeHTML(color.name)}"></button>
         `).join('');
     } else {
         elements.colorSelector.parentElement.style.display = 'none';
@@ -372,8 +372,8 @@ function renderSizes() {
         return `<button type="button"
                 class="size-btn ${state.selectedSize === size ? 'active' : ''} ${!inStock ? 'disabled' : ''}"
                 data-product-action="select-size"
-                data-value="${escapeHTML(size)}"
-                ${!inStock ? 'disabled' : ''}>${escapeHTML(size)}</button>`;
+                data-value="${productEscapeHTML(size)}"
+                ${!inStock ? 'disabled' : ''}>${productEscapeHTML(size)}</button>`;
     }).join('');
 
     elements.selectedSize.textContent = state.selectedSize || 'Select';
@@ -429,11 +429,11 @@ function renderGallery() {
     }
 
     const currentImage = images[state.currentImageIndex] || images[0] || fallbackImage;
-    elements.mainImage.src = safeURL(currentImage.src, { allowDataImage: true }) || fallbackImage.src;
+    elements.mainImage.src = productSafeURL(currentImage.src, { allowDataImage: true }) || fallbackImage.src;
     elements.mainImage.alt = currentImage.alt || state.product.name;
     elements.galleryThumbs.innerHTML = images.map((image, index) => {
-        const src = escapeHTML(safeURL(image.src, { allowDataImage: true }) || fallbackImage.src);
-        const alt = escapeHTML(image.alt || state.product.name);
+        const src = productEscapeHTML(productSafeURL(image.src, { allowDataImage: true }) || fallbackImage.src);
+        const alt = productEscapeHTML(image.alt || state.product.name);
         return `
             <button type="button" class="gallery-thumb-button" data-product-action="set-image" data-index="${index}" aria-label="View image ${index + 1}">
                 <img src="${src}" alt="${alt}" class="gallery-thumb ${index === state.currentImageIndex ? 'active' : ''}">
@@ -451,8 +451,8 @@ async function renderRelatedProducts() {
 
     elements.relatedGrid.innerHTML = related.map(product => {
         const slug = encodeURIComponent(String(product.slug || product.id || ''));
-        const image = escapeHTML(safeURL(product.images?.[0]?.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
-        const name = escapeHTML(product.name);
+        const image = productEscapeHTML(productSafeURL(product.images?.[0]?.src, { allowDataImage: true }) || '/la-vague-red-wordmark.png');
+        const name = productEscapeHTML(product.name);
         return `
             <a class="product-card" href="/product.html?slug=${slug}">
                 <img src="${image}" alt="${name}">
@@ -670,18 +670,18 @@ function displayReviews(reviews, summary) {
         <div class="review-card">
             <div class="review-header">
                 <div class="review-meta">
-                    <span class="review-author">${escapeHTML(r.customer_name)}</span>
+                    <span class="review-author">${productEscapeHTML(r.customer_name)}</span>
                     ${r.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
                 </div>
                 <span class="review-date">${new Date(r.created_at).toLocaleDateString()}</span>
             </div>
             <div class="stars">${renderStars(r.rating)}</div>
-            <h4 class="review-title">${escapeHTML(r.title)}</h4>
-            <p class="review-text">${escapeHTML(r.review_text)}</p>
+            <h4 class="review-title">${productEscapeHTML(r.title)}</h4>
+            <p class="review-text">${productEscapeHTML(r.review_text)}</p>
             ${r.admin_response ? `
                 <div class="admin-response">
                     <div class="admin-response-label">Response from LA VAGUE</div>
-                    <p>${escapeHTML(r.admin_response)}</p>
+                    <p>${productEscapeHTML(r.admin_response)}</p>
                 </div>
             ` : ''}
         </div>

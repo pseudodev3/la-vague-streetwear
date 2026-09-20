@@ -2039,3 +2039,149 @@ body .confirmation-actions .btn {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Final compact-controls + legacy-edge consistency pass ---------------- */
+
+/* Keep purchase controls compact without dropping below accessible touch sizing. */
+body .product-detail .product-actions {
+  grid-template-columns: 100px minmax(150px, 220px) 44px !important;
+  justify-content: start;
+  align-items: center;
+  gap: .55rem;
+  max-width: 390px;
+}
+
+body .product-detail .quantity-selector {
+  height: 44px !important;
+  border-radius: 11px;
+}
+
+body .product-detail .qty-btn {
+  width: 32px;
+  font-size: 1rem;
+}
+
+body .product-detail .quantity-selector span {
+  width: 34px;
+  font-size: .82rem;
+}
+
+body .product-detail .btn-add-cart {
+  width: auto;
+  height: 44px !important;
+  min-height: 44px;
+  padding: 0 .9rem;
+  gap: .4rem;
+  border-radius: 11px;
+  font-size: .72rem;
+  letter-spacing: .05em;
+  box-shadow: 0 7px 20px rgba(227,38,46,.17);
+}
+
+body .product-detail .btn-add-cart svg {
+  width: 16px;
+  height: 16px;
+}
+
+body .product-detail .btn-wishlist {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 11px;
+}
+
+/* Round visible legacy controls while leaving deliberately borderless nav icons alone. */
+body .category-filters .filter-btn,
+body .btn-add-cart-sm,
+body .btn-remove-sm {
+  border-radius: 10px;
+}
+
+body .filter-sidebar {
+  overflow: hidden;
+  border-radius: 0 18px 18px 0;
+}
+
+body .quick-view-modal,
+body .size-guide-modal,
+body .review-modal {
+  overflow: hidden;
+  border: 1px solid var(--lv-border);
+  border-radius: 16px;
+  background: var(--lv-surface);
+  box-shadow: var(--lv-shadow-2);
+}
+
+body .modal-close,
+body .review-modal-close-x {
+  border-radius: 10px;
+}
+
+body .quick-view-modal .size-option {
+  border-radius: 10px;
+}
+
+body .quick-view-modal .quantity-selector {
+  overflow: hidden;
+  border-radius: 11px;
+}
+
+body .quick-view-modal .add-to-cart-btn {
+  border-radius: 11px;
+}
+
+body .review-card,
+body .review-item {
+  border-radius: 14px;
+}
+
+body .review-avatar,
+body .review-photo {
+  border-radius: 10px;
+}
+
+body .verified-badge {
+  border-radius: 7px;
+}
+
+body .review-modal-content .form-group input,
+body .review-modal-content .form-group textarea {
+  border-radius: 11px;
+}
+
+body .size-note {
+  border-radius: 11px;
+}
+
+body .cart-item-image,
+body .wishlist-item-image {
+  border-radius: 10px;
+}
+
+@media (max-width: 640px) {
+  body .product-detail .product-actions {
+    grid-template-columns: 96px minmax(0, 1fr) 44px !important;
+    max-width: none;
+    gap: .5rem;
+  }
+
+  body .product-detail .quantity-selector,
+  body .product-detail .btn-add-cart,
+  body .product-detail .btn-wishlist {
+    grid-column: auto;
+    grid-row: auto;
+    height: 44px !important;
+  }
+
+  body .product-detail .quantity-selector {
+    justify-content: center;
+  }
+
+  body .product-detail .btn-wishlist {
+    width: 44px !important;
+  }
+
+  body .filter-sidebar {
+    border-radius: 0;
+  }
+}

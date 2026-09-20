@@ -19,7 +19,7 @@ const state = {
 
 let elements = {};
 
-const { escapeHTML, safeURL } = window.BrowserSecurity;
+const { escapeHTML: checkoutEscapeHTML, safeURL: checkoutSafeURL } = window.BrowserSecurity;
 
 async function initCheckout() {
     elements = {
@@ -67,12 +67,12 @@ function render() {
             item => `
         <div class="summary-item">
             <div class="summary-item-image">
-                <img src="${escapeHTML(safeURL(item.image, { allowDataImage: true }) || '/la-vague-red-wordmark.png')}" alt="${escapeHTML(item.name)}">
+                <img src="${checkoutEscapeHTML(checkoutSafeURL(item.image, { allowDataImage: true }) || '/la-vague-red-wordmark.png')}" alt="${checkoutEscapeHTML(item.name)}">
                 <span class="summary-item-qty">${Number(item.quantity) || 0}</span>
             </div>
             <div class="summary-item-details">
-                <p class="summary-item-name">${escapeHTML(item.name)}</p>
-                <p class="summary-item-variant">${escapeHTML(item.color)} / ${escapeHTML(item.size)}</p>
+                <p class="summary-item-name">${checkoutEscapeHTML(item.name)}</p>
+                <p class="summary-item-variant">${checkoutEscapeHTML(item.color)} / ${checkoutEscapeHTML(item.size)}</p>
             </div>
             <span class="summary-item-price">${CurrencyConfig.formatPrice(Number(item.price) * Number(item.quantity))}</span>
         </div>
