@@ -7,6 +7,54 @@
 // CONFIG
 // ==========================================
 const API_URL = '/api';
+let adminCSRFToken = null;
+
+async function refreshAdminCSRFToken() {
+    const response = await fetch(`${API_URL}/csrf-token`, {
+        credentials: 'include'
+    });
+
+    if (!response.ok) {
+        throw new Error('Unable to initialize admin security token');
+    }
+
+    const data = await response.json();
+    adminCSRFToken = data.csrfToken;
+    return adminCSRFToken;
+}
+
+async function adminFetch(url, options = {}, retryCSRF = true) {
+    const method = (options.method || 'GET').toUpperCase();
+    const headers = { ...(options.headers || {}) };
+    const requestOptions = {
+        ...options,
+        method,
+        headers,
+        credentials: 'include'
+    };
+
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        if (!adminCSRFToken) await refreshAdminCSRFToken();
+        headers['X-CSRF-Token'] = adminCSRFToken;
+    }
+
+    let response = await fetch(url, requestOptions);
+
+    if (response.status === 403 && retryCSRF && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        try {
+            const errorData = await response.clone().json();
+            if (errorData.code === 'CSRF_INVALID' || errorData.code === 'CSRF_MISSING') {
+                await refreshAdminCSRFToken();
+                headers['X-CSRF-Token'] = adminCSRFToken;
+                response = await fetch(url, requestOptions);
+            }
+        } catch {
+            // Return the original response when it is not a CSRF failure.
+        }
+    }
+
+    return response;
+}
 
 // ==========================================
 // SECURITY UTILITIES
@@ -157,12 +205,25 @@ const elements = {
 // ==========================================
 // AUTHENTICATION
 // ==========================================
-function checkAuth() {
-    const token = sessionStorage.getItem('adminToken');
-    if (token) {
-        showDashboard();
-        loadAllData();
+async function checkAuth() {
+    try {
+        const response = await fetch(`${API_URL}/admin/session`, {
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.authenticated) {
+                showDashboard();
+                loadAllData();
+                return;
+            }
+        }
+    } catch {
+        // Treat an unavailable or invalid session as signed out.
     }
+
+    showLogin();
 }
 
 async function handleLogin(e) {
@@ -173,7 +234,7 @@ async function handleLogin(e) {
     setLoading(btn, true);
     
     try {
-        const response = await fetch(`${API_URL}/admin/login`, {
+        const response = await adminFetch(`${API_URL}/admin/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password })
@@ -182,7 +243,6 @@ async function handleLogin(e) {
         const data = await response.json();
         
         if (data.success) {
-            sessionStorage.setItem('adminToken', data.token);
             showDashboard();
             loadAllData();
             showToast('Welcome back!', 'success');
@@ -197,26 +257,18 @@ async function handleLogin(e) {
 }
 
 async function handleLogout() {
-    const token = sessionStorage.getItem('adminToken');
-    
-    if (token) {
-        try {
-            await fetch(`${API_URL}/admin/logout`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-        } catch (error) {
-        }
+    try {
+        await adminFetch(`${API_URL}/admin/logout`, {
+            method: 'POST'
+        });
+    } catch {
+        // The local UI still signs out if the request cannot complete.
+    } finally {
+        adminCSRFToken = null;
+        showLogin();
+        showToast('Logged out successfully', 'success');
     }
-    
-    sessionStorage.removeItem('adminToken');
-    showLogin();
-    showToast('Logged out successfully', 'success');
 }
-
 function showLogin() {
     elements.loginScreen.style.display = 'flex';
     elements.dashboard.style.display = 'none';
@@ -1117,16 +1169,8 @@ elements.saveProductBtn.addEventListener('click', async () => {
             formData.append('images', file);
         });
         
-        const token = sessionStorage.getItem('adminToken');
-        if (!token) {
-            throw new Error('Not authenticated. Please login again.');
-        }
-        
-        const response = await fetch(`${API_URL}${url}`, {
+        const response = await adminFetch(`${API_URL}${url}`, {
             method,
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
             body: formData
         });
         
@@ -1436,14 +1480,11 @@ elements.updateInventoryBtn.addEventListener('click', async () => {
 // ==========================================
 async function fetchAPI(endpoint, options = {}) {
     const url = `${API_URL}${endpoint}`;
-    const token = sessionStorage.getItem('adminToken');
-    
     const config = {
+        ...options,
         headers: {
-            'Authorization': `Bearer ${token}`,
             ...options.headers
-        },
-        ...options
+        }
     };
     
     if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
@@ -1451,15 +1492,19 @@ async function fetchAPI(endpoint, options = {}) {
         config.body = JSON.stringify(config.body);
     }
     
-    const response = await fetch(url, config);
-    const data = await response.json();
+    const response = await adminFetch(url, config);
+    let data = {};
+    try {
+        data = await response.json();
+    } catch {
+        data = {};
+    }
     
     if (!response.ok) {
         if (response.status === 401) {
-            handleLogout();
+            showLogin();
             throw new Error('Session expired. Please login again.');
         }
-        // Include validation details in error
         const errorMsg = data.details ? 
             `${data.error}: ${data.details.map(d => `${d.field} - ${d.message}`).join(', ')}` :
             (data.error || 'Request failed');
@@ -1468,7 +1513,6 @@ async function fetchAPI(endpoint, options = {}) {
     
     return data;
 }
-
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -1738,29 +1782,17 @@ function renderReviewsTable(reviews) {
 
 async function toggleReviewVerified(reviewId, verified) {
     try {
-        const response = await fetch(`${API_URL}/admin/reviews/${reviewId}/verified`, {
+        const data = await fetchAPI(`/admin/reviews/${reviewId}/verified`, {
             method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ verified })
+            body: { verified }
         });
-        
-        const data = await response.json();
-        if (data.success) {
-            showToast(data.message, 'success');
-        } else {
-            throw new Error(data.error || 'Failed to update verified status');
-        }
+        showToast(data.message || 'Verified status updated', 'success');
     } catch (error) {
         console.error('[ADMIN] Toggle verified failed:', error);
         showToast(error.message, 'error');
-        // Refresh to reset checkbox state if it failed
         loadReviews();
     }
 }
-
 async function updateReviewStatus(reviewId, status) {
     try {
         await fetchAPI(`/admin/reviews/${reviewId}/status`, {
@@ -1808,21 +1840,11 @@ async function recalculateRatings() {
     btn.disabled = true;
     
     try {
-        const response = await fetch(`${API_URL}/admin/reviews/recalculate-all`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`
-            }
+        const data = await fetchAPI('/admin/reviews/recalculate-all', {
+            method: 'POST'
         });
-        
-        const data = await response.json();
-        if (data.success) {
-            showToast(data.message || 'Ratings recalculated successfully', 'success');
-            // Reload reviews to refresh counts if needed
-            loadReviews();
-        } else {
-            throw new Error(data.error || 'Failed to recalculate');
-        }
+        showToast(data.message || 'Ratings recalculated successfully', 'success');
+        loadReviews();
     } catch (error) {
         console.error('[ADMIN] Recalculate failed:', error);
         showToast(error.message || 'Error recalculating ratings', 'error');
@@ -1831,7 +1853,6 @@ async function recalculateRatings() {
         btn.disabled = false;
     }
 }
-
 // ==========================================
 // ANALYTICS
 // ==========================================
@@ -2233,10 +2254,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Failed to save settings', 'error');
             }
         });
-    }
-
-    if (document.getElementById('settingsSection') && sessionStorage.getItem('adminToken')) {
-        loadSettings();
     }
 
     // Coupon Management
