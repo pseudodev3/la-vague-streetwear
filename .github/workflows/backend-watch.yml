@@ -19,7 +19,7 @@ permissions:
 
 concurrency:
   group: backend-watch
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   probe:
@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
 
           started_at=$(date +%s)
-          read -r health_status health_time < <(curl --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 --connect-timeout 10 --max-time 90 --output /tmp/la-vague-health.json --write-out '%{http_code} %{time_total}\n' "$BASE_URL/api/health")
+          read -r health_status health_time < <(curl --silent --show-error --retry 2 --retry-all-errors --retry-delay 3 --retry-max-time 65 --connect-timeout 10 --max-time 60 --output /tmp/la-vague-health.json --write-out '%{http_code} %{time_total}\n' "$BASE_URL/api/health")
           elapsed=$(( $(date +%s) - started_at ))
 
           if [[ "$health_status" -lt 200 || "$health_status" -ge 300 ]]; then
@@ -78,7 +78,7 @@ jobs:
                   handle.write(f'- Runtime signature: **{signature}**\n')
           PY
 
-          read -r ready_status ready_time < <(curl --silent --show-error --retry 2 --retry-all-errors --retry-delay 3 --connect-timeout 10 --max-time 30 --output /tmp/la-vague-ready.json --write-out '%{http_code} %{time_total}\n' "$BASE_URL/api/ready")
+          read -r ready_status ready_time < <(curl --silent --show-error --retry 1 --retry-all-errors --retry-delay 3 --retry-max-time 30 --connect-timeout 10 --max-time 20 --output /tmp/la-vague-ready.json --write-out '%{http_code} %{time_total}\n' "$BASE_URL/api/ready")
 
           if [[ "$ready_status" -lt 200 || "$ready_status" -ge 300 ]]; then
             echo "Readiness failed: HTTP $ready_status after ${ready_time}s" >&2
