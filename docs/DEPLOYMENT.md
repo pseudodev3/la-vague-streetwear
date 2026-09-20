@@ -152,7 +152,7 @@ https://la-vague.store/admin.html
 
 The admin password is validated by the backend and is configured through `ADMIN_PASSWORD` in Render. It is **not** stored in frontend JavaScript.
 
-Admin browser requests use the same-origin `/api` route and the authenticated admin session token is stored in `sessionStorage`.
+Admin browser requests use the same-origin `/api` route. Successful login creates a server-backed session and sends only an `HttpOnly`, `SameSite=Strict` cookie to the browser; the session key is not exposed to JavaScript or web storage. State-changing admin requests also require the storefront CSRF token.
 
 ## Database
 
