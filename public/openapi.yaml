@@ -45,8 +45,8 @@ tags:
     description: Discount codes and promotions
   - name: Analytics
     description: Admin performance insights
-  - name: GDPR
-    description: Privacy compliance
+  - name: Privacy
+    description: Privacy rights requests
   - name: Admin
     description: Backend management operations
 
@@ -174,41 +174,24 @@ paths:
         '200':
           description: Total customers and lifetime value
 
-  # GDPR
+  # Privacy rights requests
   /gdpr/export:
     post:
-      tags: [GDPR]
-      summary: Export personal data
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email]
-              properties:
-                email: { type: string }
+      tags: [Privacy]
+      summary: Request personal-data export
+      description: Self-service export is disabled until requester identity verification is available. Contact support@la-vague.store.
       responses:
-        '200':
-          description: Complete data export
+        '501':
+          description: Identity verification workflow required
 
   /gdpr/delete:
     post:
-      tags: [GDPR]
-      summary: Delete personal data
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email, confirm]
-              properties:
-                email: { type: string }
-                confirm: { type: boolean }
+      tags: [Privacy]
+      summary: Request personal-data deletion
+      description: Self-service deletion is disabled until requester identity verification is available. Contact support@la-vague.store.
       responses:
-        '200':
-          description: Account anonymized/deleted
+        '501':
+          description: Identity verification workflow required
 
   # Payment Webhooks
   /payment/webhook:
