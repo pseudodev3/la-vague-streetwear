@@ -178,7 +178,7 @@ async function renderFeaturedProducts() {
         const reviewCount = Math.max(0, Number.parseInt(product.review_count, 10) || 0);
 
         return `
-        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-home-action="open-product" data-slug="${safeSlug}">
+        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-home-action="open-product" data-slug="${safeSlug}" role="link" tabindex="0">
             <div class="product-image-wrapper">
                 ${badgeHtml}
                 <img src="${firstSrc}" alt="${firstAlt}" class="product-image" loading="lazy">
@@ -370,6 +370,15 @@ function bindEvents() {
         const slug = card.dataset.slug;
         if (!slug) return;
         window.location.href = `/product.html?slug=${encodeURIComponent(slug)}`;
+    });
+
+    elements.featuredProducts?.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const card = event.target.closest('[data-home-action="open-product"]');
+        if (!card) return;
+        event.preventDefault();
+        const slug = card.dataset.slug;
+        if (slug) window.location.href = `/product.html?slug=${encodeURIComponent(slug)}`;
     });
 
     // Navigation
