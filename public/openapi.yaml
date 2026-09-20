@@ -1,0 +1,239 @@
+openapi: 3.0.3
+info:
+  title: LA VAGUE API
+  description: |
+    Backend API for LA VAGUE Streetwear e-commerce platform.
+    
+    ## Authentication
+    Admin endpoints require a Bearer token obtained via `/api/admin/login`.
+    
+    ## Rate Limiting
+    - General API: 100 requests per 15 minutes per IP
+    - Order creation: 5 requests per hour per IP
+    - Admin login: 5 attempts per 15 minutes per IP
+    
+    ## CSRF Protection
+    State-changing endpoints (POST, PUT, DELETE) require a CSRF token obtained from `/api/csrf-token`.
+  version: 1.2.0
+  contact:
+    name: LA VAGUE Support
+    email: support@la-vague.store
+  license:
+    name: Private
+    
+servers:
+  - url: https://la-vague-api.onrender.com/api
+    description: Production server
+  - url: http://localhost:3001/api
+    description: Local development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Health
+    description: Health check and status endpoints
+  - name: Products
+    description: Product catalog operations
+  - name: Orders
+    description: Order creation and tracking
+  - name: Inventory
+    description: Real-time stock management
+  - name: Reviews
+    description: Product reviews
+  - name: Coupons
+    description: Discount codes and promotions
+  - name: Analytics
+    description: Admin performance insights
+  - name: GDPR
+    description: Privacy compliance
+  - name: Admin
+    description: Backend management operations
+
+paths:
+  # Health
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+
+  # CSRF
+  /csrf-token:
+    get:
+      tags: [Security]
+      summary: Get CSRF token
+      responses:
+        '200':
+          description: Returns CSRF token
+
+  # Products
+  /products:
+    get:
+      tags: [Products]
+      summary: List all products
+      responses:
+        '200':
+          description: Array of products
+
+  /products/{slug}:
+    get:
+      tags: [Products]
+      summary: Get product by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Single product details
+
+  # Inventory
+  /inventory/check/{productId}:
+    get:
+      tags: [Inventory]
+      summary: Check variant stock
+      description: Get real-time available stock for a specific product variant
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: color
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Stock information
+
+  # Orders
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Order created
+
+  /orders/lookup:
+    post:
+      tags: [Orders]
+      summary: Track order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, email]
+              properties:
+                orderId: { type: string }
+                email: { type: string }
+      responses:
+        '200':
+          description: Order tracking data
+
+  # Analytics (Admin Only)
+  /admin/analytics/sales:
+    get:
+      tags: [Analytics]
+      summary: Sales trend data
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            default: "30"
+      responses:
+        '200':
+          description: Daily sales metrics
+
+  /admin/analytics/customers:
+    get:
+      tags: [Analytics]
+      summary: Customer metrics
+      responses:
+        '200':
+          description: Total customers and lifetime value
+
+  # GDPR
+  /gdpr/export:
+    post:
+      tags: [GDPR]
+      summary: Export personal data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string }
+      responses:
+        '200':
+          description: Complete data export
+
+  /gdpr/delete:
+    post:
+      tags: [GDPR]
+      summary: Delete personal data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, confirm]
+              properties:
+                email: { type: string }
+                confirm: { type: boolean }
+      responses:
+        '200':
+          description: Account anonymized/deleted
+
+  # Payment Webhooks
+  /payment/webhook:
+    post:
+      tags: [Webhooks]
+      summary: Paystack webhook
+      description: Verifies HMAC signature against rawBody
+      responses:
+        '200':
+          description: Event processed
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    OrderRequest:
+      type: object
+      required: [customerName, customerEmail, shippingAddress, items, total]
+      properties:
+        customerName: { type: string }
+        customerEmail: { type: string }
+        shippingAddress: { type: object }
+        items: { type: array, items: { type: object } }
+        total: { type: integer }
