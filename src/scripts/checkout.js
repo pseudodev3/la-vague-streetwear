@@ -5,7 +5,7 @@
 const API_URL = '/api';
 
 const state = {
-    cart: JSON.parse(localStorage.getItem('cart')) || [],
+    cart: Array.isArray(window.CartState?.cart) ? window.CartState.cart : [],
     shipping: 0,
     discount: 0,
     discountCode: null,
