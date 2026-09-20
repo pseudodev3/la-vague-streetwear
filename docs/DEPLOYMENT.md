@@ -180,7 +180,7 @@ After deployment, verify:
 A few direct Render references are expected:
 
 - `netlify.toml` — Netlify proxy upstream.
-- `openapi.yaml` — public API server documentation.
+- `public/openapi.yaml` — source for the deployed `/openapi.yaml` API documentation.
 - Paystack webhook configuration — Paystack must call the backend directly.
 
 Browser storefront scripts should otherwise use `/api`.
