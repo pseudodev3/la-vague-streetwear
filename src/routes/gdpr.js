@@ -3,6 +3,7 @@ import express from 'express';
 const router = express.Router();
 
 const privacyRequestUnavailable = (req, res) => {
+    void req;
     res.status(501).json({
         success: false,
         error: 'Self-service privacy requests are unavailable until requester identity can be verified.',
