@@ -7,11 +7,6 @@ const root = process.cwd();
 const dist = resolve(root, 'dist');
 
 const files = [
-    'site.webmanifest',
-    'sw.js',
-    'robots.txt',
-    'sitemap.xml',
-    'openapi.yaml',
     'la-vague-red-wordmark.png',
     'src/config/sentry-env.js',
     'src/config/sentry-browser.js'
@@ -39,5 +34,5 @@ for (const [source, destination] of directories) {
 }
 
 console.log(
-    `Copied ${files.length} root/runtime files and ${directories.length} browser asset directories to dist/`
+    `Copied ${files.length} non-public runtime files and ${directories.length} browser asset directories to dist/`
 );
