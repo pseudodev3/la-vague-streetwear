@@ -1,5 +1,6 @@
 import { query, USE_POSTGRES } from '../config/db.js';
 import { APIError } from './errorHandler.js';
+import { ADMIN_SESSION_GENERATION } from '../config/adminSession.js';
 
 export const ADMIN_SESSION_COOKIE = 'la_vague_admin_session';
 export const ADMIN_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -44,15 +45,15 @@ export async function verifyAdminSession(req, res, next) {
 
         if (USE_POSTGRES) {
             const result = await query(
-                'SELECT * FROM admin_sessions WHERE session_key = $1 AND expires_at > CURRENT_TIMESTAMP',
-                [sessionKey]
+                'SELECT * FROM admin_sessions WHERE session_key = $1 AND expires_at > CURRENT_TIMESTAMP AND session_generation = $2',
+                [sessionKey, ADMIN_SESSION_GENERATION]
             );
             session = result.rows[0];
         } else {
             session = (
                 await query(
-                    "SELECT * FROM admin_sessions WHERE session_key = ? AND expires_at > datetime('now')",
-                    [sessionKey]
+                    "SELECT * FROM admin_sessions WHERE session_key = ? AND expires_at > datetime('now') AND session_generation = ?",
+                    [sessionKey, ADMIN_SESSION_GENERATION]
                 )
             ).rows[0];
         }
