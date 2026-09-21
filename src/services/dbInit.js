@@ -1,6 +1,7 @@
 import { db, USE_POSTGRES, query } from '../config/db.js';
 import { InventoryService } from './inventory.js';
 import { ProductService } from './productService.js';
+import { ADMIN_SESSION_GENERATION } from '../config/adminSession.js';
 
 export async function initDatabase() {
     if (USE_POSTGRES) {
@@ -66,6 +67,15 @@ export async function initDatabase() {
             )
         `);
         
+        // Session-generation migration: legacy sessions have NULL here and are invalidated once.
+        // New sessions inherit the current generation without storing any password-derived material.
+        await db.query(`ALTER TABLE admin_sessions ADD COLUMN IF NOT EXISTS session_generation INTEGER`);
+        await db.query(`ALTER TABLE admin_sessions ALTER COLUMN session_generation SET DEFAULT ${ADMIN_SESSION_GENERATION}`);
+        await db.query(
+            'DELETE FROM admin_sessions WHERE session_generation IS NULL OR session_generation <> $1',
+            [ADMIN_SESSION_GENERATION]
+        );
+
         await db.query(`CREATE INDEX IF NOT EXISTS idx_sessions_expires ON admin_sessions(expires_at)`);
         
         await db.query(`
@@ -143,6 +153,25 @@ export async function initDatabase() {
             )
         `);
         
+        const adminSessionColumns = db.prepare("PRAGMA table_info(admin_sessions)").all();
+        if (!adminSessionColumns.some(column => column.name === 'session_generation')) {
+            db.exec('ALTER TABLE admin_sessions ADD COLUMN session_generation INTEGER');
+        }
+        db.prepare(
+            'DELETE FROM admin_sessions WHERE session_generation IS NULL OR session_generation <> ?'
+        ).run(ADMIN_SESSION_GENERATION);
+        db.exec('DROP TRIGGER IF EXISTS set_admin_session_generation');
+        db.exec(`
+            CREATE TRIGGER set_admin_session_generation
+            AFTER INSERT ON admin_sessions
+            WHEN NEW.session_generation IS NULL
+            BEGIN
+                UPDATE admin_sessions
+                SET session_generation = ${ADMIN_SESSION_GENERATION}
+                WHERE id = NEW.id;
+            END
+        `);
+
         db.exec(`CREATE INDEX IF NOT EXISTS idx_sessions_expires ON admin_sessions(expires_at)`);
     }
     
