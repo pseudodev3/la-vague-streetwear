@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     # Offset from the top of the hour to reduce GitHub scheduler congestion.
-    - cron: '3,13,23,33,43,53 * * * *'
+    
   push:
     paths:
       - '.github/workflows/backend-watch.yml'
