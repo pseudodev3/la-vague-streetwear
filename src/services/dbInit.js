@@ -473,7 +473,11 @@ async function seedSettings() {
         { key: 'supportEmail', value: 'support@la-vague.store' },
         { key: 'freeShippingThreshold', value: '150000' },
         { key: 'standardShippingRate', value: '10000' },
-        { key: 'expressShippingRate', value: '25000' }
+        { key: 'expressShippingRate', value: '25000' },
+        { key: 'announcementEnabled', value: 'false' },
+        { key: 'announcementMessage', value: '' },
+        { key: 'announcementStartsAt', value: '' },
+        { key: 'announcementEndsAt', value: '' }
     ];
 
     if (USE_POSTGRES) {

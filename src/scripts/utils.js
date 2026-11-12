@@ -242,14 +242,17 @@ const GlobalSettings = {
         freeShippingThreshold: 150000,
         shippingRate: 10000,
         expressShippingRate: 25000,
-        storeName: 'LA VAGUE'
+        storeName: 'LA VAGUE',
+        announcement: null
     },
 
     hydrateCachedSettings() {
         try {
             const cached = JSON.parse(localStorage.getItem(this.cacheKey) || 'null');
             if (cached && typeof cached === 'object') {
-                this.settings = { ...this.settings, ...cached };
+                // A campaign may have been disabled since the last visit. Only
+                // fresh API data can enable one; cached shipping remains useful.
+                this.settings = { ...this.settings, ...cached, announcement: null };
             }
         } catch {
             localStorage.removeItem(this.cacheKey);
@@ -261,7 +264,22 @@ const GlobalSettings = {
         // then revalidate against the API without flashing zero/placeholder values.
         this.hydrateCachedSettings();
         this.updateDynamicElements();
+        const refreshVisiblePage = () => {
+            this.updateAnnouncements();
+            if (!document.hidden) this.refreshSettings();
+        };
+        document.addEventListener('visibilitychange', refreshVisiblePage);
+        window.addEventListener('focus', refreshVisiblePage);
+        await this.refreshSettings();
+        // A scheduled campaign can become active while someone keeps a page open.
+        this.refreshTimer = window.setInterval(() => {
+            if (!document.hidden) this.refreshSettings();
+        }, 60000);
+    },
 
+    async refreshSettings() {
+        if (this.refreshing) return;
+        this.refreshing = true;
         try {
             const response = await fetch(`${API_BASE_URL}/config/settings`);
             if (response.ok) {
@@ -273,6 +291,8 @@ const GlobalSettings = {
             }
         } catch (error) {
             console.error('[SETTINGS] Failed to load global settings:', error);
+        } finally {
+            this.refreshing = false;
         }
 
         this.updateDynamicElements();
@@ -287,7 +307,11 @@ const GlobalSettings = {
 
         document.querySelectorAll('.dynamic-free-shipping').forEach(element => {
             element.textContent =
-                element.classList.contains('product-free-shipping')
+                Number(freeShippingThreshold) === 0
+                    ? (element.classList.contains('product-free-shipping')
+                        ? 'Free standard shipping on all orders'
+                        : 'FREE STANDARD SHIPPING ON ALL ORDERS')
+                    : element.classList.contains('product-free-shipping')
                     ? `Free standard shipping over ${format(freeShippingThreshold)}`
                     : `FREE SHIPPING ON ORDERS OVER ${format(freeShippingThreshold)}`;
         });
@@ -299,6 +323,40 @@ const GlobalSettings = {
         document.querySelectorAll('.dynamic-express-rate').forEach(element => {
             element.textContent = format(expressShippingRate);
         });
+        this.updateAnnouncements();
+    },
+
+    updateAnnouncements() {
+        window.clearTimeout(this.announcementTimer);
+        const campaign = this.settings.announcement;
+        const now = Date.now();
+        const startsAt = campaign?.startsAt ? Date.parse(campaign.startsAt) : 0;
+        const endsAt = Date.parse(campaign?.endsAt || '');
+        const active = typeof campaign?.message === 'string' && campaign.message.trim()
+            && Number.isFinite(startsAt) && Number.isFinite(endsAt)
+            && startsAt <= now && now < endsAt;
+        const threshold = Number(this.settings.freeShippingThreshold);
+        const formatted = window.CurrencyConfig
+            ? window.CurrencyConfig.formatPrice(threshold)
+            : `₦${threshold.toLocaleString()}`;
+        const fallback = threshold > 0
+            ? `FREE SHIPPING ON ORDERS OVER ${formatted}`
+            : 'FREE STANDARD SHIPPING ON ALL ORDERS';
+        const message = active ? campaign.message.trim() : fallback;
+
+        document.querySelectorAll('.announcement-content').forEach(element => {
+            // Use textContent so campaign copy cannot inject executable markup.
+            element.textContent = message;
+        });
+        document.querySelectorAll('[data-campaign-message]').forEach(element => {
+            element.textContent = active ? message : 'PREMIUM STREETWEAR. LIMITED RUNS.';
+        });
+        if (active) {
+            this.announcementTimer = window.setTimeout(
+                () => this.updateAnnouncements(),
+                Math.min(endsAt - now + 1, 2147483647)
+            );
+        }
     }
 };
 

@@ -341,6 +341,19 @@ async function loadAllData() {
     }
 }
 
+function localDateTimeInput(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return '';
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+function updateAnnouncementRequirements() {
+    const enabled = document.getElementById('settingAnnouncementEnabled')?.checked;
+    document.getElementById('settingAnnouncementMessage').required = enabled;
+    document.getElementById('settingAnnouncementEndsAt').required = enabled;
+}
+
 async function loadSettings() {
     try {
         const data = await fetchAPI('/admin/settings');
@@ -357,6 +370,11 @@ async function loadSettings() {
         if (freeShipping) freeShipping.value = settings.freeShippingThreshold || '0';
         if (standardShipping) standardShipping.value = settings.standardShippingRate || '0';
         if (expressShipping) expressShipping.value = settings.expressShippingRate || '0';
+        document.getElementById('settingAnnouncementEnabled').checked = settings.announcementEnabled === 'true';
+        document.getElementById('settingAnnouncementMessage').value = settings.announcementMessage || '';
+        document.getElementById('settingAnnouncementStartsAt').value = localDateTimeInput(settings.announcementStartsAt);
+        document.getElementById('settingAnnouncementEndsAt').value = localDateTimeInput(settings.announcementEndsAt);
+        updateAnnouncementRequirements();
     } catch (error) {
         console.error('Failed to load settings:', error);
         showToast('Failed to load settings', 'error');
@@ -2233,15 +2251,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsForm = document.getElementById('settingsForm');
 
     if (settingsForm) {
+        document.getElementById('settingAnnouncementEnabled').addEventListener('change', updateAnnouncementRequirements);
+        updateAnnouncementRequirements();
         settingsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const announcementEnabled = document.getElementById('settingAnnouncementEnabled').checked;
+            const start = document.getElementById('settingAnnouncementStartsAt').value;
+            const end = document.getElementById('settingAnnouncementEndsAt').value;
+            if (announcementEnabled && (!end || new Date(end).getTime() <= Date.now())) {
+                showToast('Choose a future end date for the announcement', 'error');
+                return;
+            }
+            if (start && end && new Date(start).getTime() >= new Date(end).getTime()) {
+                showToast('The announcement must end after it starts', 'error');
+                return;
+            }
             
             const settings = {
                 storeName: document.getElementById('settingStoreName')?.value,
                 supportEmail: document.getElementById('settingSupportEmail')?.value,
                 freeShippingThreshold: String(parseInt(document.getElementById('settingFreeShipping')?.value) || 0),
                 standardShippingRate: String(parseInt(document.getElementById('settingStandardShippingRate')?.value) || 0),
-                expressShippingRate: String(parseInt(document.getElementById('settingExpressShippingRate')?.value) || 0)
+                expressShippingRate: String(parseInt(document.getElementById('settingExpressShippingRate')?.value) || 0),
+                announcementEnabled: String(announcementEnabled),
+                announcementMessage: document.getElementById('settingAnnouncementMessage').value.trim(),
+                announcementStartsAt: start ? new Date(start).toISOString() : '',
+                announcementEndsAt: end ? new Date(end).toISOString() : ''
             };
             
             try {
