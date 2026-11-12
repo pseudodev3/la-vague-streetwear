@@ -177,6 +177,11 @@ Admin sessions use browser session storage and protected API routes. The panel i
 - reviews
 - store settings
 
+In **Settings → Store announcement**, enable a campaign, enter its message, and
+choose an end date. A start date is optional; times use your browser's timezone.
+Outside the campaign dates, the announcement bar shows the current free-shipping
+policy. Expired campaigns stop automatically, including on pages already open.
+
 ## Security
 
 Current hardening includes:

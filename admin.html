@@ -550,6 +550,32 @@
                                     </div>
                                 </div>
                                 <div class="form-section">
+                                    <h4>Store announcement</h4>
+                                    <p class="text-muted">Show a promo or new-drop message during a campaign. Outside its dates, the banner shows your free-shipping policy.</p>
+                                    <div class="form-group">
+                                        <label class="checkbox-label" for="settingAnnouncementEnabled">
+                                            <input type="checkbox" id="settingAnnouncementEnabled">
+                                            Enable campaign announcement
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="settingAnnouncementMessage">Announcement message</label>
+                                        <input type="text" id="settingAnnouncementMessage" class="input" maxlength="80" placeholder="Example: New collection available through Sunday">
+                                        <small class="text-muted">Keep it short: 80 characters maximum.</small>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="settingAnnouncementStartsAt">Start (optional)</label>
+                                            <input type="datetime-local" id="settingAnnouncementStartsAt" class="input">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="settingAnnouncementEndsAt">End</label>
+                                            <input type="datetime-local" id="settingAnnouncementEndsAt" class="input">
+                                        </div>
+                                    </div>
+                                    <p class="text-muted">Dates use your device's local time. Leave the start blank to begin immediately. An enabled campaign needs an end date and stops automatically.</p>
+                                </div>
+                                <div class="form-section">
                                     <h4>Currency Settings</h4>
                                     <p style="color: var(--color-text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
                                         LA VAGUE uses Nigerian Naira (₦) as the base currency for all transactions.

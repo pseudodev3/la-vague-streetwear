@@ -4,6 +4,7 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 import { query } from '../config/db.js';
 import { validateContactForm } from '../middleware/validation.js';
 import { sendContactNotification } from '../../email-templates/index.js';
+import { getActiveAnnouncement } from '../utils/announcements.js';
 
 const router = express.Router();
 
@@ -31,13 +32,19 @@ router.get('/settings', asyncHandler(async (req, res) => {
     const settings = {};
     result.rows.forEach(row => { settings[row.key] = row.value; });
     
+    const amount = (value, fallback) => {
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+    };
+    res.set('Cache-Control', 'no-store');
     res.json({
         success: true,
         settings: {
-            shippingRate: parseInt(settings.standardShippingRate) || 10000,
-            expressShippingRate: parseInt(settings.expressShippingRate) || 25000,
-            freeShippingThreshold: parseInt(settings.freeShippingThreshold) || 150000,
-            storeName: settings.storeName || 'LA VAGUE'
+            shippingRate: amount(settings.standardShippingRate, 10000),
+            expressShippingRate: amount(settings.expressShippingRate, 25000),
+            freeShippingThreshold: amount(settings.freeShippingThreshold, 150000),
+            storeName: settings.storeName || 'LA VAGUE',
+            announcement: getActiveAnnouncement(settings)
         }
     });
 }));

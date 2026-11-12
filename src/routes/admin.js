@@ -9,6 +9,7 @@ import { logAudit } from '../utils/audit.js';
 import { cacheService } from '../utils/cache.js';
 import { validateUpdateOrderStatus, validateAdminLogin } from '../middleware/validation.js';
 import { upload } from '../middleware/upload.js';
+import { campaignKeys, validateAnnouncementSettings } from '../utils/announcements.js';
 import {
     sendOrderConfirmation,
     sendOrderStatusUpdate,
@@ -315,8 +316,21 @@ export default function (productService, inventoryService) {
     }));
 
     router.post('/settings', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { settings } = req.body;
-        for (const [key, value] of Object.entries(settings)) {
+        const { settings } = req.body || {};
+        if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+            throw new APIError('Settings must be an object.', 400, 'VALIDATION_ERROR');
+        }
+        let settingsToSave = settings;
+        if (campaignKeys.some(key => Object.hasOwn(settings, key))) {
+            const result = await query('SELECT * FROM settings');
+            const existing = Object.fromEntries(result.rows.map(row => [row.key, row.value]));
+            try {
+                settingsToSave = { ...settings, ...validateAnnouncementSettings({ ...existing, ...settings }) };
+            } catch (error) {
+                throw new APIError(error.message, 400, 'VALIDATION_ERROR');
+            }
+        }
+        for (const [key, value] of Object.entries(settingsToSave)) {
             if (USE_POSTGRES) {
                 await query('INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP', [key, value]);
             } else {
