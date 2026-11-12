@@ -11,9 +11,12 @@ export const mockStoreProduct = {
     { src: '/assets/hoodie.jpg', alt: 'Classic Oversized Hoodie' },
     { src: '/assets/hoodie2.jpg', alt: 'Classic Oversized Hoodie detail' }
   ],
-  colors: [{ name: 'Black', value: '#0a0a0a', imageIndex: 0 }],
+  colors: [
+    { name: 'Black', value: '#0a0a0a', imageIndex: 0 },
+    { name: 'White', value: '#ffffff', imageIndex: 1 }
+  ],
   sizes: ['M', 'L'],
-  inventory: { 'Black-M': 12, 'Black-L': 8 },
+  inventory: { 'Black-M': 12, 'Black-L': 8, 'White-M': 6, 'White-L': 4 },
   tags: ['bestseller'],
   badge: 'Bestseller',
   average_rating: 4.8,
@@ -33,6 +36,36 @@ export const mockStoreProducts = [
     colors: [{ name: 'White', value: '#ffffff', imageIndex: 0 }],
     sizes: ['M'],
     inventory: { 'White-M': 20 },
+    badge: null
+  },
+  {
+    ...mockStoreProduct,
+    id: 'lv-hoodie-002',
+    name: 'Zip Hoodie',
+    slug: 'zip-hoodie',
+    price: 160000,
+    compare_at_price: 180000,
+    tags: ['sale'],
+    badge: 'Sale'
+  },
+  {
+    ...mockStoreProduct,
+    id: 'lv-bottoms-001',
+    name: 'Cargo Pants',
+    slug: 'cargo-pants',
+    category: 'bottoms',
+    price: 95000,
+    badge: null
+  },
+  {
+    ...mockStoreProduct,
+    id: 'lv-accessory-001',
+    name: 'Wave Cap',
+    slug: 'wave-cap',
+    category: 'accessories',
+    price: 30000,
+    sizes: ['OS'],
+    inventory: { 'Black-OS': 10, 'White-OS': 5 },
     badge: null
   }
 ];
@@ -66,7 +99,7 @@ export async function mockStorefrontAPI(page) {
     }
 
     const slug = path.split('/').filter(Boolean).at(-1);
-    const product = mockStoreProducts.find(item => item.slug === slug);
+    const product = mockStoreProducts.find(item => item.slug === slug || item.id === slug);
 
     await route.fulfill({
       status: 200,
@@ -98,6 +131,8 @@ export async function mockStorefrontAPI(page) {
 
 export async function seedCheckoutCart(page) {
   await page.addInitScript(product => {
+    if (sessionStorage.getItem('checkoutCartSeeded')) return;
+    sessionStorage.setItem('checkoutCartSeeded', 'true');
     localStorage.setItem('cart', JSON.stringify([{
       id: product.id,
       name: product.name,

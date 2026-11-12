@@ -97,25 +97,39 @@ export async function query(sql, params = []) {
 
         if (USE_POSTGRES) return dbInstance.query(sql, params);
 
-        const sqliteSql = sql.replace(/\$\d+/g, '?');
-        const placeholderCount = (sqliteSql.match(/\?/g) || []).length;
+        // SQLite accepts $1-style names directly. Bind them by name so repeated
+        // or reordered PostgreSQL parameters retain their original meaning.
+        // Ignore quoted strings/identifiers and comments when counting bindings.
+        const tokens = sql.matchAll(/'(?:''|[^'])*'|"(?:""|[^"])*"|`(?:``|[^`])*`|\[[^\]]*\]|--[^\n]*|\/\*[\s\S]*?\*\/|\$(\d+)\b|(\?)/g);
+        let numberedCount = 0;
+        let positionalCount = 0;
+        for (const token of tokens) {
+            if (token[1]) numberedCount = Math.max(numberedCount, Number(token[1]));
+            if (token[2]) positionalCount += 1;
+        }
+        if (numberedCount && positionalCount) {
+            throw new Error('Cannot mix numbered and positional parameters');
+        }
+        const placeholderCount = numberedCount || positionalCount;
 
         if (placeholderCount !== params.length) {
             console.error('[DB ERROR] Parameter mismatch:', {
                 sql,
-                sqliteSql,
                 paramsCount: params.length,
                 placeholderCount
             });
             throw new Error(`Parameter mismatch: expected ${placeholderCount}, got ${params.length}`);
         }
 
-        const stmt = dbInstance.prepare(sqliteSql);
-        if (sqliteSql.trim().toLowerCase().startsWith('select')) {
-            return { rows: stmt.all(...params) };
+        const bindings = numberedCount
+            ? [Object.fromEntries(params.map((value, index) => [String(index + 1), value]))]
+            : params;
+        const stmt = dbInstance.prepare(sql);
+        if (sql.trim().toLowerCase().startsWith('select')) {
+            return { rows: stmt.all(...bindings) };
         }
 
-        return stmt.run(...params);
+        return stmt.run(...bindings);
     } catch (error) {
         console.error('[DB ERROR] Query failed:', sql.substring(0, 100), 'Error:', error.message);
         throw error;

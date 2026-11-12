@@ -113,7 +113,9 @@ test.describe('Admin authentication', () => {
 
   test('uses an HttpOnly session cookie without exposing a bearer token to web storage', async ({ page, context }) => {
     await mockAdminAPI(page);
+    const sessionChecked = page.waitForResponse('**/api/admin/session');
     await page.goto('/admin.html');
+    await sessionChecked;
     await page.locator('#adminPassword').fill('correct-password');
     await page.locator('#loginForm button[type="submit"]').click();
 
@@ -131,7 +133,9 @@ test.describe('Admin authentication', () => {
 
   test('shows an error for invalid credentials without creating a session', async ({ page, context }) => {
     await mockAdminAPI(page);
+    const sessionChecked = page.waitForResponse('**/api/admin/session');
     await page.goto('/admin.html');
+    await sessionChecked;
     await page.locator('#adminPassword').fill('wrong-password');
     await page.locator('#loginForm button[type="submit"]').click();
 
@@ -146,6 +150,8 @@ test.describe('Admin authentication', () => {
 
     await expect(page.locator('#dashboard')).toBeVisible();
 
+    const menuToggle = page.getByRole('button', { name: 'Toggle menu' });
+    if (await menuToggle.isVisible()) await menuToggle.click();
     await page.locator('#logoutBtn').click();
 
     await expect(page.locator('#loginScreen')).toBeVisible();

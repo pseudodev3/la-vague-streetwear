@@ -38,6 +38,11 @@ test.describe('Product page', () => {
     await page.locator('#sizeGuideBtn').click();
     await expect(page.locator('#sizeGuideModal')).toHaveClass(/active/);
     await expect(page.locator('#sizeGuideContent')).toContainText('Oversized Fit');
+    await page.locator('#sizeGuideClose').click();
+    await expect(page.locator('#sizeGuideModal')).not.toHaveClass(/active/);
+    await page.locator('#sizeGuideBtn').click();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#sizeGuideModal')).not.toHaveClass(/active/);
   });
 
   test('renders related products as safe links', async ({ page }) => {
