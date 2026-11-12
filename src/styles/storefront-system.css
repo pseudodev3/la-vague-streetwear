@@ -1089,6 +1089,7 @@ body .footer-links {
 body .footer-logo-img {
   max-width: min(200px, 70vw);
   height: auto;
+  outline: 0;
 }
 
 body .footer-tagline {
