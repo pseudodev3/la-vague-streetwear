@@ -11,12 +11,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '20.20.2'
 
 jobs:
   validate:
     name: CI/CD Pipeline
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,8 +38,8 @@ jobs:
 
   deploy-render:
     name: Deploy to Render
-    runs-on: ubuntu-latest
-    needs: [validate]
+    runs-on: ubuntu-24.04
+    needs: [validate, test-e2e]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Deploy to Render
@@ -55,9 +55,11 @@ jobs:
 
   test-e2e:
     name: E2E Tests
-    runs-on: ubuntu-latest
-    needs: [deploy-render]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Playwright's pinned browser/system dependencies support Ubuntu 24.04.
+    # ubuntu-latest can move to a newer, unsupported distribution.
+    runs-on: ubuntu-24.04
+    needs: [validate]
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -67,9 +69,10 @@ jobs:
       - run: npm ci
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
-      - name: Run E2E tests
+      - name: Run local E2E tests
         env:
-          PLAYWRIGHT_BASE_URL: ${{ secrets.PRODUCTION_URL || 'https://la-vague.store' }}
+          NODE_ENV: development
+          EMAIL_TEST_MODE: 'true'
         run: npm run test:e2e
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

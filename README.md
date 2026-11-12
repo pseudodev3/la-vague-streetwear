@@ -71,7 +71,14 @@ npm run lint
 npm run type-check
 npm run test:ci
 npm run check        # lint + type-check + tests + build
+npm run test:e2e     # local browser tests (install browsers first)
 ```
+
+E2E tests start the local development servers and use controlled API fixtures for
+storefront and admin scenarios. Install browsers with `npx playwright install --with-deps`.
+Set `PLAYWRIGHT_BASE_URL` only when intentionally testing a remote deployment;
+that mode does not start local servers. CI runs the local tests before deployment
+on Ubuntu 24.04, which is supported by the locked Playwright version.
 
 ## Environment Variables
 
@@ -204,7 +211,7 @@ Use:
 GET /api/health
 ```
 
-Monitoring services should check this endpoint rather than `/` on the Render API service, because the API root intentionally does not serve the storefront. `.github/workflows/backend-watch.yml` probes liveness and Aiven-backed readiness every 10 minutes as a best-effort uptime diagnostic/keep-warm check.
+Monitoring services should check this endpoint rather than `/` on the Render API service, because the API root intentionally does not serve the storefront. `.github/workflows/backend-watch.yml` probes liveness and Aiven-backed readiness when manually dispatched or when its watched files change. Scheduled probes are disabled.
 
 Use `GET /api/ready` when you specifically need to verify database connectivity. The liveness endpoint stays independent from PostgreSQL so a temporary database outage does not itself create a service restart loop.
 
@@ -218,6 +225,7 @@ GitHub Actions runs the core validation pipeline:
 - TypeScript checking
 - unit tests
 - Vite production build
+- local browser E2E tests against the checked-out code before deployment
 - security audit reporting
 - Render deployment on validated `main` pushes
 

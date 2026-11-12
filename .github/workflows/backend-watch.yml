@@ -2,9 +2,7 @@ name: Backend Watch
 
 on:
   workflow_dispatch:
-  schedule:
-    # Offset from the top of the hour to reduce GitHub scheduler congestion.
-    
+  # Scheduled probes are disabled. To enable them, add a schedule with a cron entry.
   push:
     paths:
       - '.github/workflows/backend-watch.yml'

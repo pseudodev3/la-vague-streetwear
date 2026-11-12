@@ -530,6 +530,34 @@ function bindEvents() {
     });
     
     // UI Event listeners
+    const sizeGuideModal = document.getElementById('sizeGuideModal');
+    const sizeGuideOverlay = document.getElementById('sizeGuideOverlay');
+    const closeSizeGuide = () => {
+        sizeGuideModal?.classList.remove('active');
+        sizeGuideOverlay?.classList.remove('active');
+        document.body.style.overflow = '';
+    };
+    elements.sizeGuideBtn?.addEventListener('click', () => {
+        const guide = ProductAPI.getSizeGuide(state.product.sizeGuide);
+        const content = document.getElementById('sizeGuideContent');
+        if (!guide || !content || !sizeGuideModal || !sizeGuideOverlay) return;
+        const columns = Object.keys(guide.measurements[0] || {});
+        content.innerHTML = `
+            <h4>${productEscapeHTML(guide.name)}</h4>
+            <p>Measurements in ${productEscapeHTML(guide.unit)}</p>
+            <table class="size-table">
+                <thead><tr>${columns.map(column => `<th scope="col">${productEscapeHTML(column)}</th>`).join('')}</tr></thead>
+                <tbody>${guide.measurements.map(row => `<tr>${columns.map(column => `<td>${productEscapeHTML(row[column])}</td>`).join('')}</tr>`).join('')}</tbody>
+            </table>`;
+        sizeGuideModal.classList.add('active');
+        sizeGuideOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    });
+    document.getElementById('sizeGuideClose')?.addEventListener('click', closeSizeGuide);
+    sizeGuideOverlay?.addEventListener('click', closeSizeGuide);
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && sizeGuideModal?.classList.contains('active')) closeSizeGuide();
+    });
 
     // Reviews events
     console.log('[PRODUCT] Binding events, writeReviewBtn:', !!elements.writeReviewBtn);

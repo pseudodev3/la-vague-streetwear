@@ -5,6 +5,11 @@
 
 import { defineConfig, devices } from '@playwright/test';
 
+const remoteBaseURL = process.env.PLAYWRIGHT_BASE_URL;
+const chromiumLaunchOptions = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+  ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+  : {};
+
 export default defineConfig({
   // Test directory
   testDir: './tests/e2e',
@@ -39,7 +44,9 @@ export default defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL to use in actions like `await page.goto('/')`
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+    baseURL: remoteBaseURL || 'http://localhost:3000',
+    // Service workers can intercept requests before Playwright's API routes.
+    serviceWorkers: 'block',
     
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
@@ -66,9 +73,7 @@ export default defineConfig({
       name: 'chromium',
       use: { 
         ...devices['Desktop Chrome'],
-        launchOptions: {
-          args: ['--disable-web-security']
-        }
+        launchOptions: chromiumLaunchOptions
       }
     },
     {
@@ -82,7 +87,7 @@ export default defineConfig({
     // Mobile viewports
     {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] }
+      use: { ...devices['Pixel 5'], launchOptions: chromiumLaunchOptions }
     },
     {
       name: 'Mobile Safari',
@@ -91,7 +96,7 @@ export default defineConfig({
   ],
   
   // Run local dev server before starting the tests
-  webServer: {
+  webServer: remoteBaseURL ? undefined : {
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,

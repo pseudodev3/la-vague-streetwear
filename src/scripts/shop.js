@@ -326,7 +326,7 @@ function filterProducts() {
     }
     
     if (state.filters.sale) {
-        filtered = filtered.filter(p => p.compareAtPrice !== null);
+        filtered = filtered.filter(p => Number(p.compareAtPrice) > Number(p.price));
     }
     if (state.filters.new) {
         filtered = filtered.filter(p => p.tags.includes('new'));
