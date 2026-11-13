@@ -341,13 +341,20 @@
     background: #3b82f6;
 }
 
-.product-actions {
+/* Scoped with `body .products-grid` to outrank storefront-system's generic
+   `body .product-actions` grid (a product-detail pattern that wrongly
+   captured this hover row and forced 108px/180px/46px tracks + overflow) */
+body .products-grid .product-actions {
     position: absolute;
     bottom: 1rem;
     left: 1rem;
     right: 1rem;
     display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
     gap: 0.5rem;
+    margin-top: 0;
+    padding-top: 0;
     opacity: 0;
     transform: translateY(10px);
     transition: var(--transition-medium);
@@ -390,8 +397,13 @@
     }
 }
 
-/* Quick View = secondary, but solid so it reads against the product image */
+/* Quick View = secondary, but solid so it reads against the product image;
+   capped narrower than Add to Cart, shrinkable so the row never overflows */
 .product-btn[data-shop-action="quick-view"] {
+    flex: 0 1 auto;
+    max-width: 88px;
+    padding: 0.75rem 0.5rem;
+    text-wrap: balance;
     background: var(--lv-surface, #121214);
     color: var(--lv-text, #f5f3ef);
     border: 1px solid rgba(255, 255, 255, 0.22);
