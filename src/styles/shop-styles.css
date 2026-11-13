@@ -1142,14 +1142,15 @@ body .products-grid .product-actions {
         gap: 1rem;
     }
     
-    .product-actions {
+    body .products-grid .product-actions {
         opacity: 1;
         transform: none;
         position: static;
         margin-top: 0.75rem;
     }
     
-    .product-btn {
+    body .products-grid .product-btn,
+    body .products-grid .product-btn[data-shop-action="quick-view"] {
         padding: 0.6rem;
     }
     
