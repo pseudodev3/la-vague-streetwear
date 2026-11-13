@@ -390,32 +390,32 @@
     }
 }
 
-/* Quick View = secondary, matches .btn-secondary */
+/* Quick View = secondary, but solid so it reads against the product image */
 .product-btn[data-shop-action="quick-view"] {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--lv-surface, #121214);
     color: var(--lv-text, #f5f3ef);
-    border: 1px solid var(--lv-border-strong, rgba(255, 255, 255, 0.14));
+    border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 @media (hover: hover) and (pointer: fine) {
     .product-btn[data-shop-action="quick-view"]:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.065);
-        border-color: rgba(255, 255, 255, 0.2);
+        background: var(--lv-surface-hover, #1c1c1f);
+        border-color: rgba(255, 255, 255, 0.38);
         color: #fff;
     }
 }
 
 /* Wishlist icon button = secondary variant */
 .product-btn.wishlist {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--lv-surface, #121214);
     color: var(--lv-text, #f5f3ef);
-    border: 1px solid var(--lv-border-strong, rgba(255, 255, 255, 0.14));
+    border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 @media (hover: hover) and (pointer: fine) {
     .product-btn.wishlist:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.065);
-        border-color: rgba(255, 255, 255, 0.2);
+        background: var(--lv-surface-hover, #1c1c1f);
+        border-color: rgba(255, 255, 255, 0.38);
         color: #fff;
     }
 }
