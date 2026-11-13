@@ -341,13 +341,20 @@
     background: #3b82f6;
 }
 
-.product-actions {
+/* Scoped with `body .products-grid` to outrank storefront-system's generic
+   `body .product-actions` grid (a product-detail pattern that wrongly
+   captured this hover row and forced 108px/180px/46px tracks + overflow) */
+body .products-grid .product-actions {
     position: absolute;
     bottom: 1rem;
     left: 1rem;
     right: 1rem;
     display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
     gap: 0.5rem;
+    margin-top: 0;
+    padding-top: 0;
     opacity: 0;
     transform: translateY(10px);
     transition: var(--transition-medium);
@@ -361,21 +368,78 @@
 
 .product-btn {
     flex: 1;
-    padding: 0.75rem;
+    min-height: 44px;
+    padding: 0.75rem 1rem;
     font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    font-weight: 650;
+    letter-spacing: 0.055em;
     text-transform: uppercase;
-    background: var(--color-text);
-    color: var(--color-bg);
-    border: none;
+    border-radius: 12px;
     cursor: pointer;
-    transition: var(--transition-fast);
+    transition-property: background-color, color, border-color, transform, box-shadow, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: var(--lv-ease, cubic-bezier(.23,1,.32,1));
 }
 
-.product-btn:hover {
-    background: var(--color-accent);
-    color: var(--color-text);
+/* Add to Cart = primary CTA, matches .btn-primary */
+.product-btn[data-shop-action="add-to-cart"] {
+    background: var(--lv-red, #e3262e);
+    color: #fff;
+    border: none;
+    box-shadow: 0 8px 24px rgba(227, 38, 46, 0.18);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .product-btn[data-shop-action="add-to-cart"]:hover:not(:disabled) {
+        background: var(--lv-red-hover, #f13b42);
+        color: #fff;
+        box-shadow: 0 10px 28px rgba(227, 38, 46, 0.25);
+    }
+}
+
+/* Quick View = secondary, but solid so it reads against the product image;
+   capped narrower than Add to Cart, shrinkable so the row never overflows */
+.product-btn[data-shop-action="quick-view"] {
+    flex: 0 1 auto;
+    max-width: 88px;
+    padding: 0.75rem 0.5rem;
+    text-wrap: balance;
+    background: var(--lv-surface, #121214);
+    color: var(--lv-text, #f5f3ef);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .product-btn[data-shop-action="quick-view"]:hover:not(:disabled) {
+        background: var(--lv-surface-hover, #1c1c1f);
+        border-color: rgba(255, 255, 255, 0.38);
+        color: #fff;
+    }
+}
+
+/* Wishlist icon button = secondary variant */
+.product-btn.wishlist {
+    background: var(--lv-surface, #121214);
+    color: var(--lv-text, #f5f3ef);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .product-btn.wishlist:hover:not(:disabled) {
+        background: var(--lv-surface-hover, #1c1c1f);
+        border-color: rgba(255, 255, 255, 0.38);
+        color: #fff;
+    }
+}
+
+.product-btn:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.product-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 .product-btn.wishlist {
@@ -387,8 +451,8 @@
 }
 
 .product-btn.wishlist.active svg {
-    fill: var(--color-accent);
-    stroke: var(--color-accent);
+    fill: var(--lv-red, #e3262e);
+    stroke: var(--lv-red, #e3262e);
 }
 
 .product-info {
@@ -1078,14 +1142,15 @@
         gap: 1rem;
     }
     
-    .product-actions {
+    body .products-grid .product-actions {
         opacity: 1;
         transform: none;
         position: static;
         margin-top: 0.75rem;
     }
     
-    .product-btn {
+    body .products-grid .product-btn,
+    body .products-grid .product-btn[data-shop-action="quick-view"] {
         padding: 0.6rem;
     }
     

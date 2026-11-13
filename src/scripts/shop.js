@@ -290,13 +290,6 @@ function renderProducts() {
                         <span class="rating-text">(${reviewCount})</span>
                     </div>
                 ` : ''}
-                ${product.colors?.length > 1 ? `
-                    <div class="product-colors">
-                        ${product.colors.map((color, index) => `
-                            <span class="color-dot ${index === 0 ? 'active' : ''}" style="background-color: ${shopSafeColor(color.value)}" title="${shopEscapeHTML(color.name)}"></span>
-                        `).join('')}
-                    </div>
-                ` : ''}
             </div>
         </article>
     `;

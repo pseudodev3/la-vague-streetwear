@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 import { mockStorefrontAPI } from '../helpers/e2e-storefront.js';
 
 const now = new Date('2030-01-01T12:00:00Z');
-const shippingMessage = 'FREE SHIPPING ON ORDERS OVER ₦150,000';
 const campaign = {
   message: 'New collection available through Sunday',
   startsAt: '2030-01-01T11:00:00Z',
@@ -18,10 +17,14 @@ async function mockAnnouncement(page, announcement, extraSettings = {}) {
 }
 
 test.describe('Store announcements', () => {
-  test('uses the shipping policy when there is no active campaign', async ({ page }) => {
+  test('hides the announcement bar when there is no active campaign', async ({ page }) => {
     await mockAnnouncement(page, null);
     await page.goto('/');
-    await expect(page.locator('.announcement-content')).toHaveText(shippingMessage);
+    // No campaign -> bar is hidden and its content is empty.
+    await expect(page.locator('.announcement-bar')).toBeHidden();
+    await expect(page.locator('.announcement-content')).toHaveText('');
+    // The body carries the no-announcement class so the nav lifts to top:0.
+    await expect(page.locator('body')).toHaveClass(/\bno-announcement\b/);
     await expect(page.locator('[data-campaign-message]').first()).toHaveText('PREMIUM STREETWEAR. LIMITED RUNS.');
     await expect(page).toHaveTitle('LA VAGUE | Premium Streetwear & Limited Drops');
     await expect(page.locator('body')).not.toContainText('NEW DROP AVAILABLE NOW');
@@ -30,11 +33,17 @@ test.describe('Store announcements', () => {
   test('shows an active campaign, then expires it without a reload', async ({ page }) => {
     await mockAnnouncement(page, campaign);
     await page.goto('/');
+    // Active campaign -> bar visible, class removed, message rendered.
+    await expect(page.locator('.announcement-bar')).toBeVisible();
+    await expect(page.locator('body')).not.toHaveClass(/\bno-announcement\b/);
     await expect(page.locator('.announcement-content')).toHaveText(campaign.message);
     await expect(page.locator('[data-campaign-message]').first()).toHaveText(campaign.message);
 
     await page.clock.fastForward(60 * 60 * 1000 + 1);
-    await expect(page.locator('.announcement-content')).toHaveText(shippingMessage);
+    // Expired -> bar hidden again, content emptied, class restored.
+    await expect(page.locator('.announcement-bar')).toBeHidden();
+    await expect(page.locator('body')).toHaveClass(/\bno-announcement\b/);
+    await expect(page.locator('.announcement-content')).toHaveText('');
     await expect(page.locator('[data-campaign-message]').first()).toHaveText('PREMIUM STREETWEAR. LIMITED RUNS.');
   });
 
@@ -46,9 +55,12 @@ test.describe('Store announcements', () => {
     }));
     await page.goto('/');
     await page.waitForFunction(() => Boolean(window.GlobalSettings.refreshTimer));
-    await expect(page.locator('.announcement-content')).toHaveText(shippingMessage);
+    // Starts hidden (no campaign).
+    await expect(page.locator('.announcement-bar')).toBeHidden();
     active = true;
     await page.clock.fastForward(60001);
+    // Picks up the campaign on the next settings refresh -> bar appears.
+    await expect(page.locator('.announcement-bar')).toBeVisible();
     await expect(page.locator('.announcement-content')).toHaveText(campaign.message);
   });
 
@@ -59,7 +71,9 @@ test.describe('Store announcements', () => {
     test(`does not display a ${name} campaign`, async ({ page }) => {
       await mockAnnouncement(page, announcement);
       await page.goto('/shop.html');
-      await expect(page.locator('.announcement-content')).toHaveText(shippingMessage);
+      // Not yet/ no longer active -> bar stays hidden.
+      await expect(page.locator('.announcement-bar')).toBeHidden();
+      await expect(page.locator('.announcement-content')).toHaveText('');
     });
   }
 
@@ -70,7 +84,9 @@ test.describe('Store announcements', () => {
     });
     await page.route('**/api/config/settings', route => route.abort());
     await page.goto('/shop.html');
-    await expect(page.locator('.announcement-content')).toHaveText('FREE SHIPPING ON ORDERS OVER ₦220,000');
+    // API unavailable -> no campaign is trusted from cache -> bar hidden.
+    await expect(page.locator('.announcement-bar')).toBeHidden();
+    await expect(page.locator('.announcement-content')).toHaveText('');
   });
 
   test('renders message text safely and keeps long messages inside the banner', async ({ page }) => {
@@ -92,10 +108,13 @@ test.describe('Store announcements', () => {
     }
   });
 
-  test('describes a zero shipping threshold accurately', async ({ page }) => {
+  test('hides the bar even when the shipping threshold is zero', async ({ page }) => {
     await mockAnnouncement(page, null, { freeShippingThreshold: 0 });
     await page.goto('/shop.html');
-    await expect(page.locator('.announcement-content')).toHaveText('FREE STANDARD SHIPPING ON ALL ORDERS');
+    // No campaign -> bar hidden regardless of threshold (the free-shipping
+    // fallback line is no longer rendered into the bar).
+    await expect(page.locator('.announcement-bar')).toBeHidden();
+    await expect(page.locator('.announcement-content')).toHaveText('');
   });
 });
 

@@ -335,14 +335,14 @@ const GlobalSettings = {
         const active = typeof campaign?.message === 'string' && campaign.message.trim()
             && Number.isFinite(startsAt) && Number.isFinite(endsAt)
             && startsAt <= now && now < endsAt;
-        const threshold = Number(this.settings.freeShippingThreshold);
-        const formatted = window.CurrencyConfig
-            ? window.CurrencyConfig.formatPrice(threshold)
-            : `₦${threshold.toLocaleString()}`;
-        const fallback = threshold > 0
-            ? `FREE SHIPPING ON ORDERS OVER ${formatted}`
-            : 'FREE STANDARD SHIPPING ON ALL ORDERS';
-        const message = active ? campaign.message.trim() : fallback;
+        const message = active ? campaign.message.trim() : '';
+
+        // Toggle the bar visibility: when no campaign is active, hide the
+        // announcement bar and lift the fixed nav to the top of the viewport
+        // (see `body.no-announcement` rules in storefront-system.css). The
+        // class is set on <body> by default in the HTML, so this only needs
+        // to remove it while a campaign is live and restore it when it ends.
+        document.body.classList.toggle('no-announcement', !active);
 
         document.querySelectorAll('.announcement-content').forEach(element => {
             // Use textContent so campaign copy cannot inject executable markup.

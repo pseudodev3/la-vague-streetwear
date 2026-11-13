@@ -102,6 +102,14 @@ body .announcement-bar {
   box-shadow: 0 1px 0 rgba(255,255,255,.12) inset;
 }
 
+/* When no announcement campaign is active, hide the bar. The nav lift to
+   top:0 is handled further down (after the .nav rules) so source order
+   keeps it winning. `body.no-announcement` is the default on every page;
+   the settings script removes it only while a scheduled campaign is live. */
+body.no-announcement .announcement-bar {
+  display: none;
+}
+
 body .announcement-content {
   width: 100%;
   min-width: 0;
@@ -1405,6 +1413,13 @@ body .reveal-scale {
   }
 }
 
+/* No-announcement nav lift (desktop). Placed after the .nav rules so it wins
+   on source order at equal specificity. Raises the fixed nav from top:40px
+   to top:0 so the 40px announcement slot leaves no gap when the bar is hidden. */
+body.no-announcement .nav:not(.scrolled) {
+  top: 0;
+}
+
 @media (max-width: 768px) {
   :root {
     --container-padding: 1.1rem;
@@ -1436,6 +1451,10 @@ body .reveal-scale {
 
   body .nav:not(.scrolled) {
     top: 32px;
+  }
+
+  body.no-announcement .nav:not(.scrolled) {
+    top: 0;
   }
 
   body .nav {
