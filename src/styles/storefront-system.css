@@ -991,6 +991,16 @@ body .checkout .summary-item-image {
   border-radius: 10px;
 }
 
+/* Keep the order-summary quantity bubble visible outside the product image. */
+body .checkout .summary-item-image {
+  overflow: visible;
+}
+
+body .checkout .summary-item-image img {
+  border-radius: 10px;
+}
+
+
 /* Product purchase controls ------------------------------------------ */
 
 body .product-actions {
