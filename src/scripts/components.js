@@ -165,7 +165,7 @@ window.Components = {
             const inject = () => {
                 
                 const nav = document.getElementById('nav');
-                const footer = document.querySelector('footer');
+                const footer = document.getElementById('contact') || document.querySelector('footer.footer');
                 const cartSidebar = document.getElementById('cartSidebar');
                 const wishlistSidebar = document.getElementById('wishlistSidebar');
                 const searchOverlay = document.getElementById('searchOverlay');

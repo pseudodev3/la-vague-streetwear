@@ -8,16 +8,103 @@ const { escapeHTML: homeEscapeHTML, safeURL: homeSafeURL, safeClassToken: homeSa
 const state = {
     currentLook: 0,
     lookbookImages: [
-        { src: '/assets/urbannights.jpg', title: 'Urban Nights', number: '01' },
+        { src: '/assets/hey2.jpg', title: 'Look 01', number: '01' },
         { src: '/assets/daylight.jpg', title: 'Daylight', number: '02' },
         { src: '/assets/skatepark.jpg', title: 'Skate Park', number: '03' },
         { src: '/assets/downtown.jpg', title: 'Downtown', number: '04' },
-        { src: '/assets/afterhours.jpg', title: 'After Hours', number: '05' }
+        { src: '/assets/afterhours.jpg', title: 'After Hours', number: '05' },
+        { src: '/assets/hey.jpg', title: 'Look 06', number: '06' },
+        { src: '/assets/urbannights.jpg', title: 'Urban Nights', number: '07' }
     ]
 };
 
 let elements = {};
 let eventsBound = false;
+
+let marqueeResizeObserver = null;
+let marqueeMutationObserver = null;
+let marqueeFrame = 0;
+
+function initMarquee() {
+    const viewport = document.querySelector('.marquee');
+    const track = viewport?.querySelector('.marquee-content');
+    const source = track?.querySelector('.marquee-group:not([data-marquee-clone="true"])');
+    if (!viewport || !track || !source) return;
+
+    const rebuild = () => {
+        cancelAnimationFrame(marqueeFrame);
+        marqueeFrame = requestAnimationFrame(() => {
+            track.querySelectorAll('[data-marquee-clone="true"], .marquee-group[aria-hidden="true"]').forEach(group => group.remove());
+
+            const groupWidth = source.getBoundingClientRect().width;
+            const viewportWidth = viewport.getBoundingClientRect().width;
+            if (!groupWidth || !viewportWidth) return;
+
+            const copies = Math.max(2, Math.ceil(viewportWidth / groupWidth) + 1);
+            for (let index = 1; index < copies; index += 1) {
+                const clone = source.cloneNode(true);
+                clone.setAttribute('aria-hidden', 'true');
+                clone.dataset.marqueeClone = 'true';
+                track.appendChild(clone);
+            }
+
+            track.style.setProperty('--marquee-distance', `${groupWidth}px`);
+            track.style.setProperty('--marquee-duration', `${groupWidth / 88}s`);
+        });
+    };
+
+    marqueeResizeObserver?.disconnect();
+    marqueeMutationObserver?.disconnect();
+    rebuild();
+
+    if ('ResizeObserver' in window) {
+        marqueeResizeObserver = new ResizeObserver(rebuild);
+        marqueeResizeObserver.observe(viewport);
+        marqueeResizeObserver.observe(source);
+    } else {
+        window.addEventListener('resize', rebuild, { passive: true });
+    }
+
+    marqueeMutationObserver = new MutationObserver(rebuild);
+    marqueeMutationObserver.observe(source, { childList: true, subtree: true, characterData: true });
+}
+
+function initLookbookMotion() {
+    const lookbook = document.querySelector('.lookbook');
+    if (!lookbook) return;
+
+    const parallaxItems = Array.from(lookbook.querySelectorAll('[data-parallax]'));
+    if (parallaxItems.length && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        let framePending = false;
+        const updateParallax = () => {
+            if (framePending) return;
+            framePending = true;
+            requestAnimationFrame(() => {
+                const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+                parallaxItems.forEach(item => {
+                    const image = item.querySelector('img');
+                    if (!image) return;
+                    const rect = item.getBoundingClientRect();
+                    const speed = Number.parseFloat(item.dataset.parallax) || 0;
+                    const offset = (rect.top + rect.height / 2 - viewportHeight / 2) * speed;
+                    image.style.setProperty('--lookbook-parallax-y', `${Math.max(-18, Math.min(18, -offset)).toFixed(1)}px`);
+                });
+                framePending = false;
+            });
+        };
+        window.addEventListener('scroll', updateParallax, { passive: true });
+        window.addEventListener('resize', updateParallax, { passive: true });
+        updateParallax();
+    }
+
+    lookbook.querySelectorAll('.lookbook-annotation').forEach(annotation => {
+        annotation.addEventListener('click', event => {
+            event.stopPropagation();
+            const expanded = annotation.getAttribute('aria-expanded') === 'true';
+            annotation.setAttribute('aria-expanded', String(!expanded));
+        });
+    });
+}
 
 async function initHome() {
     // ==========================================
@@ -57,12 +144,14 @@ async function initHome() {
         toastContainer: document.getElementById('toastContainer')
     };
 
+    initMarquee();
     await renderFeaturedProducts();
     
     updateCartCount();
     updateWishlistCount();
     bindEvents();
     initRevealAnimations();
+    initLookbookMotion();
 }
 
 // ==========================================
@@ -121,7 +210,9 @@ function renderStarRating(rating) {
 
 async function renderFeaturedProducts() {
     if (!elements.featuredProducts) return;
-    
+
+    elements.featuredProducts.classList.remove('featured-grid-editorial', 'featured-grid-single');
+    elements.featuredProducts.style.removeProperty('--featured-support-count');
     let featured = [];
     
     // Try to get from API first
@@ -146,6 +237,12 @@ async function renderFeaturedProducts() {
         return;
     }
     
+    elements.featuredProducts.classList.toggle('featured-grid-editorial', featured.length > 1);
+    elements.featuredProducts.classList.toggle('featured-grid-single', featured.length === 1);
+    if (featured.length > 1) {
+        elements.featuredProducts.style.setProperty('--featured-support-count', String(featured.length - 1));
+    }
+
     elements.featuredProducts.innerHTML = featured.map(product => {
         const inventory = typeof product.inventory === 'string'
             ? JSON.parse(product.inventory || '{}')
@@ -403,6 +500,11 @@ function bindEvents() {
     // Lightbox
     elements.lookbookItems.forEach((item, index) => {
         item.addEventListener('click', () => openLightbox(index));
+        item.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            openLightbox(index);
+        });
     });
     
     elements.lightboxClose?.addEventListener('click', closeLightbox);
