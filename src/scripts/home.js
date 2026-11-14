@@ -201,7 +201,6 @@ async function renderFeaturedProducts() {
     
     elements.featuredProducts.classList.toggle('featured-grid-editorial', featured.length > 1);
     elements.featuredProducts.classList.toggle('featured-grid-single', featured.length === 1);
-    elements.featuredProducts.dataset.productCount = String(featured.length);
     if (featured.length > 1) {
         elements.featuredProducts.style.setProperty('--featured-support-count', String(featured.length - 1));
     }
