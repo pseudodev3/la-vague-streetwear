@@ -75,17 +75,22 @@
     margin-bottom: 3rem;
 }
 
-/* Four-product editorial layout: one lead piece with three compact supporting cards. */
+.featured-grid.featured-grid-single {
+    grid-template-columns: minmax(0, 440px);
+    justify-content: center;
+}
+
+/* Editorial layout: one lead piece with the remaining products stacked alongside it. */
 .featured-grid.featured-grid-editorial {
     grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-    grid-template-rows: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(var(--featured-support-count), minmax(0, 1fr));
     gap: 1rem;
     align-items: stretch;
 }
 
 .featured-grid-editorial .product-card:first-child {
     grid-column: 1;
-    grid-row: 1 / 4;
+    grid-row: 1 / span var(--featured-support-count);
     display: flex;
     flex-direction: column;
     min-height: 0;
