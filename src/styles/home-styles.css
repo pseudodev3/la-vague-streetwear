@@ -479,8 +479,11 @@
   }
 
   .hero-content {
-    width: 100%;
-    margin-top: clamp(7rem, 14vh, 8.5rem);
+    /* Keep the original content-sized, centered positioning context so the
+       absolutely positioned floating logo stays in its original horizontal position. */
+    width: auto;
+    max-width: 100%;
+    margin: clamp(7rem, 14vh, 8.5rem) auto 0;
     padding: 0 1.5rem 2rem;
   }
 
