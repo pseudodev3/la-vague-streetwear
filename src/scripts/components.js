@@ -95,12 +95,22 @@ window.Components = {
             </div>
             <div class="footer-bottom">
                 <p>&copy; ${new Date().getFullYear()} LA VAGUE. All rights reserved.</p>
-                <div class="payment-methods">
-                    <span class="payment-icon" aria-label="Verve cards">VERVE</span>
-                    <span class="payment-icon" aria-label="OPay">OPay</span>
-                    <span class="payment-icon" aria-label="PalmPay">PalmPay</span>
-                    <span class="payment-icon" aria-label="Bank transfer">BANK TRANSFER</span>
-                    <span class="payment-icon" aria-label="USSD">USSD</span>
+                <div class="payment-methods" aria-label="Accepted payment methods">
+                    <span class="payment-icon payment-verve" aria-label="Verve cards">VERVE</span>
+                    <span class="payment-icon payment-opay" aria-label="OPay">
+                        <img src="https://gstatic.opayweb.com/website-ng/img/opay-logo.684aa98.svg" alt="OPay" loading="lazy">
+                    </span>
+                    <span class="payment-icon payment-palmpay" aria-label="PalmPay">
+                        <span class="palmpay-mark" aria-hidden="true"></span><span>PalmPay</span>
+                    </span>
+                    <span class="payment-icon payment-visa" aria-label="Visa">
+                        <img src="https://cdn.simpleicons.org/visa/1A1F71" alt="Visa" loading="lazy">
+                    </span>
+                    <span class="payment-icon payment-mastercard" aria-label="Mastercard">
+                        <img src="https://cdn.simpleicons.org/mastercard/EB001B" alt="Mastercard" loading="lazy">
+                    </span>
+                    <span class="payment-icon payment-channel" aria-label="Bank transfer">BANK TRANSFER</span>
+                    <span class="payment-icon payment-channel" aria-label="USSD">USSD</span>
                 </div>
             </div>
         </div>
