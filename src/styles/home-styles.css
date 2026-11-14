@@ -455,3 +455,45 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+
+/* Laptop and compact desktop hero corrections */
+@media (min-width: 769px) {
+  /* The fixed navigation overlays the hero; reserve space for it at every
+     desktop height so the first headline line never sits underneath it. */
+  .hero-content {
+    padding: clamp(7.5rem, 12vh, 9rem) 1.5rem 2rem;
+  }
+
+  .hero-title {
+    font-size: clamp(6rem, 12.5vw, 10rem);
+  }
+}
+
+@media (min-width: 769px) and (max-height: 820px) {
+  /* Fixed navigation does not occupy layout space; keep the hero content
+     below it instead of vertically centering the heading underneath it. */
+  .hero {
+    min-height: 100svh;
+    align-items: flex-start;
+  }
+
+  .hero-content {
+    /* Keep the original content-sized, centered positioning context so the
+       absolutely positioned floating logo stays in its original horizontal position. */
+    width: auto;
+    max-width: 100%;
+    margin: clamp(7rem, 14vh, 8.5rem) auto 0;
+    padding: 0 1.5rem 2rem;
+  }
+
+  .hero-title {
+    font-size: clamp(5.5rem, 12vh, 8.5rem);
+    line-height: .86;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-description {
+    margin-bottom: 1.5rem;
+  }
+}

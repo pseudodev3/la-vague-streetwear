@@ -1182,12 +1182,12 @@ body .footer-bottom {
   gap: 1.25rem 2rem;
 }
 
-body .payment-methods {
+body .footer-bottom .payment-methods {
   flex-wrap: wrap;
   gap: .55rem;
 }
 
-body .payment-icon {
+body .footer-bottom .payment-icon {
   border-radius: 7px;
   border-color: var(--lv-border);
   white-space: nowrap;
@@ -1255,7 +1255,7 @@ body .payment-icon {
     max-width: 34ch;
   }
 
-  body .payment-methods {
+  body .footer-bottom .payment-methods {
     justify-content: flex-start;
   }
 }
@@ -2365,5 +2365,173 @@ body .wishlist-item-image {
 
   body .filter-sidebar {
     border-radius: 0;
+  }
+}
+
+
+/* Footer identity + payment marks */
+body .footer-logo-img {
+  width: 138px;
+  max-width: 138px;
+  height: auto;
+}
+
+body .footer-bottom .payment-methods {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .55rem;
+  min-width: 0;
+}
+
+body .footer-bottom .payment-icon {
+  width: auto;
+  min-width: 0;
+  height: 34px;
+  min-height: 34px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .3rem;
+  padding: .35rem .55rem;
+  background: rgba(255,255,255,.96);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 7px;
+  color: #202020;
+  font-size: .68rem;
+  font-weight: 750;
+  letter-spacing: .015em;
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+body .footer-bottom .payment-icon img {
+  display: block;
+  width: auto;
+  max-width: 62px;
+  height: 18px;
+  object-fit: contain;
+  outline: 0;
+}
+
+body .footer-bottom .payment-opay img {
+  max-width: 66px;
+  height: 20px;
+}
+
+body .footer-bottom .payment-palmpay {
+  color: #5b21b6;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: -.035em;
+}
+
+body .footer-bottom .palmpay-mark {
+  width: 13px;
+  height: 13px;
+  display: inline-block;
+  border: 3px solid #7c3aed;
+  border-radius: 4px 8px 4px 8px;
+  transform: rotate(-12deg);
+}
+
+body .footer-bottom .payment-verve {
+  color: #164b9b;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -.06em;
+}
+
+body .footer-bottom .payment-channel {
+  color: #303030;
+  font-size: .58rem;
+  letter-spacing: .04em;
+}
+
+@media (max-width: 640px) {
+  body .footer-logo-img {
+    width: 128px;
+    max-width: 128px;
+  }
+
+  body .footer-bottom .payment-methods {
+    justify-content: flex-start;
+    gap: .45rem;
+  }
+}
+
+
+/* Cart quantity stepper — match the La Vague storefront controls -------- */
+body .cart-item-qty {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 3px;
+  overflow: hidden;
+  border: 1px solid var(--lv-border);
+  border-radius: 11px;
+  background: rgba(255,255,255,.035);
+}
+
+body .cart-item-qty button {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lv-text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 150ms var(--lv-ease), color 150ms var(--lv-ease), transform 150ms var(--lv-ease);
+}
+
+body .cart-item-qty button:hover:not(:disabled) {
+  background: rgba(227,38,46,.16);
+  color: #fff;
+}
+
+body .cart-item-qty button:active:not(:disabled) {
+  transform: scale(.92);
+  background: rgba(227,38,46,.25);
+}
+
+body .cart-item-qty button:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+body .cart-item-qty button:focus-visible {
+  outline: 2px solid var(--lv-accent, #e3262e);
+  outline-offset: 1px;
+}
+
+body .cart-item-qty span {
+  min-width: 30px;
+  padding-inline: 2px;
+  color: var(--lv-text);
+  font-size: .78rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  body .cart-item-qty {
+    min-height: 40px;
+  }
+
+  body .cart-item-qty button {
+    width: 32px;
+    height: 32px;
   }
 }
