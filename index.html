@@ -48,8 +48,8 @@
     <link rel="stylesheet" href="src/styles/fonts.css?v=9.0">
     
     <!-- Styles -->
-    <link rel="stylesheet" href="src/styles/styles.css?v=9.0">
-    <link rel="stylesheet" href="src/styles/home-styles.css?v=9.1">
+    <link rel="stylesheet" href="src/styles/styles.css?v=9.1">
+    <link rel="stylesheet" href="src/styles/home-styles.css?v=9.2">
     
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -131,18 +131,22 @@
     <!-- Marquee Section -->
     <div class="marquee">
         <div class="marquee-content">
-            <span data-campaign-message>PREMIUM STREETWEAR. LIMITED RUNS.</span>
-            <span class="marquee-dot">◆</span>
-            <span class="dynamic-free-shipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
-            <span class="marquee-dot">◆</span>
-            <span>LIMITED EDITION PIECES</span>
-            <span class="marquee-dot">◆</span>
-            <span data-campaign-message>PREMIUM STREETWEAR. LIMITED RUNS.</span>
-            <span class="marquee-dot">◆</span>
-            <span class="dynamic-free-shipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
-            <span class="marquee-dot">◆</span>
-            <span>LIMITED EDITION PIECES</span>
-            <span class="marquee-dot">◆</span>
+            <div class="marquee-group">
+                <span data-campaign-message>PREMIUM STREETWEAR. LIMITED RUNS.</span>
+                <span class="marquee-dot">◆</span>
+                <span class="dynamic-free-shipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
+                <span class="marquee-dot">◆</span>
+                <span>LIMITED EDITION PIECES</span>
+                <span class="marquee-dot">◆</span>
+            </div>
+            <div class="marquee-group" aria-hidden="true">
+                <span data-campaign-message>PREMIUM STREETWEAR. LIMITED RUNS.</span>
+                <span class="marquee-dot">◆</span>
+                <span class="dynamic-free-shipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
+                <span class="marquee-dot">◆</span>
+                <span>LIMITED EDITION PIECES</span>
+                <span class="marquee-dot">◆</span>
+            </div>
         </div>
     </div>
 
@@ -229,35 +233,30 @@
                     <img src="/assets/urbannights.jpg" alt="Look 01 - Urban Nights" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">01</span>
-                        <h3>Urban Nights</h3>
                     </div>
                 </div>
                 <div class="lookbook-item reveal-up" data-look="2">
                     <img src="/assets/daylight.jpg" alt="Look 02 - Daylight" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">02</span>
-                        <h3>Daylight</h3>
                     </div>
                 </div>
                 <div class="lookbook-item reveal-up" data-look="3">
                     <img src="/assets/skatepark.jpg" alt="Look 03 - Skate Park" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">03</span>
-                        <h3>Skate Park</h3>
                     </div>
                 </div>
                 <div class="lookbook-item reveal-up" data-look="4">
                     <img src="/assets/downtown.jpg" alt="Look 04 - Downtown" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">04</span>
-                        <h3>Downtown</h3>
                     </div>
                 </div>
                 <div class="lookbook-item large reveal-up" data-look="5">
                     <img src="/assets/afterhours.jpg" alt="Look 05 - After Hours" loading="lazy">
                     <div class="lookbook-info">
                         <span class="lookbook-number">05</span>
-                        <h3>After Hours</h3>
                     </div>
                 </div>
             </div>
@@ -274,7 +273,6 @@
             <img src="" alt="" id="lightboxImage">
             <div class="lightbox-info">
                 <span class="lightbox-number" id="lightboxNumber"></span>
-                <h3 id="lightboxTitle"></h3>
             </div>
         </div>
     </div>
@@ -332,11 +330,11 @@
 
     <!-- Scripts -->
     <script src="src/scripts/products.js?v=9.0"></script>
-    <script src="src/scripts/utils.js?v=10.0"></script>
+    <script src="src/scripts/utils.js?v=10.1"></script>
     <script src="src/scripts/cart.js?v=10.0"></script>
     <script src="src/scripts/components.js?v=10.0"></script>
 <script src="src/scripts/cookie-consent.js?v=9.0"></script>
-    <script src="src/scripts/home.js?v=9.1"></script>
+    <script src="src/scripts/home.js?v=9.2"></script>
     <script src="src/scripts/pwa-register.js?v=1.0"></script>
 </body>
 </html>
