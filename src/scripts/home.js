@@ -69,6 +69,43 @@ function initMarquee() {
     marqueeMutationObserver.observe(source, { childList: true, subtree: true, characterData: true });
 }
 
+function initLookbookMotion() {
+    const lookbook = document.querySelector('.lookbook');
+    if (!lookbook) return;
+
+    const parallaxItems = Array.from(lookbook.querySelectorAll('[data-parallax]'));
+    if (parallaxItems.length && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        let framePending = false;
+        const updateParallax = () => {
+            if (framePending) return;
+            framePending = true;
+            requestAnimationFrame(() => {
+                const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+                parallaxItems.forEach(item => {
+                    const image = item.querySelector('img');
+                    if (!image) return;
+                    const rect = item.getBoundingClientRect();
+                    const speed = Number.parseFloat(item.dataset.parallax) || 0;
+                    const offset = (rect.top + rect.height / 2 - viewportHeight / 2) * speed;
+                    image.style.setProperty('--lookbook-parallax-y', `${Math.max(-18, Math.min(18, -offset)).toFixed(1)}px`);
+                });
+                framePending = false;
+            });
+        };
+        window.addEventListener('scroll', updateParallax, { passive: true });
+        window.addEventListener('resize', updateParallax, { passive: true });
+        updateParallax();
+    }
+
+    lookbook.querySelectorAll('.lookbook-annotation').forEach(annotation => {
+        annotation.addEventListener('click', event => {
+            event.stopPropagation();
+            const expanded = annotation.getAttribute('aria-expanded') === 'true';
+            annotation.setAttribute('aria-expanded', String(!expanded));
+        });
+    });
+}
+
 async function initHome() {
     // ==========================================
     // UI Elements (Refresh after injection)
@@ -114,6 +151,7 @@ async function initHome() {
     updateWishlistCount();
     bindEvents();
     initRevealAnimations();
+    initLookbookMotion();
 }
 
 // ==========================================
