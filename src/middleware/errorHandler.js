@@ -82,6 +82,11 @@ export const asyncHandler = (fn) => (req, res, next) => {
  * 404 handler for undefined routes
  */
 export const notFoundHandler = (req, res) => {
+    // API clients must always receive JSON, even when the browser sends Accept: text/html.
+    if (req.originalUrl.startsWith('/api/')) {
+        return res.status(404).json({ error: 'Not Found' });
+    }
+
     // If request accepts HTML, serve 404.html
     if (req.accepts('html')) {
         res.status(404).sendFile('404.html', { root: '.' });
