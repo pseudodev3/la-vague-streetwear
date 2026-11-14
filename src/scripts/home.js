@@ -122,7 +122,8 @@ function renderStarRating(rating) {
 async function renderFeaturedProducts() {
     if (!elements.featuredProducts) return;
 
-    elements.featuredProducts.classList.remove('featured-grid-editorial');
+    elements.featuredProducts.classList.remove('featured-grid-editorial', 'featured-grid-single');
+    elements.featuredProducts.style.removeProperty('--featured-support-count');
     let featured = [];
     
     // Try to get from API first
@@ -147,7 +148,11 @@ async function renderFeaturedProducts() {
         return;
     }
     
-    elements.featuredProducts.classList.toggle('featured-grid-editorial', featured.length === 4);
+    elements.featuredProducts.classList.toggle('featured-grid-editorial', featured.length > 1);
+    elements.featuredProducts.classList.toggle('featured-grid-single', featured.length === 1);
+    if (featured.length > 1) {
+        elements.featuredProducts.style.setProperty('--featured-support-count', String(featured.length - 1));
+    }
 
     elements.featuredProducts.innerHTML = featured.map(product => {
         const inventory = typeof product.inventory === 'string'
