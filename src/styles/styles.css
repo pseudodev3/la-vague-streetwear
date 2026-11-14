@@ -486,11 +486,21 @@ button {
 }
 
 .marquee-content {
-    display: inline-flex;
-    animation: marquee 30s linear infinite;
+    display: flex;
+    width: max-content;
+    animation: marquee 36s linear infinite;
+    will-change: transform;
+}
+
+.marquee-group {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    width: max-content;
 }
 
 .marquee-content span {
+    flex: 0 0 auto;
     font-family: var(--font-heading);
     font-size: 0.875rem;
     font-weight: 600;
@@ -503,8 +513,8 @@ button {
 }
 
 @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-50%, 0, 0); }
 }
 
 /* ============================================
