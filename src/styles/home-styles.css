@@ -668,19 +668,6 @@
     pointer-events: none;
     background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.58) 100%);
 }
-.lookbook-number {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 2.25rem;
-    height: 2.25rem;
-    padding: 0 0.55rem;
-    border: 1px solid rgba(255,255,255,0.55);
-    border-radius: 999px;
-    color: #fff;
-    background: rgba(0,0,0,0.28);
-    backdrop-filter: blur(8px);
-}
 @media (max-width: 768px) {
     .lookbook-grid {
         grid-template-columns: repeat(6, minmax(0, 1fr));
