@@ -46,6 +46,53 @@ export function isValidEmail(email) {
 }
 
 /**
+ * Normalize an email address for storage and lookup.
+ *
+ * IMPORTANT: this is the single source of truth for how an email is transformed
+ * before it touches the database. Both the create-order write path and the
+ * track-order lookup path MUST run the email through this function, otherwise
+ * an asymmetry appears: an order stored under one form cannot be found when a
+ * customer types the other form.
+ *
+ * We intentionally only lowercase and trim. We do NOT strip Gmail dots or
+ * `+tag` sub-addresses, even though express-validator's `normalizeEmail()` does
+ * so by default — those are real, distinct inboxes for most providers, and
+ * stripping them breaks order tracking for customers whose address contains
+ * them (e.g. `prvda.xo@gmail.com` was being stored as `prvdaxo@gmail.com`).
+ *
+ * @param {string} email
+ * @returns {string} the normalized email, or the input untouched if it is not a string
+ */
+export function normalizeEmail(email) {
+    if (typeof email !== 'string') return email;
+    return email.trim().toLowerCase();
+}
+
+/**
+ * Legacy compatibility: return the dot-stripped Gmail form of an email.
+ *
+ * Orders created before the normalizeEmail() fix were stored with Gmail dots
+ * stripped (express-validator's old default), so `prvda.xo@gmail.com` was
+ * persisted as `prvdaxo@gmail.com`. We no longer strip dots at write time, but
+ * lookup must still find those legacy rows. This function recomputes the
+ * legacy dot-stripped form so lookupOrder can fall back to it when an exact
+ * match misses. Gmail ignores dots in the local part, so the two addresses
+ * route to the same mailbox — stripping is safe ONLY for @gmail.com.
+ *
+ * @param {string} email a normalized (lowercased, trimmed) email
+ * @returns {string|null} the dot-stripped gmail form, or null if not a gmail address
+ */
+export function legacyGmailDotStripped(email) {
+    if (typeof email !== 'string') return null;
+    const at = email.lastIndexOf('@');
+    if (at < 0) return null;
+    const local = email.slice(0, at);
+    const domain = email.slice(at + 1);
+    if (domain !== 'gmail.com' && domain !== 'googlemail.com') return null;
+    return `${local.replace(/\./g, '')}@${domain}`;
+}
+
+/**
  * Validate phone number format
  */
 export function isValidPhone(phone) {
