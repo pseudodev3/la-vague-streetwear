@@ -306,7 +306,7 @@ const GlobalSettings = {
                 : `₦${Number(value).toLocaleString()}`;
 
         document.querySelectorAll('.dynamic-free-shipping').forEach(element => {
-            element.textContent =
+            const message =
                 Number(freeShippingThreshold) === 0
                     ? (element.classList.contains('product-free-shipping')
                         ? 'Free standard shipping on all orders'
@@ -314,14 +314,17 @@ const GlobalSettings = {
                     : element.classList.contains('product-free-shipping')
                     ? `Free standard shipping over ${format(freeShippingThreshold)}`
                     : `FREE SHIPPING ON ORDERS OVER ${format(freeShippingThreshold)}`;
+            if (element.textContent !== message) element.textContent = message;
         });
 
         document.querySelectorAll('.dynamic-shipping-rate').forEach(element => {
-            element.textContent = format(shippingRate);
+            const rate = format(shippingRate);
+            if (element.textContent !== rate) element.textContent = rate;
         });
 
         document.querySelectorAll('.dynamic-express-rate').forEach(element => {
-            element.textContent = format(expressShippingRate);
+            const rate = format(expressShippingRate);
+            if (element.textContent !== rate) element.textContent = rate;
         });
         this.updateAnnouncements();
     },
@@ -346,10 +349,11 @@ const GlobalSettings = {
 
         document.querySelectorAll('.announcement-content').forEach(element => {
             // Use textContent so campaign copy cannot inject executable markup.
-            element.textContent = message;
+            if (element.textContent !== message) element.textContent = message;
         });
+        const campaignMessage = active ? message : 'PREMIUM STREETWEAR. LIMITED RUNS.';
         document.querySelectorAll('[data-campaign-message]').forEach(element => {
-            element.textContent = active ? message : 'PREMIUM STREETWEAR. LIMITED RUNS.';
+            if (element.textContent !== campaignMessage) element.textContent = campaignMessage;
         });
         if (active) {
             this.announcementTimer = window.setTimeout(
