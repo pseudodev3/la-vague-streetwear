@@ -484,6 +484,17 @@ function bindEvents() {
         if (Number.isInteger(index)) window.setImage(index);
     });
 
+    const navigateGallery = (direction) => {
+        const images = state.product?.images || [];
+        if (images.length < 2) return;
+
+        state.currentImageIndex = (state.currentImageIndex + direction + images.length) % images.length;
+        renderGallery();
+    };
+
+    elements.galleryPrev?.addEventListener('click', () => navigateGallery(-1));
+    elements.galleryNext?.addEventListener('click', () => navigateGallery(1));
+
     elements.qtyMinus?.addEventListener('click', () => { 
         if (state.quantity > 1) { 
             state.quantity--; 
