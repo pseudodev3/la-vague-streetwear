@@ -32,7 +32,7 @@ test.describe('Homepage visual polish', () => {
     const groups = page.locator('.marquee-group');
     await expect(groups).toHaveCount(2);
     const groupCopy = await groups.evaluateAll(items =>
-      items.map(item => item.textContent.replace(/\\s+/g, ' ').trim())
+      items.map(item => item.textContent.replace(/\s+/g, ' ').trim())
     );
     expect(groupCopy[0]).toBe(groupCopy[1]);
   });
