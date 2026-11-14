@@ -96,10 +96,11 @@ window.Components = {
             <div class="footer-bottom">
                 <p>&copy; ${new Date().getFullYear()} LA VAGUE. All rights reserved.</p>
                 <div class="payment-methods">
-                    <span class="payment-icon">VISA</span>
-                    <span class="payment-icon">MC</span>
-                    <span class="payment-icon">AMEX</span>
-                    <span class="payment-icon">PP</span>
+                    <span class="payment-icon" aria-label="Verve cards">VERVE</span>
+                    <span class="payment-icon" aria-label="OPay">OPay</span>
+                    <span class="payment-icon" aria-label="PalmPay">PalmPay</span>
+                    <span class="payment-icon" aria-label="Bank transfer">BANK TRANSFER</span>
+                    <span class="payment-icon" aria-label="USSD">USSD</span>
                 </div>
             </div>
         </div>
