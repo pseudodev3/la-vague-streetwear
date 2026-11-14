@@ -2452,3 +2452,76 @@ body .payment-channel {
     gap: .45rem;
   }
 }
+
+
+/* Cart quantity stepper — match the La Vague storefront controls -------- */
+body .cart-item-qty {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 3px;
+  overflow: hidden;
+  border: 1px solid var(--lv-border);
+  border-radius: 11px;
+  background: rgba(255,255,255,.035);
+}
+
+body .cart-item-qty button {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lv-text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 150ms var(--lv-ease), color 150ms var(--lv-ease), transform 150ms var(--lv-ease);
+}
+
+body .cart-item-qty button:hover:not(:disabled) {
+  background: rgba(227,38,46,.16);
+  color: #fff;
+}
+
+body .cart-item-qty button:active:not(:disabled) {
+  transform: scale(.92);
+  background: rgba(227,38,46,.25);
+}
+
+body .cart-item-qty button:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+body .cart-item-qty button:focus-visible {
+  outline: 2px solid var(--lv-accent, #e3262e);
+  outline-offset: 1px;
+}
+
+body .cart-item-qty span {
+  min-width: 30px;
+  padding-inline: 2px;
+  color: var(--lv-text);
+  font-size: .78rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  body .cart-item-qty {
+    min-height: 40px;
+  }
+
+  body .cart-item-qty button {
+    width: 32px;
+    height: 32px;
+  }
+}
