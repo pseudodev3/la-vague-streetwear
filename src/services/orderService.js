@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { query, USE_POSTGRES } from '../config/db.js';
 import { APIError } from '../middleware/errorHandler.js';
 import { initializeTransaction } from './paymentService.js';
+import { normalizeEmail, legacyGmailDotStripped } from '../utils/sanitization.js';
 
 async function getCheckoutSettings() {
     const result = await query(
@@ -247,12 +248,33 @@ export async function createOrder(orderData, productService, inventoryService, o
 }
 
 export async function lookupOrder(orderId, email) {
-    const order = (
+    // Run the email through the same normalization used at write time. New
+    // orders store the email verbatim (dots and `+tag` preserved), so this
+    // exact match is the common path.
+    const normalizedEmail = normalizeEmail(email);
+    let order = (
         await query(
             'SELECT * FROM orders WHERE id = $1 AND customer_email = $2',
-            [orderId, email]
+            [orderId, normalizedEmail]
         )
     ).rows[0];
+
+    // Legacy fallback: orders created before the normalizeEmail fix were stored
+    // with Gmail dots stripped (e.g. `prvda.xo@gmail.com` -> `prvdaxo@gmail.com`).
+    // Gmail ignores dots in the local part, so stripping is safe here and lets
+    // existing customers track orders they placed before the fix. See
+    // legacyGmailDotStripped() in src/utils/sanitization.js.
+    if (!order) {
+        const legacyEmail = legacyGmailDotStripped(normalizedEmail);
+        if (legacyEmail && legacyEmail !== normalizedEmail) {
+            order = (
+                await query(
+                    'SELECT * FROM orders WHERE id = $1 AND customer_email = $2',
+                    [orderId, legacyEmail]
+                )
+            ).rows[0];
+        }
+    }
 
     if (!order) throw new APIError('Order not found.', 404, 'ORDER_NOT_FOUND');
 

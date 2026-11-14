@@ -23,7 +23,11 @@ export const validateCreateOrder = [
     body('customerEmail')
         .trim()
         .isEmail()
-        .normalizeEmail()
+        // Keep dots and `+tag` sub-addresses: they are real, distinct inboxes for
+        // most providers. express-validator strips Gmail dots by default, which
+        // broke order tracking (an order stored as `prvdaxo@gmail.com` could not
+        // be found by a customer typing `prvda.xo@gmail.com`). Lowercase only.
+        .normalizeEmail({ gmail_remove_dots: false, gmail_remove_plus_address: false })
         .withMessage('Valid email is required'),
     body('customerName')
         .trim()
@@ -139,7 +143,8 @@ export const validateContactForm = [
     body('email')
         .trim()
         .isEmail()
-        .normalizeEmail()
+        // See validateCreateOrder: preserve dots and `+tag` sub-addresses.
+        .normalizeEmail({ gmail_remove_dots: false, gmail_remove_plus_address: false })
         .withMessage('Valid email is required'),
     body('subject')
         .optional()
