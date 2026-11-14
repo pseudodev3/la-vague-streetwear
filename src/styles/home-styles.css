@@ -471,8 +471,17 @@
 }
 
 @media (min-width: 769px) and (max-height: 820px) {
+  /* Fixed navigation does not occupy layout space; keep the hero content
+     below it instead of vertically centering the heading underneath it. */
   .hero {
     min-height: 100svh;
+    align-items: flex-start;
+  }
+
+  .hero-content {
+    width: 100%;
+    margin-top: clamp(7rem, 14vh, 8.5rem);
+    padding: 0 1.5rem 2rem;
   }
 
   .hero-title {
