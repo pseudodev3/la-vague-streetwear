@@ -121,7 +121,8 @@ function renderStarRating(rating) {
 
 async function renderFeaturedProducts() {
     if (!elements.featuredProducts) return;
-    
+
+    elements.featuredProducts.classList.remove('featured-grid-editorial');
     let featured = [];
     
     // Try to get from API first
@@ -146,6 +147,8 @@ async function renderFeaturedProducts() {
         return;
     }
     
+    elements.featuredProducts.classList.toggle('featured-grid-editorial', featured.length === 4);
+
     elements.featuredProducts.innerHTML = featured.map(product => {
         const inventory = typeof product.inventory === 'string'
             ? JSON.parse(product.inventory || '{}')
