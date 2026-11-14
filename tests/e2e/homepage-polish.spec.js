@@ -2,6 +2,47 @@ import { test, expect } from '@playwright/test';
 import { mockStoreProducts, mockStorefrontAPI } from '../helpers/e2e-storefront.js';
 
 test.describe('Homepage visual polish', () => {
+  for (const count of [2, 3]) {
+    test(`adapts the editorial bestseller layout to ${count} products`, async ({ page }) => {
+      await mockStorefrontAPI(page);
+      await page.route('**/api/products', route => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          products: mockStoreProducts.slice(0, count).map(product => ({
+            ...product,
+            tags: ['bestseller']
+          }))
+        })
+      }));
+
+      await page.goto('/');
+      const featured = page.locator('#featuredProducts');
+      await expect(featured.locator('.product-card')).toHaveCount(count);
+      await expect(featured).toHaveClass(/featured-grid-editorial/);
+      const rowCount = await featured.evaluate(element =>
+        getComputedStyle(element).gridTemplateRows.split(' ').length
+      );
+      expect(rowCount).toBe(count - 1);
+    });
+  }
+
+  test('centers the section cleanly when there is only one bestseller', async ({ page }) => {
+    await mockStorefrontAPI(page);
+    await page.route('**/api/products', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, products: [mockStoreProducts[0]] })
+    }));
+
+    await page.goto('/');
+    const featured = page.locator('#featuredProducts');
+    await expect(featured.locator('.product-card')).toHaveCount(1);
+    await expect(featured).toHaveClass(/featured-grid-single/);
+    await expect(featured).not.toHaveClass(/featured-grid-editorial/);
+  });
+
   test('uses the editorial bestseller layout and keeps lookbook titles out of the UI', async ({ page }) => {
     await mockStorefrontAPI(page);
     await page.route('**/api/products', route => route.fulfill({
