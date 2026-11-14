@@ -21,6 +21,54 @@ const state = {
 let elements = {};
 let eventsBound = false;
 
+let marqueeResizeObserver = null;
+let marqueeMutationObserver = null;
+let marqueeFrame = 0;
+
+function initMarquee() {
+    const viewport = document.querySelector('.marquee');
+    const track = viewport?.querySelector('.marquee-content');
+    const source = track?.querySelector('.marquee-group:not([data-marquee-clone="true"])');
+    if (!viewport || !track || !source) return;
+
+    const rebuild = () => {
+        cancelAnimationFrame(marqueeFrame);
+        marqueeFrame = requestAnimationFrame(() => {
+            track.querySelectorAll('[data-marquee-clone="true"], .marquee-group[aria-hidden="true"]').forEach(group => group.remove());
+
+            const groupWidth = source.getBoundingClientRect().width;
+            const viewportWidth = viewport.getBoundingClientRect().width;
+            if (!groupWidth || !viewportWidth) return;
+
+            const copies = Math.max(2, Math.ceil(viewportWidth / groupWidth) + 1);
+            for (let index = 1; index < copies; index += 1) {
+                const clone = source.cloneNode(true);
+                clone.setAttribute('aria-hidden', 'true');
+                clone.dataset.marqueeClone = 'true';
+                track.appendChild(clone);
+            }
+
+            track.style.setProperty('--marquee-distance', `${groupWidth}px`);
+            track.style.setProperty('--marquee-duration', `${groupWidth / 88}s`);
+        });
+    };
+
+    marqueeResizeObserver?.disconnect();
+    marqueeMutationObserver?.disconnect();
+    rebuild();
+
+    if ('ResizeObserver' in window) {
+        marqueeResizeObserver = new ResizeObserver(rebuild);
+        marqueeResizeObserver.observe(viewport);
+        marqueeResizeObserver.observe(source);
+    } else {
+        window.addEventListener('resize', rebuild, { passive: true });
+    }
+
+    marqueeMutationObserver = new MutationObserver(rebuild);
+    marqueeMutationObserver.observe(source, { childList: true, subtree: true, characterData: true });
+}
+
 async function initHome() {
     // ==========================================
     // UI Elements (Refresh after injection)
