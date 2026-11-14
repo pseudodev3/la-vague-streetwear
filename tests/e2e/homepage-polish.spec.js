@@ -21,6 +21,16 @@ test.describe('Homepage visual polish', () => {
       const featured = page.locator('#featuredProducts');
       await expect(featured.locator('.product-card')).toHaveCount(count);
       await expect(featured).toHaveClass(/featured-grid-editorial/);
+      // The editorial grid only spans rows on wide viewports. At max-width
+      // 1024px (home-styles.css) it intentionally collapses: the lead card
+      // stops spanning and rows go back to auto sizing.
+      const isCompactViewport = await page.evaluate(
+        () => window.matchMedia('(max-width: 1024px)').matches
+      );
+      if (isCompactViewport) {
+        await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-start', 'auto');
+        return;
+      }
       const rowCount = await featured.evaluate(element =>
         getComputedStyle(element).gridTemplateRows.split(' ').length
       );
@@ -64,8 +74,15 @@ test.describe('Homepage visual polish', () => {
     // The lead card spans all support rows alongside it: 4 products -> 3 support
     // rows -> grid-row "1 / span 3". getComputedStyle returns grid-row-end as the
     // span form, so assert the span rather than the resolved end line number.
-    await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-start', '1');
-    await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-end', 'span 3');
+    // Below 1024px the compact layout takes over and the lead card goes back to
+    // auto placement, so only assert the span geometry on wide viewports.
+    const isCompactViewport = await page.evaluate(
+      () => window.matchMedia('(max-width: 1024px)').matches
+    );
+    if (!isCompactViewport) {
+      await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-start', '1');
+      await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-end', 'span 3');
+    }
 
     await expect(page.locator('.lookbook-item')).toHaveCount(7);
     await expect(page.locator('.lookbook-info h3')).toHaveCount(0);
@@ -93,29 +110,20 @@ test.describe('Homepage visual polish', () => {
     await page.goto('/');
     await page.waitForFunction(() => Boolean(window.GlobalSettings?.refreshTimer));
 
-    // The marquee rebuilds its clones asynchronously via requestAnimationFrame
-    // and a ResizeObserver, so a rebuild can land after we install our observer
-    // and falsely count as a "rewrite". Let it settle: wait until the clone
-    // count is stable across two animation frames before observing.
-    await page.waitForFunction(() => {
-      const track = document.querySelector('.marquee-content');
-      if (!track) return false;
-      const count = track.querySelectorAll('.marquee-group').length;
-      if (count < 2) return false;
-      if (window.__lastMarqueeCount !== count) {
-        window.__lastMarqueeCount = count;
-        return false;
-      }
-      return true;
-    });
-
+    // Watch the marquee SOURCE group only. initMarquee rebuilds the clone
+    // groups whenever the source resizes (e.g. a web font swapping in late),
+    // and those rebuilds legitimately mutate the track — they are not copy
+    // rewrites and landed after earlier observers were installed, which made
+    // this test flake on WebKit. The settings refresh may only touch the
+    // source copy when a value actually changed, so the source subtree is
+    // both the precise and the race-free thing to observe.
     await page.evaluate(() => {
-      const track = document.querySelector('.marquee-content');
+      const source = document.querySelector('.marquee-group:not([data-marquee-clone="true"])');
       window.__marqueeMutationCount = 0;
       window.__marqueeObserver = new MutationObserver(records => {
         window.__marqueeMutationCount += records.length;
       });
-      window.__marqueeObserver.observe(track, {
+      window.__marqueeObserver.observe(source, {
         childList: true,
         subtree: true,
         characterData: true
