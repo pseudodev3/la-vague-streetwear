@@ -1130,3 +1130,184 @@
     .lookbook-outro-top { font-size: .39rem; }
     .lookbook-shop-link { font-size: .42rem; }
 }
+
+
+/* Responsive lookbook layout: natural-flow image grid below desktop */
+@media (max-width: 900px) {
+    .lookbook-shell {
+        width: min(100% - 2.5rem, 760px);
+    }
+
+    .lookbook-collage {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: none;
+        grid-auto-rows: auto;
+        align-items: start;
+        gap: clamp(.75rem, 2.2vw, 1.25rem);
+        padding: 0;
+    }
+
+    .lookbook-frame,
+    .lookbook-frame--hero,
+    .lookbook-frame--two,
+    .lookbook-frame--three,
+    .lookbook-frame--four,
+    .lookbook-frame--five,
+    .lookbook-frame--six,
+    .lookbook-frame--seven {
+        position: relative;
+        grid-column: auto;
+        grid-row: auto;
+        width: 100%;
+        min-width: 0;
+        aspect-ratio: 4 / 5;
+        margin: 0;
+        overflow: hidden;
+        transform: none;
+    }
+
+    .lookbook-frame--hero {
+        grid-column: 1 / -1;
+        aspect-ratio: 16 / 9;
+    }
+
+    .lookbook-frame--four {
+        grid-column: 1 / -1;
+        aspect-ratio: 16 / 10;
+    }
+
+    .lookbook-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: none !important;
+        will-change: auto;
+    }
+
+    .lookbook-frame:hover img {
+        transform: none !important;
+    }
+
+    .lookbook-frame figcaption {
+        right: .65rem;
+        bottom: .65rem;
+        left: 2.8rem;
+        font-size: clamp(.43rem, .8vw, .56rem);
+        line-height: 1.35;
+        letter-spacing: .09em;
+    }
+
+    .lookbook-number {
+        bottom: .65rem;
+        left: .65rem;
+        font-size: .8rem;
+    }
+
+    .lookbook-note,
+    .lookbook-side-copy,
+    .lookbook-collage-scribble {
+        display: none !important;
+    }
+
+    .lookbook-outro {
+        margin-top: clamp(2.5rem, 6vw, 4rem);
+    }
+}
+
+@media (max-width: 600px) {
+    .lookbook {
+        padding: 3rem 0 4rem;
+    }
+
+    .lookbook-shell {
+        width: calc(100% - 2rem);
+    }
+
+    .lookbook-original-heading {
+        margin-bottom: 2rem;
+    }
+
+    .lookbook-collage {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .7rem;
+    }
+
+    .lookbook-frame,
+    .lookbook-frame--hero,
+    .lookbook-frame--two,
+    .lookbook-frame--three,
+    .lookbook-frame--four,
+    .lookbook-frame--five,
+    .lookbook-frame--six,
+    .lookbook-frame--seven {
+        aspect-ratio: 4 / 5;
+        border-radius: 1px;
+    }
+
+    .lookbook-frame--hero {
+        aspect-ratio: 5 / 4;
+    }
+
+    .lookbook-frame--four {
+        aspect-ratio: 5 / 4;
+    }
+
+    .lookbook-frame figcaption {
+        right: .5rem;
+        bottom: .5rem;
+        left: 2.45rem;
+        gap: .25rem;
+        font-size: .43rem;
+        letter-spacing: .07em;
+    }
+
+    .lookbook-number {
+        bottom: .5rem;
+        left: .5rem;
+        font-size: .72rem;
+    }
+
+    .lookbook-outro {
+        margin-top: 2.75rem;
+        padding: 1rem 0 0;
+    }
+
+    .lookbook-outro-top {
+        gap: .5rem;
+        font-size: .42rem;
+        letter-spacing: .07em;
+    }
+
+    .lookbook-built {
+        margin: 1.5rem 0;
+        font-size: clamp(2.8rem, 12vw, 4.5rem);
+        line-height: .9;
+    }
+
+    .lookbook-outro-bottom {
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .lookbook-outro-bottom p {
+        max-width: 8rem;
+        font-size: .62rem;
+    }
+
+    .lookbook-shop-link {
+        gap: .35rem;
+        padding: .75rem .6rem;
+        font-size: .46rem;
+        letter-spacing: .06em;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 360px) {
+    .lookbook-shell { width: calc(100% - 1.5rem); }
+    .lookbook-collage { gap: .55rem; }
+    .lookbook-frame figcaption { font-size: .38rem; }
+    .lookbook-outro-top { font-size: .37rem; }
+    .lookbook-shop-link { font-size: .4rem; padding-inline: .45rem; }
+}
