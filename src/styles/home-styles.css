@@ -459,10 +459,6 @@
 
 /* Laptop and compact desktop hero corrections */
 @media (min-width: 769px) {
-  .hero-logo {
-    display: none;
-  }
-
   .hero-title {
     font-size: clamp(6rem, 12.5vw, 10rem);
   }
