@@ -38,7 +38,11 @@ const authLimiter = rateLimit({
 const safeParseJSON = (str, defaultValue = null) => {
     if (!str || str === 'null' || str === 'undefined') return defaultValue;
     if (typeof str === 'object') return str;
-    try { return JSON.parse(str); } catch (e) { return defaultValue; }
+    try {
+        return JSON.parse(str);
+    } catch (e) {
+        return defaultValue;
+    }
 };
 
 const EMAIL_ENABLED = process.env.EMAIL_TEST_MODE !== 'true' && isEmailConfigured();
@@ -46,7 +50,12 @@ const EMAIL_TEST_MODE = process.env.EMAIL_TEST_MODE === 'true';
 
 async function sendOrderEmailSafely(order, type = 'confirmation', status = null) {
     if (EMAIL_TEST_MODE) {
-        console.log('[EMAIL TEST MODE] Would send email:', { to: order.customer_email || order.customerEmail, type, status, orderId: order.id });
+        console.log('[EMAIL TEST MODE] Would send email:', {
+            to: order.customer_email || order.customerEmail,
+            type,
+            status,
+            orderId: order.id
+        });
         return { success: true, testMode: true };
     }
     if (!EMAIL_ENABLED) return { success: false, reason: 'email_not_configured' };
@@ -62,38 +71,46 @@ async function sendOrderEmailSafely(order, type = 'confirmation', status = null)
 
 export default function (productService, inventoryService) {
     // Admin login
-    router.post('/login', authLimiter, validateAdminLogin, asyncHandler(async (req, res) => {
-        const { password } = req.body;
-        const adminPassword = process.env.ADMIN_PASSWORD;
+    router.post(
+        '/login',
+        authLimiter,
+        validateAdminLogin,
+        asyncHandler(async (req, res) => {
+            const { password } = req.body;
+            const adminPassword = process.env.ADMIN_PASSWORD;
 
-        if (!adminPassword) {
-            console.error('[AUTH] ADMIN_PASSWORD environment variable is not set');
-            throw new APIError('Server configuration error', 500, 'CONFIG_ERROR');
-        }
+            if (!adminPassword) {
+                console.error('[AUTH] ADMIN_PASSWORD environment variable is not set');
+                throw new APIError('Server configuration error', 500, 'CONFIG_ERROR');
+            }
 
-        // Use constant-time comparison on hashes to prevent timing attacks and handle different lengths safely
-        const passwordHash = crypto.createHash('sha256').update(password).digest();
-        const adminHash = crypto.createHash('sha256').update(adminPassword).digest();
+            // Use constant-time comparison on hashes to prevent timing attacks and handle different lengths safely
+            const passwordHash = crypto.createHash('sha256').update(password).digest();
+            const adminHash = crypto.createHash('sha256').update(adminPassword).digest();
 
-        if (!crypto.timingSafeEqual(passwordHash, adminHash)) {
-            // Add a small random delay to further mitigate timing attacks
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
-            throw new APIError('Invalid credentials', 401, 'AUTH_ERROR');
-        }
+            if (!crypto.timingSafeEqual(passwordHash, adminHash)) {
+                // Add a small random delay to further mitigate timing attacks
+                await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+                throw new APIError('Invalid credentials', 401, 'AUTH_ERROR');
+            }
 
-        const token = crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date();
-        expiresAt.setHours(expiresAt.getHours() + 24);
+            const token = crypto.randomBytes(32).toString('hex');
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + 24);
 
-        if (USE_POSTGRES) {
-            await query('INSERT INTO admin_sessions (session_key, expires_at) VALUES ($1, $2)', [token, expiresAt]);
-        } else {
-            await query('INSERT INTO admin_sessions (session_key, expires_at) VALUES (?, ?)', [token, expiresAt.toISOString()]);
-        }
+            if (USE_POSTGRES) {
+                await query('INSERT INTO admin_sessions (session_key, expires_at) VALUES ($1, $2)', [token, expiresAt]);
+            } else {
+                await query('INSERT INTO admin_sessions (session_key, expires_at) VALUES (?, ?)', [
+                    token,
+                    expiresAt.toISOString()
+                ]);
+            }
 
-        setAdminSessionCookie(res, token);
-        res.json({ success: true });
-    }));
+            setAdminSessionCookie(res, token);
+            res.json({ success: true });
+        })
+    );
 
     // Session state
     router.get('/session', verifyAdminSession, (req, res) => {
@@ -101,310 +118,496 @@ export default function (productService, inventoryService) {
     });
 
     // Logout
-    router.post('/logout', verifyAdminSession, asyncHandler(async (req, res) => {
-        if (USE_POSTGRES) {
-            await query('DELETE FROM admin_sessions WHERE session_key = $1', [req.adminSessionKey]);
-        } else {
-            await query('DELETE FROM admin_sessions WHERE session_key = ?', [req.adminSessionKey]);
-        }
-        clearAdminSessionCookie(res);
-        res.json({ success: true });
-    }));
+    router.post(
+        '/logout',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            if (USE_POSTGRES) {
+                await query('DELETE FROM admin_sessions WHERE session_key = $1', [req.adminSessionKey]);
+            } else {
+                await query('DELETE FROM admin_sessions WHERE session_key = ?', [req.adminSessionKey]);
+            }
+            clearAdminSessionCookie(res);
+            res.json({ success: true });
+        })
+    );
 
     // Orders
-    router.get('/orders', verifyAdminSession, asyncHandler(async (req, res) => {
-        const result = await query('SELECT * FROM orders ORDER BY created_at DESC');
-        const orders = result.rows.map(o => ({
-            ...o,
-            shippingAddress: safeParseJSON(o.shipping_address, {}),
-            items: safeParseJSON(o.items, [])
-        }));
-        res.json({ success: true, orders });
-    }));
+    router.get(
+        '/orders',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const result = await query('SELECT * FROM orders ORDER BY created_at DESC');
+            const orders = result.rows.map(o => ({
+                ...o,
+                shippingAddress: safeParseJSON(o.shipping_address, {}),
+                items: safeParseJSON(o.items, [])
+            }));
+            res.json({ success: true, orders });
+        })
+    );
 
-    router.post('/orders/:id/status', verifyAdminSession, validateUpdateOrderStatus, asyncHandler(async (req, res) => {
-        const { status } = req.body;
-        const { id } = req.params;
+    router.post(
+        '/orders/:id/status',
+        verifyAdminSession,
+        validateUpdateOrderStatus,
+        asyncHandler(async (req, res) => {
+            const { status } = req.body;
+            const { id } = req.params;
 
-        const orderResult = await query('SELECT * FROM orders WHERE id = $1', [id]);
-        if (orderResult.rows.length === 0) throw new APIError('Order not found', 404);
-        const order = orderResult.rows[0];
-        const oldStatus = order.order_status;
+            const orderResult = await query('SELECT * FROM orders WHERE id = $1', [id]);
+            if (orderResult.rows.length === 0) throw new APIError('Order not found', 404);
+            const order = orderResult.rows[0];
+            const oldStatus = order.order_status;
 
-        await query('UPDATE orders SET order_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, id]);
-        await logAudit('UPDATE_STATUS', 'order', id, { status: oldStatus }, { status }, req);
+            await query('UPDATE orders SET order_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [
+                status,
+                id
+            ]);
+            await logAudit('UPDATE_STATUS', 'order', id, { status: oldStatus }, { status }, req);
 
-        let emailSent = false;
-        if (oldStatus !== status) {
-            const orderData = {
-                ...order,
-                shipping_address: safeParseJSON(order.shipping_address, {}),
-                items: safeParseJSON(order.items, [])
-            };
-            const emailResult = await sendOrderEmailSafely(orderData, 'status_update', status);
-            emailSent = emailResult.success;
-        }
+            let emailSent = false;
+            if (oldStatus !== status) {
+                const orderData = {
+                    ...order,
+                    shipping_address: safeParseJSON(order.shipping_address, {}),
+                    items: safeParseJSON(order.items, [])
+                };
+                const emailResult = await sendOrderEmailSafely(orderData, 'status_update', status);
+                emailSent = emailResult.success;
+            }
 
-        res.json({ success: true, emailSent });
-    }));
+            res.json({ success: true, emailSent });
+        })
+    );
 
     // Order Notes
-    router.get('/orders/:id/notes', verifyAdminSession, asyncHandler(async (req, res) => {
-        const result = await query('SELECT * FROM order_notes WHERE order_id = $1 ORDER BY created_at DESC', [req.params.id]);
-        res.json({ success: true, notes: result.rows });
-    }));
+    router.get(
+        '/orders/:id/notes',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const result = await query('SELECT * FROM order_notes WHERE order_id = $1 ORDER BY created_at DESC', [
+                req.params.id
+            ]);
+            res.json({ success: true, notes: result.rows });
+        })
+    );
 
-    router.post('/orders/:id/notes', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        const { note, isInternal = true } = req.body;
-        if (!note?.trim()) throw new APIError('Note is required', 400);
+    router.post(
+        '/orders/:id/notes',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { id } = req.params;
+            const { note, isInternal = true } = req.body;
+            if (!note?.trim()) throw new APIError('Note is required', 400);
 
-        await query('INSERT INTO order_notes (order_id, note, is_internal) VALUES ($1, $2, $3)', [id, note, isInternal]);
-        await logAudit('ADD_NOTE', 'order', id, null, { note }, req);
-        res.json({ success: true, message: 'Note added' });
-    }));
+            await query('INSERT INTO order_notes (order_id, note, is_internal) VALUES ($1, $2, $3)', [
+                id,
+                note,
+                isInternal
+            ]);
+            await logAudit('ADD_NOTE', 'order', id, null, { note }, req);
+            res.json({ success: true, message: 'Note added' });
+        })
+    );
 
     // Stats & Analytics
-    router.get('/stats', verifyAdminSession, asyncHandler(async (req, res) => {
-        let totalOrders, pendingOrders, totalRevenue, recentOrdersResult;
-        if (USE_POSTGRES) {
-            totalOrders = await query('SELECT COUNT(*) FROM orders');
-            pendingOrders = await query("SELECT COUNT(*) FROM orders WHERE order_status = 'pending'");
-            totalRevenue = await query("SELECT COALESCE(SUM(total), 0) FROM orders WHERE payment_status = 'paid'");
-            recentOrdersResult = await query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 5');
-        } else {
-            totalOrders = { rows: [{ count: (await query('SELECT COUNT(*) as count FROM orders')).rows[0].count }] };
-            pendingOrders = { rows: [{ count: (await query("SELECT COUNT(*) as count FROM orders WHERE order_status = 'pending'")).rows[0].count }] };
-            totalRevenue = { rows: [{ coalesce: (await query("SELECT SUM(total) as revenue FROM orders WHERE payment_status = 'paid'")).rows[0].revenue || 0 }] };
-            recentOrdersResult = await query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 5');
-        }
-        res.json({
-            success: true,
-            stats: {
-                totalOrders: parseInt(totalOrders.rows[0].count || 0),
-                pendingOrders: parseInt(pendingOrders.rows[0].count || 0),
-                totalRevenue: parseInt(totalRevenue.rows[0].coalesce || totalRevenue.rows[0].revenue || 0),
-                recentOrders: recentOrdersResult.rows
+    router.get(
+        '/stats',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            let totalOrders, pendingOrders, totalRevenue, recentOrdersResult;
+            if (USE_POSTGRES) {
+                totalOrders = await query('SELECT COUNT(*) FROM orders');
+                pendingOrders = await query("SELECT COUNT(*) FROM orders WHERE order_status = 'pending'");
+                totalRevenue = await query("SELECT COALESCE(SUM(total), 0) FROM orders WHERE payment_status = 'paid'");
+                recentOrdersResult = await query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 5');
+            } else {
+                totalOrders = {
+                    rows: [{ count: (await query('SELECT COUNT(*) as count FROM orders')).rows[0].count }]
+                };
+                pendingOrders = {
+                    rows: [
+                        {
+                            count: (await query("SELECT COUNT(*) as count FROM orders WHERE order_status = 'pending'"))
+                                .rows[0].count
+                        }
+                    ]
+                };
+                totalRevenue = {
+                    rows: [
+                        {
+                            coalesce:
+                                (await query("SELECT SUM(total) as revenue FROM orders WHERE payment_status = 'paid'"))
+                                    .rows[0].revenue || 0
+                        }
+                    ]
+                };
+                recentOrdersResult = await query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 5');
             }
-        });
-    }));
+            res.json({
+                success: true,
+                stats: {
+                    totalOrders: parseInt(totalOrders.rows[0].count || 0),
+                    pendingOrders: parseInt(pendingOrders.rows[0].count || 0),
+                    totalRevenue: parseInt(totalRevenue.rows[0].coalesce || totalRevenue.rows[0].revenue || 0),
+                    recentOrders: recentOrdersResult.rows
+                }
+            });
+        })
+    );
 
-    router.get('/analytics/sales', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { period = '30d' } = req.query;
-        const days = parseInt(period) || 30;
-        const dateFormat = USE_POSTGRES ? 'DATE(created_at)' : 'date(created_at)';
-        const interval = USE_POSTGRES ? `NOW() - INTERVAL '${days} days'` : `datetime('now', '-${days} days')`;
+    router.get(
+        '/analytics/sales',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { period = '30d' } = req.query;
+            const days = parseInt(period) || 30;
+            const dateFormat = USE_POSTGRES ? 'DATE(created_at)' : 'date(created_at)';
+            const interval = USE_POSTGRES ? `NOW() - INTERVAL '${days} days'` : `datetime('now', '-${days} days')`;
 
-        const result = await query(`
+            const result = await query(`
             SELECT ${dateFormat} as date, COUNT(*) as orders, COALESCE(SUM(total), 0) as revenue
             FROM orders WHERE payment_status = 'paid' AND created_at > ${interval}
             GROUP BY ${dateFormat} ORDER BY date DESC
         `);
-        res.json({ success: true, data: result.rows });
-    }));
+            res.json({ success: true, data: result.rows });
+        })
+    );
 
-    router.get('/analytics/top-products', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { limit = 10 } = req.query;
-        let orders;
-        const interval = USE_POSTGRES ? 'NOW() - INTERVAL \'30 days\'' : 'datetime(\'now\', \'-30 days\')';
-        orders = (await query(`SELECT items FROM orders WHERE payment_status = 'paid' AND created_at > ${interval}`)).rows;
+    router.get(
+        '/analytics/top-products',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { limit = 10 } = req.query;
+            let orders;
+            const interval = USE_POSTGRES ? "NOW() - INTERVAL '30 days'" : "datetime('now', '-30 days')";
+            orders = (
+                await query(`SELECT items FROM orders WHERE payment_status = 'paid' AND created_at > ${interval}`)
+            ).rows;
 
-        const productSales = {};
-        orders.forEach(order => {
-            const items = safeParseJSON(order.items, []);
-            items.forEach(item => {
-                if (!productSales[item.id]) productSales[item.id] = { ...item, totalQty: 0, totalRevenue: 0 };
-                productSales[item.id].totalQty += item.quantity;
-                productSales[item.id].totalRevenue += item.price * item.quantity;
+            const productSales = {};
+            orders.forEach(order => {
+                const items = safeParseJSON(order.items, []);
+                items.forEach(item => {
+                    if (!productSales[item.id]) productSales[item.id] = { ...item, totalQty: 0, totalRevenue: 0 };
+                    productSales[item.id].totalQty += item.quantity;
+                    productSales[item.id].totalRevenue += item.price * item.quantity;
+                });
             });
-        });
-        const topProducts = Object.values(productSales).sort((a, b) => b.totalQty - a.totalQty).slice(0, parseInt(limit));
-        res.json({ success: true, products: topProducts });
-    }));
+            const topProducts = Object.values(productSales)
+                .sort((a, b) => b.totalQty - a.totalQty)
+                .slice(0, parseInt(limit));
+            res.json({ success: true, products: topProducts });
+        })
+    );
 
-    router.get('/analytics/customers', verifyAdminSession, asyncHandler(async (req, res) => {
-        const interval = USE_POSTGRES ? 'NOW() - INTERVAL \'30 days\'' : 'datetime(\'now\', \'-30 days\')';
-        const interval7 = USE_POSTGRES ? 'NOW() - INTERVAL \'7 days\'' : 'datetime(\'now\', \'-7 days\')';
+    router.get(
+        '/analytics/customers',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const interval = USE_POSTGRES ? "NOW() - INTERVAL '30 days'" : "datetime('now', '-30 days')";
+            const interval7 = USE_POSTGRES ? "NOW() - INTERVAL '7 days'" : "datetime('now', '-7 days')";
 
-        const result = await query(`
+            const result = await query(`
             SELECT
                 COUNT(DISTINCT customer_email) as total_customers,
                 COUNT(DISTINCT CASE WHEN created_at > ${interval} THEN customer_email END) as new_customers,
                 COUNT(DISTINCT CASE WHEN created_at > ${interval7} THEN customer_email END) as recent_customers
             FROM orders
         `);
-        res.json({ success: true, stats: result.rows[0] });
-    }));
+            res.json({ success: true, stats: result.rows[0] });
+        })
+    );
 
     // Product Management
-    router.get('/products', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { category, search, limit, offset } = req.query;
-        const products = await productService.getAll({ category, search, limit, offset });
-        res.json({ success: true, products });
-    }));
+    router.get(
+        '/products',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { category, search, limit, offset } = req.query;
+            const products = await productService.getAll({ category, search, limit, offset });
+            res.json({ success: true, products });
+        })
+    );
 
-    router.get('/products/stats', verifyAdminSession, asyncHandler(async (req, res) => {
-        const stats = await productService.getStats();
-        res.json({ success: true, stats });
-    }));
+    router.get(
+        '/products/stats',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const stats = await productService.getStats();
+            res.json({ success: true, stats });
+        })
+    );
 
-    router.get('/products/:id', verifyAdminSession, asyncHandler(async (req, res) => {
-        const product = await productService.getById(req.params.id);
-        if (!product) throw new APIError('Product not found', 404);
-        res.json({ success: true, product });
-    }));
+    router.get(
+        '/products/:id',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const product = await productService.getById(req.params.id);
+            if (!product) throw new APIError('Product not found', 404);
+            res.json({ success: true, product });
+        })
+    );
 
-    router.get('/products/:id/images', verifyAdminSession, asyncHandler(async (req, res) => {
-        const result = await query('SELECT id, name, images FROM products WHERE id = $1', [req.params.id]);
-        if (result.rows.length === 0) throw new APIError('Product not found', 404);
-        const p = result.rows[0];
-        res.json({ success: true, product: { id: p.id, name: p.name, rawImages: p.images, parsedImages: safeParseJSON(p.images, []) } });
-    }));
+    router.get(
+        '/products/:id/images',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const result = await query('SELECT id, name, images FROM products WHERE id = $1', [req.params.id]);
+            if (result.rows.length === 0) throw new APIError('Product not found', 404);
+            const p = result.rows[0];
+            res.json({
+                success: true,
+                product: { id: p.id, name: p.name, rawImages: p.images, parsedImages: safeParseJSON(p.images, []) }
+            });
+        })
+    );
 
+    router.post(
+        '/products',
+        verifyAdminSession,
+        upload.array('images', 5),
+        asyncHandler(async (req, res) => {
+            const product = await productService.create(req.body, req.files);
+            cacheService.del('products_all');
+            res.status(201).json({ success: true, product });
+        })
+    );
 
-    router.post('/products', verifyAdminSession, upload.array('images', 5), asyncHandler(async (req, res) => {
-        const product = await productService.create(req.body, req.files);
-        cacheService.del('products_all');
-        res.status(201).json({ success: true, product });
-    }));
+    router.put(
+        '/products/:id',
+        verifyAdminSession,
+        upload.array('images', 5),
+        asyncHandler(async (req, res) => {
+            const product = await productService.update(req.params.id, req.body, req.files);
+            cacheService.del('products_all');
+            cacheService.del(`product_${req.params.id}`);
+            if (product.slug) cacheService.del(`product_${product.slug}`);
+            res.json({ success: true, product });
+        })
+    );
 
-    router.put('/products/:id', verifyAdminSession, upload.array('images', 5), asyncHandler(async (req, res) => {
-        const product = await productService.update(req.params.id, req.body, req.files);
-        cacheService.del('products_all');
-        cacheService.del(`product_${req.params.id}`);
-        if (product.slug) cacheService.del(`product_${product.slug}`);
-        res.json({ success: true, product });
-    }));
-
-    router.delete('/products/:id', verifyAdminSession, asyncHandler(async (req, res) => {
-        const result = await productService.delete(req.params.id);
-        cacheService.del('products_all');
-        cacheService.del(`product_${req.params.id}`);
-        res.json({ success: true, ...result });
-    }));
+    router.delete(
+        '/products/:id',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const result = await productService.delete(req.params.id);
+            cacheService.del('products_all');
+            cacheService.del(`product_${req.params.id}`);
+            res.json({ success: true, ...result });
+        })
+    );
 
     // Inventory
-    router.get('/inventory/low-stock', verifyAdminSession, asyncHandler(async (req, res) => {
-        const threshold = parseInt(req.query.threshold) || 5;
-        const lowStock = await inventoryService.getLowStock(threshold);
-        res.json({ success: true, lowStock, threshold });
-    }));
+    router.get(
+        '/inventory/low-stock',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const threshold = parseInt(req.query.threshold) || 5;
+            const lowStock = await inventoryService.getLowStock(threshold);
+            res.json({ success: true, lowStock, threshold });
+        })
+    );
 
-    router.post('/inventory/release/:orderId', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { orderId } = req.params;
-        await inventoryService.cancelReservation(orderId);
-        res.json({ success: true, message: 'Reservation released' });
-    }));
+    router.post(
+        '/inventory/release/:orderId',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { orderId } = req.params;
+            await inventoryService.cancelReservation(orderId);
+            res.json({ success: true, message: 'Reservation released' });
+        })
+    );
 
-    router.get('/inventory/movements', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { productId, limit = 50, offset = 0 } = req.query;
-        let sql = 'SELECT * FROM inventory_movements';
-        const params = [];
-        if (productId) { sql += ' WHERE product_id = $1'; params.push(productId); }
-        sql += ` ORDER BY created_at DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
-        params.push(parseInt(limit), parseInt(offset));
-        const result = await query(sql, params);
-        res.json({ success: true, movements: result.rows });
-    }));
+    router.get(
+        '/inventory/movements',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { productId, limit = 50, offset = 0 } = req.query;
+            let sql = 'SELECT * FROM inventory_movements';
+            const params = [];
+            if (productId) {
+                sql += ' WHERE product_id = $1';
+                params.push(productId);
+            }
+            sql += ` ORDER BY created_at DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
+            params.push(parseInt(limit), parseInt(offset));
+            const result = await query(sql, params);
+            res.json({ success: true, movements: result.rows });
+        })
+    );
 
     // Settings
-    router.get('/settings', verifyAdminSession, asyncHandler(async (req, res) => {
-        const result = await query('SELECT * FROM settings');
-        const settings = {};
-        result.rows.forEach(row => { settings[row.key] = row.value; });
-        res.json({ success: true, settings });
-    }));
-
-    router.post('/settings', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { settings } = req.body || {};
-        if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
-            throw new APIError('Settings must be an object.', 400, 'VALIDATION_ERROR');
-        }
-        let settingsToSave = settings;
-        if (campaignKeys.some(key => Object.hasOwn(settings, key))) {
+    router.get(
+        '/settings',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
             const result = await query('SELECT * FROM settings');
-            const existing = Object.fromEntries(result.rows.map(row => [row.key, row.value]));
-            try {
-                settingsToSave = { ...settings, ...validateAnnouncementSettings({ ...existing, ...settings }) };
-            } catch (error) {
-                throw new APIError(error.message, 400, 'VALIDATION_ERROR');
+            const settings = {};
+            result.rows.forEach(row => {
+                settings[row.key] = row.value;
+            });
+            res.json({ success: true, settings });
+        })
+    );
+
+    router.post(
+        '/settings',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { settings } = req.body || {};
+            if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+                throw new APIError('Settings must be an object.', 400, 'VALIDATION_ERROR');
             }
-        }
-        for (const [key, value] of Object.entries(settingsToSave)) {
-            if (USE_POSTGRES) {
-                await query('INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP', [key, value]);
-            } else {
-                await query("INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))", [key, value]);
+            let settingsToSave = settings;
+            if (campaignKeys.some(key => Object.hasOwn(settings, key))) {
+                const result = await query('SELECT * FROM settings');
+                const existing = Object.fromEntries(result.rows.map(row => [row.key, row.value]));
+                try {
+                    settingsToSave = { ...settings, ...validateAnnouncementSettings({ ...existing, ...settings }) };
+                } catch (error) {
+                    throw new APIError(error.message, 400, 'VALIDATION_ERROR');
+                }
             }
-        }
-        res.json({ success: true, message: 'Settings updated' });
-    }));
+            for (const [key, value] of Object.entries(settingsToSave)) {
+                if (USE_POSTGRES) {
+                    await query(
+                        'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP',
+                        [key, value]
+                    );
+                } else {
+                    await query(
+                        "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))",
+                        [key, value]
+                    );
+                }
+            }
+            res.json({ success: true, message: 'Settings updated' });
+        })
+    );
 
     // Coupons
-    router.get('/coupons', verifyAdminSession, asyncHandler(async (req, res) => {
-        const result = await query('SELECT * FROM coupons ORDER BY created_at DESC');
-        const coupons = result.rows.map(c => ({
-            ...c,
-            applicable_categories: safeParseJSON(c.applicable_categories, []),
-            applicable_products: safeParseJSON(c.applicable_products, [])
-        }));
-        res.json({ success: true, coupons });
-    }));
+    router.get(
+        '/coupons',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const result = await query('SELECT * FROM coupons ORDER BY created_at DESC');
+            const coupons = result.rows.map(c => ({
+                ...c,
+                applicable_categories: safeParseJSON(c.applicable_categories, []),
+                applicable_products: safeParseJSON(c.applicable_products, [])
+            }));
+            res.json({ success: true, coupons });
+        })
+    );
 
-    router.post('/coupons', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { code, type, value, min_order_amount, max_discount_amount, usage_limit, per_customer_limit, start_date, end_date, applicable_categories, applicable_products } = req.body;
-        const id = `cpn-${Date.now()}`;
-        const isActive = USE_POSTGRES ? true : 1;
-        await query(`
+    router.post(
+        '/coupons',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const {
+                code,
+                type,
+                value,
+                min_order_amount,
+                max_discount_amount,
+                usage_limit,
+                per_customer_limit,
+                start_date,
+                end_date,
+                applicable_categories,
+                applicable_products
+            } = req.body;
+            const id = `cpn-${Date.now()}`;
+            const isActive = USE_POSTGRES ? true : 1;
+            await query(
+                `
             INSERT INTO coupons (id, code, type, value, min_order_amount, max_discount_amount, usage_limit, per_customer_limit, start_date, end_date, applicable_categories, applicable_products, is_active)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-        `, [id, code.toUpperCase(), type, value, min_order_amount || 0, max_discount_amount || null, usage_limit || null, per_customer_limit || 1, start_date || null, end_date || null, JSON.stringify(applicable_categories || []), JSON.stringify(applicable_products || []), isActive]);
-        await logAudit('CREATE_COUPON', 'coupon', id, null, { code, type, value }, req);
-        res.json({ success: true, coupon: { id, code: code.toUpperCase() } });
-    }));
+        `,
+                [
+                    id,
+                    code.toUpperCase(),
+                    type,
+                    value,
+                    min_order_amount || 0,
+                    max_discount_amount || null,
+                    usage_limit || null,
+                    per_customer_limit || 1,
+                    start_date || null,
+                    end_date || null,
+                    JSON.stringify(applicable_categories || []),
+                    JSON.stringify(applicable_products || []),
+                    isActive
+                ]
+            );
+            await logAudit('CREATE_COUPON', 'coupon', id, null, { code, type, value }, req);
+            res.json({ success: true, coupon: { id, code: code.toUpperCase() } });
+        })
+    );
 
-    router.delete('/coupons/:id', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        if (USE_POSTGRES) {
-            await query('DELETE FROM coupons WHERE id = $1', [id]);
-        } else {
-            await query('DELETE FROM coupons WHERE id = ?', [id]);
-        }
-        await logAudit('DELETE_COUPON', 'coupon', id, null, null, req);
-        res.json({ success: true, message: 'Coupon deleted' });
-    }));
+    router.delete(
+        '/coupons/:id',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { id } = req.params;
+            if (USE_POSTGRES) {
+                await query('DELETE FROM coupons WHERE id = $1', [id]);
+            } else {
+                await query('DELETE FROM coupons WHERE id = ?', [id]);
+            }
+            await logAudit('DELETE_COUPON', 'coupon', id, null, null, req);
+            res.json({ success: true, message: 'Coupon deleted' });
+        })
+    );
 
     // Reviews
-    router.get('/reviews', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { status, productId } = req.query;
-        let sql = 'SELECT r.*, p.name as product_name FROM reviews r JOIN products p ON r.product_id = p.id WHERE 1=1';
-        const params = [];
-        if (status) { sql += ` AND r.status = ${USE_POSTGRES ? '$1' : '?'}`; params.push(status); }
-        if (productId) { sql += ` AND r.product_id = ${USE_POSTGRES ? `$${params.length + 1}` : '?'}`; params.push(productId); }
-        sql += ' ORDER BY r.created_at DESC';
-        const result = await query(sql, params);
-        res.json({ success: true, reviews: result.rows.map(r => ({ ...r, photos: safeParseJSON(r.photos, []) })) });
-    }));
+    router.get(
+        '/reviews',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { status, productId } = req.query;
+            let sql =
+                'SELECT r.*, p.name as product_name FROM reviews r JOIN products p ON r.product_id = p.id WHERE 1=1';
+            const params = [];
+            if (status) {
+                sql += ` AND r.status = ${USE_POSTGRES ? '$1' : '?'}`;
+                params.push(status);
+            }
+            if (productId) {
+                sql += ` AND r.product_id = ${USE_POSTGRES ? `$${params.length + 1}` : '?'}`;
+                params.push(productId);
+            }
+            sql += ' ORDER BY r.created_at DESC';
+            const result = await query(sql, params);
+            res.json({ success: true, reviews: result.rows.map(r => ({ ...r, photos: safeParseJSON(r.photos, []) })) });
+        })
+    );
 
-    router.put('/reviews/:id/status', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        const { status } = req.body;
+    router.put(
+        '/reviews/:id/status',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { id } = req.params;
+            const { status } = req.body;
 
-        // Get the review to find the product_id
-        const reviewResult = await query('SELECT product_id FROM reviews WHERE id = $1', [id]);
-        if (reviewResult.rows.length === 0) {
-            throw new APIError('Review not found', 404, 'NOT_FOUND');
-        }
-        const productId = reviewResult.rows[0].product_id;
+            // Get the review to find the product_id
+            const reviewResult = await query('SELECT product_id FROM reviews WHERE id = $1', [id]);
+            if (reviewResult.rows.length === 0) {
+                throw new APIError('Review not found', 404, 'NOT_FOUND');
+            }
+            const productId = reviewResult.rows[0].product_id;
 
-        // Update review status
-        await query('UPDATE reviews SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, id]);
+            // Update review status
+            await query('UPDATE reviews SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, id]);
 
-        // Recalculate product rating
-        await recalculateProductRating(productId);
+            // Recalculate product rating
+            await recalculateProductRating(productId);
 
-        res.json({ success: true, message: `Review ${status}` });
-    }));
+            res.json({ success: true, message: `Review ${status}` });
+        })
+    );
 
     // Helper function to recalculate product rating
     async function recalculateProductRating(productId) {
@@ -412,22 +615,28 @@ export default function (productService, inventoryService) {
         const productResult = await query('SELECT slug FROM products WHERE id = $1', [productId]);
         const slug = productResult.rows[0]?.slug;
 
-        const statsResult = await query(`
+        const statsResult = await query(
+            `
             SELECT 
                 COALESCE(AVG(rating), 0) as average_rating,
                 COUNT(*) as review_count
             FROM reviews 
             WHERE (product_id = $1 OR product_id = $2) AND status = 'approved'
-        `, [productId, slug || '']);
+        `,
+            [productId, slug || '']
+        );
 
         const averageRating = parseFloat(statsResult.rows[0].average_rating) || 0;
         const reviewCount = parseInt(statsResult.rows[0].review_count) || 0;
 
-        await query(`
+        await query(
+            `
             UPDATE products 
             SET average_rating = $1, review_count = $2 
             WHERE id = $3
-        `, [averageRating, reviewCount, productId]);
+        `,
+            [averageRating, reviewCount, productId]
+        );
 
         // Clear cache
         cacheService.del('products_all');
@@ -435,158 +644,301 @@ export default function (productService, inventoryService) {
         if (slug) cacheService.del(`product_${slug}`);
     }
     // Bulk recalculate all product ratings (useful for fixing existing data)
-    router.post('/reviews/recalculate-all', verifyAdminSession, asyncHandler(async (req, res) => {
-        const productsResult = await query('SELECT id FROM products');
-        let updated = 0;
+    router.post(
+        '/reviews/recalculate-all',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const productsResult = await query('SELECT id FROM products');
+            let updated = 0;
 
-        for (const product of productsResult.rows) {
-            await recalculateProductRating(product.id);
-            updated++;
-        }
+            for (const product of productsResult.rows) {
+                await recalculateProductRating(product.id);
+                updated++;
+            }
 
-        res.json({ success: true, message: `Recalculated ratings for ${updated} products` });
-    }));
+            res.json({ success: true, message: `Recalculated ratings for ${updated} products` });
+        })
+    );
 
-    router.put('/reviews/:id/verified', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        const { verified } = req.body;
+    router.put(
+        '/reviews/:id/verified',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { id } = req.params;
+            const { verified } = req.body;
 
-        await query('UPDATE reviews SET verified_purchase = $1 WHERE id = $2', [verified, id]);
-        res.json({ success: true, message: `Review marked as ${verified ? 'verified' : 'unverified'}` });
-    }));
+            await query('UPDATE reviews SET verified_purchase = $1 WHERE id = $2', [verified, id]);
+            res.json({ success: true, message: `Review marked as ${verified ? 'verified' : 'unverified'}` });
+        })
+    );
+
+    router.delete(
+        '/reviews/:id',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { id } = req.params;
+
+            // Capture the product_id before deleting so ratings can be recalculated.
+            const reviewResult = await query('SELECT product_id FROM reviews WHERE id = $1', [id]);
+            if (reviewResult.rows.length === 0) {
+                throw new APIError('Review not found', 404, 'NOT_FOUND');
+            }
+            const productId = reviewResult.rows[0].product_id;
+
+            await query('DELETE FROM reviews WHERE id = $1', [id]);
+
+            await recalculateProductRating(productId);
+
+            res.json({ success: true, message: 'Review deleted' });
+        })
+    );
 
     // Waitlist
-    router.get('/products/:id/waitlist', verifyAdminSession, asyncHandler(async (req, res) => {
-        const result = await query('SELECT * FROM waitlist WHERE product_id = $1 ORDER BY created_at DESC', [req.params.id]);
-        res.json({ success: true, waitlist: result.rows });
-    }));
+    router.get(
+        '/products/:id/waitlist',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const result = await query('SELECT * FROM waitlist WHERE product_id = $1 ORDER BY created_at DESC', [
+                req.params.id
+            ]);
+            res.json({ success: true, waitlist: result.rows });
+        })
+    );
 
-    router.post('/products/:id/notify-waitlist', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        const waitlist = (await query('SELECT * FROM waitlist WHERE product_id = $1 AND status = \'waiting\'', [id])).rows;
-        await query('UPDATE waitlist SET status = \'notified\', notified_at = CURRENT_TIMESTAMP WHERE product_id = $1 AND status = \'waiting\'', [id]);
-        res.json({ success: true, notified: waitlist.length });
-    }));
+    router.post(
+        '/products/:id/notify-waitlist',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { id } = req.params;
+            const waitlist = (await query("SELECT * FROM waitlist WHERE product_id = $1 AND status = 'waiting'", [id]))
+                .rows;
+            await query(
+                "UPDATE waitlist SET status = 'notified', notified_at = CURRENT_TIMESTAMP WHERE product_id = $1 AND status = 'waiting'",
+                [id]
+            );
+            res.json({ success: true, notified: waitlist.length });
+        })
+    );
 
     // Customers
-    router.get('/customers', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { search, limit = 50, offset = 0 } = req.query;
-        let sql = 'SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value, MAX(created_at) as last_order_date FROM orders';
-        const params = [];
-        if (search) { sql += ' WHERE customer_email ILIKE $1 OR customer_name ILIKE $1'; params.push(`%${search}%`); }
-        sql += ` GROUP BY customer_email, customer_name, customer_phone ORDER BY last_order_date DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
-        params.push(parseInt(limit), parseInt(offset));
-        const result = await query(sql, params);
-        res.json({ success: true, customers: result.rows });
-    }));
+    router.get(
+        '/customers',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { search, limit = 50, offset = 0 } = req.query;
+            let sql =
+                'SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value, MAX(created_at) as last_order_date FROM orders';
+            const params = [];
+            if (search) {
+                sql += ' WHERE customer_email ILIKE $1 OR customer_name ILIKE $1';
+                params.push(`%${search}%`);
+            }
+            sql += ` GROUP BY customer_email, customer_name, customer_phone ORDER BY last_order_date DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
+            params.push(parseInt(limit), parseInt(offset));
+            const result = await query(sql, params);
+            res.json({ success: true, customers: result.rows });
+        })
+    );
 
-    router.get('/customers/:email', verifyAdminSession, asyncHandler(async (req, res) => {
-        const email = decodeURIComponent(req.params.email);
-        const customer = (await query('SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value FROM orders WHERE customer_email = $1 GROUP BY customer_email, customer_name, customer_phone', [email])).rows[0];
-        const orders = (await query('SELECT * FROM orders WHERE customer_email = $1 ORDER BY created_at DESC', [email])).rows;
-        if (!customer) throw new APIError('Customer not found', 404);
-        res.json({ success: true, customer, orders });
-    }));
+    router.get(
+        '/customers/:email',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const email = decodeURIComponent(req.params.email);
+            const customer = (
+                await query(
+                    'SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value FROM orders WHERE customer_email = $1 GROUP BY customer_email, customer_name, customer_phone',
+                    [email]
+                )
+            ).rows[0];
+            const orders = (
+                await query('SELECT * FROM orders WHERE customer_email = $1 ORDER BY created_at DESC', [email])
+            ).rows;
+            if (!customer) throw new APIError('Customer not found', 404);
+            res.json({ success: true, customer, orders });
+        })
+    );
 
     // Exports
-    router.get('/export/orders', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { startDate, endDate } = req.query;
-        let sql = 'SELECT * FROM orders WHERE 1=1';
-        const params = [];
-        if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
-        if (endDate) { sql += ` AND created_at <= $${params.length + 1}`; params.push(endDate); }
-        const result = await query(sql, params);
-        // Simplified CSV generation
-        const csv = `Order ID,Customer,Total,Status,Date\n${result.rows.map(o => `${o.id},${o.customer_name},${o.total},${o.order_status},${o.created_at}`).join('\n')}`;
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename=orders.csv');
-        res.send(csv);
-    }));
+    router.get(
+        '/export/orders',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { startDate, endDate } = req.query;
+            let sql = 'SELECT * FROM orders WHERE 1=1';
+            const params = [];
+            if (startDate) {
+                sql += ' AND created_at >= $1';
+                params.push(startDate);
+            }
+            if (endDate) {
+                sql += ` AND created_at <= $${params.length + 1}`;
+                params.push(endDate);
+            }
+            const result = await query(sql, params);
+            // Simplified CSV generation
+            const csv = `Order ID,Customer,Total,Status,Date\n${result.rows.map(o => `${o.id},${o.customer_name},${o.total},${o.order_status},${o.created_at}`).join('\n')}`;
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename=orders.csv');
+            res.send(csv);
+        })
+    );
 
     // Reports
-    router.get('/reports/sales', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { startDate, endDate } = req.query;
-        let sql = 'SELECT COUNT(*) as total_orders, COALESCE(SUM(total), 0) as total_revenue, COALESCE(SUM(subtotal), 0) as total_subtotal, COALESCE(SUM(shipping_cost), 0) as total_shipping, COALESCE(SUM(discount), 0) as total_discount, COALESCE(AVG(total), 0) as average_order_value FROM orders WHERE payment_status = \'paid\'';
-        const params = [];
-        if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
-        if (endDate) { sql += ` AND created_at <= $${params.length + 1}`; params.push(endDate); }
-        const result = await query(sql, params);
-        res.json({ success: true, report: result.rows[0] });
-    }));
+    router.get(
+        '/reports/sales',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { startDate, endDate } = req.query;
+            let sql =
+                "SELECT COUNT(*) as total_orders, COALESCE(SUM(total), 0) as total_revenue, COALESCE(SUM(subtotal), 0) as total_subtotal, COALESCE(SUM(shipping_cost), 0) as total_shipping, COALESCE(SUM(discount), 0) as total_discount, COALESCE(AVG(total), 0) as average_order_value FROM orders WHERE payment_status = 'paid'";
+            const params = [];
+            if (startDate) {
+                sql += ' AND created_at >= $1';
+                params.push(startDate);
+            }
+            if (endDate) {
+                sql += ` AND created_at <= $${params.length + 1}`;
+                params.push(endDate);
+            }
+            const result = await query(sql, params);
+            res.json({ success: true, report: result.rows[0] });
+        })
+    );
 
-    router.get('/reports/sales-daily', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { startDate, endDate } = req.query;
-        const dateFormat = USE_POSTGRES ? 'DATE(created_at)' : 'date(created_at)';
-        let sql = `SELECT ${dateFormat} as date, COUNT(*) as orders, COALESCE(SUM(total), 0) as revenue FROM orders WHERE payment_status = 'paid'`;
-        const params = [];
-        if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
-        if (endDate) { sql += ` AND created_at <= $${params.length + 1}`; params.push(endDate); }
-        sql += ` GROUP BY ${dateFormat} ORDER BY date`;
-        const result = await query(sql, params);
-        res.json({ success: true, daily: result.rows });
-    }));
+    router.get(
+        '/reports/sales-daily',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { startDate, endDate } = req.query;
+            const dateFormat = USE_POSTGRES ? 'DATE(created_at)' : 'date(created_at)';
+            let sql = `SELECT ${dateFormat} as date, COUNT(*) as orders, COALESCE(SUM(total), 0) as revenue FROM orders WHERE payment_status = 'paid'`;
+            const params = [];
+            if (startDate) {
+                sql += ' AND created_at >= $1';
+                params.push(startDate);
+            }
+            if (endDate) {
+                sql += ` AND created_at <= $${params.length + 1}`;
+                params.push(endDate);
+            }
+            sql += ` GROUP BY ${dateFormat} ORDER BY date`;
+            const result = await query(sql, params);
+            res.json({ success: true, daily: result.rows });
+        })
+    );
 
-    router.get('/reports/top-products', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { startDate, endDate, limit = 10 } = req.query;
-        // Using a similar logic to analytics/top-products but with date filtering
-        let sql = 'SELECT items FROM orders WHERE payment_status = \'paid\'';
-        const params = [];
-        if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
-        if (endDate) { sql += ` AND created_at <= $${params.length + 1}`; params.push(endDate); }
-        const orders = (await query(sql, params)).rows;
-        const productSales = {};
-        orders.forEach(order => {
-            const items = safeParseJSON(order.items, []);
-            items.forEach(item => {
-                if (!productSales[item.id]) productSales[item.id] = { id: item.id, name: item.name, order_count: 0, units_sold: 0, revenue: 0 };
-                productSales[item.id].order_count++;
-                productSales[item.id].units_sold += item.quantity;
-                productSales[item.id].revenue += item.price * item.quantity;
+    router.get(
+        '/reports/top-products',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { startDate, endDate, limit = 10 } = req.query;
+            // Using a similar logic to analytics/top-products but with date filtering
+            let sql = "SELECT items FROM orders WHERE payment_status = 'paid'";
+            const params = [];
+            if (startDate) {
+                sql += ' AND created_at >= $1';
+                params.push(startDate);
+            }
+            if (endDate) {
+                sql += ` AND created_at <= $${params.length + 1}`;
+                params.push(endDate);
+            }
+            const orders = (await query(sql, params)).rows;
+            const productSales = {};
+            orders.forEach(order => {
+                const items = safeParseJSON(order.items, []);
+                items.forEach(item => {
+                    if (!productSales[item.id])
+                        productSales[item.id] = {
+                            id: item.id,
+                            name: item.name,
+                            order_count: 0,
+                            units_sold: 0,
+                            revenue: 0
+                        };
+                    productSales[item.id].order_count++;
+                    productSales[item.id].units_sold += item.quantity;
+                    productSales[item.id].revenue += item.price * item.quantity;
+                });
             });
-        });
-        const products = Object.values(productSales).sort((a, b) => b.revenue - a.revenue).slice(0, parseInt(limit));
-        res.json({ success: true, products });
-    }));
+            const products = Object.values(productSales)
+                .sort((a, b) => b.revenue - a.revenue)
+                .slice(0, parseInt(limit));
+            res.json({ success: true, products });
+        })
+    );
 
-    router.get('/reports/sales-by-category', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { startDate, endDate } = req.query;
-        // This is complex due to JSON items, using simplified logic similar to top-products
-        const orders = (await query('SELECT items, total FROM orders WHERE payment_status = \'paid\'')).rows;
-        const catSales = {};
-        // Note: category isn't in items in original DB, needs join usually.
-        // For now returning empty to avoid crash if join is complex.
-        res.json({ success: true, categories: [] });
-    }));
+    router.get(
+        '/reports/sales-by-category',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { startDate, endDate } = req.query;
+            // This is complex due to JSON items, using simplified logic similar to top-products
+            const orders = (await query("SELECT items, total FROM orders WHERE payment_status = 'paid'")).rows;
+            const catSales = {};
+            // Note: category isn't in items in original DB, needs join usually.
+            // For now returning empty to avoid crash if join is complex.
+            res.json({ success: true, categories: [] });
+        })
+    );
 
-    router.get('/reports/export', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { startDate, endDate, type = 'orders' } = req.query;
-        let sql = 'SELECT * FROM orders WHERE 1=1';
-        const params = [];
-        if (startDate) { sql += ' AND created_at >= $1'; params.push(startDate); }
-        if (endDate) { sql += ` AND created_at <= $${params.length + 1}`; params.push(endDate); }
-        const result = await query(sql, params);
-        res.json({ success: true, data: result.rows });
-    }));
+    router.get(
+        '/reports/export',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { startDate, endDate, type = 'orders' } = req.query;
+            let sql = 'SELECT * FROM orders WHERE 1=1';
+            const params = [];
+            if (startDate) {
+                sql += ' AND created_at >= $1';
+                params.push(startDate);
+            }
+            if (endDate) {
+                sql += ` AND created_at <= $${params.length + 1}`;
+                params.push(endDate);
+            }
+            const result = await query(sql, params);
+            res.json({ success: true, data: result.rows });
+        })
+    );
 
     // Audit Logs
-    router.get('/audit-logs', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { entityType, entityId, action, limit = 50, offset = 0 } = req.query;
-        let sql = 'SELECT * FROM audit_logs WHERE 1=1';
-        const params = [];
-        if (entityType) { sql += ` AND entity_type = $${params.length + 1}`; params.push(entityType); }
-        if (entityId) { sql += ` AND entity_id = $${params.length + 1}`; params.push(entityId); }
-        if (action) { sql += ` AND action = $${params.length + 1}`; params.push(action); }
-        sql += ` ORDER BY created_at DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
-        params.push(parseInt(limit), parseInt(offset));
-        const result = await query(sql, params);
-        res.json({ success: true, logs: result.rows });
-    }));
+    router.get(
+        '/audit-logs',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { entityType, entityId, action, limit = 50, offset = 0 } = req.query;
+            let sql = 'SELECT * FROM audit_logs WHERE 1=1';
+            const params = [];
+            if (entityType) {
+                sql += ` AND entity_type = $${params.length + 1}`;
+                params.push(entityType);
+            }
+            if (entityId) {
+                sql += ` AND entity_id = $${params.length + 1}`;
+                params.push(entityId);
+            }
+            if (action) {
+                sql += ` AND action = $${params.length + 1}`;
+                params.push(action);
+            }
+            sql += ` ORDER BY created_at DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
+            params.push(parseInt(limit), parseInt(offset));
+            const result = await query(sql, params);
+            res.json({ success: true, logs: result.rows });
+        })
+    );
 
     // Email Operations
-    router.post('/email/test-config', verifyAdminSession, asyncHandler(async (req, res) => {
-        const result = await testEmailConfig();
-        res.json(result);
-    }));
+    router.post(
+        '/email/test-config',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const result = await testEmailConfig();
+            res.json(result);
+        })
+    );
 
     router.get('/email/preview/:status', verifyAdminSession, (req, res) => {
         const { status } = req.params;
@@ -594,37 +946,53 @@ export default function (productService, inventoryService) {
         res.json({ success: true, status, ...result });
     });
 
-    router.post('/email/send-test', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { email, status } = req.body;
-        await sendTestEmail(email, status);
-        res.json({ success: true, message: 'Test email sent' });
-    }));
+    router.post(
+        '/email/send-test',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { email, status } = req.body;
+            await sendTestEmail(email, status);
+            res.json({ success: true, message: 'Test email sent' });
+        })
+    );
 
     router.get('/email/queue-stats', verifyAdminSession, (req, res) => {
         res.json({ success: true, stats: getEmailQueueStats() });
     });
 
     // Inventory Updates
-    router.get('/inventory/:productId', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { color, size } = req.query;
-        const stock = await inventoryService.getStock(req.params.productId, color, size);
-        res.json({ success: true, stock });
-    }));
+    router.get(
+        '/inventory/:productId',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { color, size } = req.query;
+            const stock = await inventoryService.getStock(req.params.productId, color, size);
+            res.json({ success: true, stock });
+        })
+    );
 
-    router.post('/inventory/:productId', verifyAdminSession, asyncHandler(async (req, res) => {
-        const { color, size, quantity } = req.body;
-        const result = await inventoryService.updateStock(req.params.productId, color, size, quantity);
-        res.json({ success: true, ...result });
-    }));
+    router.post(
+        '/inventory/:productId',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const { color, size, quantity } = req.body;
+            const result = await inventoryService.updateStock(req.params.productId, color, size, quantity);
+            res.json({ success: true, ...result });
+        })
+    );
 
     // Reports Extension
-    router.get('/export/products', verifyAdminSession, asyncHandler(async (req, res) => {
-        const result = await query('SELECT * FROM products ORDER BY name');
-        const csv = `ID,Name,Price,Inventory\n${result.rows.map(p => `${p.id},"${p.name}",${p.price},"${p.inventory}"`).join('\n')}`;
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename=products.csv');
-        res.send(csv);
-    }));
+    router.get(
+        '/export/products',
+        verifyAdminSession,
+        asyncHandler(async (req, res) => {
+            const result = await query('SELECT * FROM products ORDER BY name');
+            const csv = `ID,Name,Price,Inventory\n${result.rows.map(p => `${p.id},"${p.name}",${p.price},"${p.inventory}"`).join('\n')}`;
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename=products.csv');
+            res.send(csv);
+        })
+    );
 
     return router;
 }
