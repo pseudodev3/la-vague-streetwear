@@ -1025,3 +1025,8 @@
         font-size: .78rem;
     }
 }
+
+/* Keep the floating wordmark anchored to the new left-aligned hero composition. */
+@media (min-width: 481px) {
+    .hero-logo { left: 0; transform: none; }
+}
