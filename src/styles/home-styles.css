@@ -739,3 +739,315 @@
         transform: translateY(-3px);
     }
 }
+
+
+/* LA VAGUE LOOKBOOK — underground editorial campaign */
+.lookbook {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: clamp(4.5rem, 9vw, 9rem) 0 clamp(4rem, 8vw, 8rem);
+    color: #f2f0eb;
+    background:
+        radial-gradient(ellipse at 78% 18%, rgba(104, 26, 24, 0.14), transparent 34%),
+        linear-gradient(145deg, #090909 0%, #111 48%, #080808 100%);
+}
+.lookbook::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
+    content: "";
+    opacity: .17;
+    pointer-events: none;
+}
+.lookbook-shell {
+    width: min(1440px, calc(100% - 2 * clamp(1.1rem, 5vw, 5rem)));
+    margin-inline: auto;
+}
+.lookbook-masthead { position: relative; margin-bottom: clamp(3rem, 7vw, 6.5rem); }
+.lookbook-edition, .lookbook-outro-top, .lookbook-outro-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.lookbook-kicker, .lookbook-edition-line, .lookbook-title-index,
+.lookbook-frame figcaption, .lookbook-side-meta, .lookbook-outro-top,
+.lookbook-shop-link {
+    font-family: var(--font-body, sans-serif);
+    font-size: .64rem;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+.lookbook-kicker { color: rgba(242,240,235,.64); white-space: nowrap; }
+.lookbook-edition-line { flex: 1; height: 1px; background: rgba(255,255,255,.2); }
+.lookbook-title-wrap { position: relative; padding-top: clamp(1.25rem, 4vw, 3.5rem); }
+.lookbook-title {
+    margin: 0;
+    color: #f4f1eb;
+    font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+    font-size: clamp(5rem, 19.3vw, 18rem);
+    font-stretch: condensed;
+    font-weight: 900;
+    letter-spacing: -.075em;
+    line-height: .72;
+    text-align: center;
+    white-space: nowrap;
+    transform: scaleX(.86);
+    transform-origin: center;
+}
+.lookbook-handwriting {
+    position: absolute;
+    top: 47%;
+    left: 50%;
+    z-index: 2;
+    color: #d83b30;
+    font-family: "Brush Script MT", "Segoe Script", cursive;
+    font-size: clamp(1.55rem, 5.4vw, 5rem);
+    font-style: italic;
+    font-weight: 700;
+    letter-spacing: -.06em;
+    white-space: nowrap;
+    transform: translate(-50%, -50%) rotate(-8deg);
+    text-shadow: 1px 2px 0 #090909;
+    pointer-events: none;
+}
+.lookbook-title-index { position: absolute; right: 3%; bottom: -1.4rem; color: #d83b30; transform: rotate(-7deg); }
+.lookbook-intro {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    margin-top: clamp(2.2rem, 5vw, 4.5rem);
+    padding-inline: 3%;
+}
+.lookbook-intro p {
+    margin: 0;
+    font-family: var(--font-heading, sans-serif);
+    font-size: clamp(1.25rem, 2.5vw, 2.15rem);
+    font-weight: 800;
+    letter-spacing: -.06em;
+    line-height: .98;
+    text-transform: uppercase;
+}
+.lookbook-intro p strong { color: #d83b30; }
+.lookbook-intro > span { color: rgba(242,240,235,.5); font-size: .66rem; letter-spacing: .13em; text-transform: uppercase; }
+.lookbook-collage {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: repeat(19, minmax(36px, 4.7vw));
+    align-items: stretch;
+    gap: clamp(.5rem, 1.15vw, 1.1rem);
+    padding: 0 1.5%;
+}
+.lookbook-frame {
+    position: relative;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    background: #191919;
+    box-shadow: 0 18px 55px rgba(0,0,0,.38);
+    isolation: isolate;
+}
+.lookbook-frame::after {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border: 1px solid rgba(255,255,255,.13);
+    content: "";
+    pointer-events: none;
+}
+.lookbook-frame img {
+    --lookbook-parallax-y: 0px;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(.78) contrast(1.06);
+    transform: translateY(var(--lookbook-parallax-y)) scale(1.02);
+    transition: transform 800ms cubic-bezier(.2,.7,.15,1), filter 500ms ease;
+    will-change: transform;
+}
+.lookbook-frame:hover img { filter: saturate(1.02) contrast(1.08); transform: scale(1.065) !important; }
+.lookbook-frame figcaption {
+    position: absolute;
+    right: .85rem;
+    bottom: .8rem;
+    left: .85rem;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    color: rgba(255,255,255,.9);
+    font-size: .54rem;
+    text-shadow: 0 1px 8px rgba(0,0,0,.85);
+}
+.lookbook-frame--hero { grid-column: 1 / 8; grid-row: 1 / 9; transform: rotate(-1.15deg); }
+.lookbook-frame--two { grid-column: 9 / 13; grid-row: 2 / 7; transform: rotate(2.1deg); }
+.lookbook-frame--three { grid-column: 2 / 6; grid-row: 10 / 15; transform: rotate(1.7deg); }
+.lookbook-frame--four { grid-column: 7 / 13; grid-row: 9 / 15; transform: rotate(-1.4deg); }
+.lookbook-frame--five { grid-column: 1 / 6; grid-row: 16 / 20; transform: rotate(-1.8deg); }
+.lookbook-frame--six { grid-column: 7 / 10; grid-row: 16 / 20; transform: rotate(2deg); }
+.lookbook-frame--seven { grid-column: 10 / 13; grid-row: 16 / 20; transform: rotate(-1deg); }
+.lookbook-frame-stamp {
+    position: absolute;
+    top: 1.2rem;
+    left: 1.2rem;
+    z-index: 2;
+    display: grid;
+    width: 3.3rem;
+    aspect-ratio: 1;
+    place-content: center;
+    border: 1px solid rgba(255,255,255,.8);
+    border-radius: 50%;
+    color: #fff;
+    font-family: var(--font-heading, sans-serif);
+    font-size: .85rem;
+    font-weight: 900;
+    line-height: .85;
+    text-align: center;
+    transform: rotate(-13deg);
+}
+.lookbook-note { position: relative; z-index: 3; color: #d83b30; }
+.lookbook-note--one { grid-column: 8 / 10; grid-row: 7 / 9; align-self: center; transform: rotate(-9deg); }
+.lookbook-note-mark { display: block; font-size: 2rem; line-height: .8; }
+.lookbook-annotation {
+    padding: .3rem 0;
+    border: 0;
+    border-bottom: 1px dashed currentColor;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+    font-family: "Brush Script MT", "Segoe Script", cursive;
+    font-size: clamp(1.05rem, 2vw, 1.65rem);
+    font-style: italic;
+    line-height: .95;
+    text-align: left;
+    transition: color 180ms ease, transform 180ms ease;
+}
+.lookbook-annotation span { display: inline-block; transition: transform 180ms ease; }
+.lookbook-annotation:hover span, .lookbook-annotation[aria-expanded="true"] span { transform: translate(3px,-3px); }
+.lookbook-annotation[aria-expanded="true"] { color: #fff; }
+.lookbook-annotation::after {
+    display: block;
+    max-width: 12rem;
+    margin-top: .45rem;
+    color: #eee;
+    content: "A uniform for moving your own way.";
+    font: 500 .58rem/1.4 var(--font-body, sans-serif);
+    letter-spacing: .04em;
+    opacity: 0;
+    transition: opacity 180ms ease;
+}
+.lookbook-annotation[aria-expanded="true"]::after { opacity: 1; }
+.lookbook-side-copy {
+    grid-column: 6 / 8;
+    grid-row: 11 / 14;
+    align-self: center;
+    padding-left: 1rem;
+    transform: rotate(-5deg);
+}
+.lookbook-side-rule { display: block; width: 2.4rem; height: 3px; margin-bottom: 1rem; background: #d83b30; }
+.lookbook-side-copy p {
+    margin: 0 0 1rem;
+    color: #f1eee8;
+    font-family: var(--font-heading, sans-serif);
+    font-size: clamp(1.15rem, 2.4vw, 2.3rem);
+    font-weight: 900;
+    letter-spacing: -.08em;
+    line-height: .86;
+}
+.lookbook-side-copy em { color: #d83b30; font-style: normal; }
+.lookbook-side-meta { color: rgba(255,255,255,.48); font-size: .5rem; }
+.lookbook-note--two { grid-column: 5 / 8; grid-row: 15 / 17; align-self: center; justify-self: center; transform: rotate(-8deg); }
+.lookbook-handwritten-small { font-family: "Brush Script MT", "Segoe Script", cursive; font-size: clamp(1.3rem, 3vw, 2.7rem); font-style: italic; line-height: .8; }
+.lookbook-note-arrow { position: absolute; right: -1.5rem; bottom: -.6rem; font-size: 1.8rem; }
+.lookbook-collage-scribble {
+    grid-column: 9 / 13;
+    grid-row: 15 / 17;
+    align-self: center;
+    justify-self: center;
+    color: rgba(216,59,48,.9);
+    font-family: "Brush Script MT", "Segoe Script", cursive;
+    font-size: clamp(1.8rem, 4vw, 3.5rem);
+    font-style: italic;
+    font-weight: 800;
+    line-height: .72;
+    transform: rotate(-12deg);
+}
+.lookbook-outro { margin-top: clamp(4rem, 8vw, 7rem); padding: 1.25rem 3% 0; border-top: 1px solid rgba(255,255,255,.2); }
+.lookbook-outro-top { color: rgba(255,255,255,.52); font-size: .58rem; }
+.lookbook-built {
+    margin: clamp(1.4rem, 3vw, 2.5rem) 0;
+    color: #f2f0eb;
+    font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+    font-size: clamp(3.5rem, 12vw, 10.5rem);
+    font-weight: 900;
+    letter-spacing: -.055em;
+    line-height: .78;
+    text-align: center;
+}
+.lookbook-built span { color: #d83b30; }
+.lookbook-outro-bottom p { margin: 0; color: rgba(255,255,255,.58); font-size: .76rem; line-height: 1.5; }
+.lookbook-shop-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.1rem;
+    padding: .95rem 1.15rem;
+    border: 1px solid rgba(255,255,255,.6);
+    color: #f4f1eb;
+    text-decoration: none;
+    transition: color 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+.lookbook-shop-link:hover { border-color: #d83b30; color: #fff; background: #d83b30; }
+.lookbook-shop-link span { font-size: 1rem; }
+@media (max-width: 900px) {
+    .lookbook-collage { grid-template-rows: repeat(19, minmax(32px, 5.4vw)); }
+    .lookbook-frame--hero { grid-column: 1 / 8; }
+    .lookbook-frame--two { grid-column: 9 / 13; }
+    .lookbook-frame--three { grid-column: 1 / 6; }
+    .lookbook-frame--four { grid-column: 7 / 13; }
+    .lookbook-side-copy { grid-column: 6 / 8; }
+}
+@media (max-width: 600px) {
+    .lookbook { padding-block: 4.5rem; }
+    .lookbook-shell { width: calc(100% - 2rem); }
+    .lookbook-edition { gap: .55rem; }
+    .lookbook-kicker { font-size: .48rem; letter-spacing: .1em; }
+    .lookbook-title { font-size: clamp(4.15rem, 19vw, 7.5rem); transform: scaleX(.91); }
+    .lookbook-handwriting { top: 48%; font-size: clamp(1.5rem, 7vw, 2.7rem); }
+    .lookbook-intro { padding-inline: 0; margin-top: 2.5rem; }
+    .lookbook-intro p { font-size: 1.35rem; }
+    .lookbook-intro > span { max-width: 8rem; font-size: .52rem; text-align: right; }
+    .lookbook-collage {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-rows: repeat(25, minmax(22px, 4.1vw));
+        gap: .55rem;
+        padding: 0;
+    }
+    .lookbook-frame--hero { grid-column: 1 / 6; grid-row: 1 / 8; }
+    .lookbook-frame--two { grid-column: 4 / 7; grid-row: 8 / 13; }
+    .lookbook-frame--three { grid-column: 1 / 4; grid-row: 9 / 14; }
+    .lookbook-frame--four { grid-column: 2 / 7; grid-row: 15 / 20; }
+    .lookbook-frame--five { grid-column: 1 / 4; grid-row: 21 / 26; }
+    .lookbook-frame--six { grid-column: 4 / 7; grid-row: 21 / 24; }
+    .lookbook-frame--seven { grid-column: 4 / 7; grid-row: 24 / 27; }
+    .lookbook-note--one { grid-column: 1 / 4; grid-row: 7 / 9; justify-self: center; }
+    .lookbook-side-copy { grid-column: 1 / 3; grid-row: 15 / 17; padding-left: .2rem; }
+    .lookbook-side-copy p { font-size: 1.15rem; }
+    .lookbook-note--two { grid-column: 1 / 4; grid-row: 19 / 21; }
+    .lookbook-collage-scribble { grid-column: 4 / 7; grid-row: 19 / 21; font-size: 1.8rem; }
+    .lookbook-frame figcaption { right: .5rem; bottom: .5rem; left: .5rem; font-size: .42rem; letter-spacing: .1em; }
+    .lookbook-frame-stamp { top: .6rem; left: .6rem; width: 2.4rem; font-size: .65rem; }
+    .lookbook-outro { margin-top: 3.5rem; padding-inline: 0; }
+    .lookbook-outro-top { font-size: .45rem; }
+    .lookbook-built { font-size: clamp(3.2rem, 14vw, 5.8rem); }
+    .lookbook-outro-bottom { align-items: flex-start; }
+    .lookbook-outro-bottom p { font-size: .65rem; }
+    .lookbook-shop-link { gap: .5rem; padding: .8rem .65rem; font-size: .5rem; letter-spacing: .1em; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .lookbook-frame img, .lookbook-annotation, .lookbook-shop-link { transition: none; }
+}
