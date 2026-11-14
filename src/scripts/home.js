@@ -500,6 +500,11 @@ function bindEvents() {
     // Lightbox
     elements.lookbookItems.forEach((item, index) => {
         item.addEventListener('click', () => openLightbox(index));
+        item.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            openLightbox(index);
+        });
     });
     
     elements.lightboxClose?.addEventListener('click', closeLightbox);
