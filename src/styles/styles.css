@@ -488,7 +488,7 @@ button {
 .marquee-content {
     display: flex;
     width: max-content;
-    animation: marquee 36s linear infinite;
+    animation: marquee var(--marquee-duration, 24s) linear infinite;
     will-change: transform;
 }
 
@@ -514,7 +514,7 @@ button {
 
 @keyframes marquee {
     from { transform: translate3d(0, 0, 0); }
-    to { transform: translate3d(-50%, 0, 0); }
+    to { transform: translate3d(calc(-1 * var(--marquee-distance, 50%)), 0, 0); }
 }
 
 /* ============================================
