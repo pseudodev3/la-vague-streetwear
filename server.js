@@ -11,11 +11,7 @@ import { db, query, USE_POSTGRES } from './src/config/db.js';
 import { initDatabase } from './src/services/dbInit.js';
 import { globalErrorHandler, notFoundHandler } from './src/middleware/errorHandler.js';
 import { csrfToken } from './src/middleware/csrf.js';
-import {
-    initSentry,
-    sentryRequestHandler,
-    sentryTracingHandler
-} from './src/config/sentry.js';
+import { initSentry, sentryRequestHandler, sentryTracingHandler } from './src/config/sentry.js';
 import logger from './src/utils/logger.js';
 
 import productRoutes from './src/routes/products.js';
@@ -120,31 +116,15 @@ if (process.env.NODE_ENV === 'production') {
 
 const allowedOrigins =
     process.env.NODE_ENV === 'production'
-        ? [
-              process.env.FRONTEND_URL,
-              'https://la-vague.store',
-              'https://www.la-vague.store',
-              /https:\/\/.+\.netlify\.app$/
-          ].filter(Boolean)
-        : [
-              'http://localhost:3000',
-              'http://localhost:5173',
-              'http://127.0.0.1:3000',
-              'http://127.0.0.1:5173'
-          ];
+        ? [process.env.FRONTEND_URL, 'https://la-vague.store', 'https://www.la-vague.store'].filter(Boolean)
+        : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
 
 app.use(
     cors({
         origin: allowedOrigins,
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: [
-            'Content-Type',
-            'Authorization',
-            'sentry-trace',
-            'baggage',
-            'X-CSRF-Token'
-        ]
+        allowedHeaders: ['Content-Type', 'Authorization', 'sentry-trace', 'baggage', 'X-CSRF-Token']
     })
 );
 
@@ -170,9 +150,7 @@ const apiLimiter = rateLimit({
     // Infrastructure probes must never be blocked by the customer-facing API budget.
     // Render treats non-2xx/3xx health responses as failures and can restart an
     // otherwise healthy instance after sustained failed checks.
-    skip: req =>
-        req.originalUrl === '/api/health' ||
-        req.originalUrl === '/api/ready',
+    skip: req => req.originalUrl === '/api/health' || req.originalUrl === '/api/ready',
     message: { success: false, error: 'Too many requests.', code: 'RATE_LIMIT' }
 });
 app.use('/api/', apiLimiter);
@@ -241,9 +219,7 @@ app.get('/api/sitemap.xml', async (req, res, next) => {
         const xml = [
             '<?xml version="1.0" encoding="UTF-8"?>',
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-            ...urls.map(path =>
-                `  <url><loc>${escapeXml(`${baseUrl}${path}`)}</loc><lastmod>${today}</lastmod></url>`
-            ),
+            ...urls.map(path => `  <url><loc>${escapeXml(`${baseUrl}${path}`)}</loc><lastmod>${today}</lastmod></url>`),
             '</urlset>'
         ].join('\n');
 

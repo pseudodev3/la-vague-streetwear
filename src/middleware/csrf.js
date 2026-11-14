@@ -28,7 +28,12 @@ function isTrustedOrigin(origin) {
         'http://127.0.0.1:5173'
     ].filter(Boolean);
 
-    return trustedOrigins.includes(origin) || /^https:\/\/[a-z0-9-]+\.netlify\.app$/i.test(origin);
+    // Explicit allowlist only. A wildcard `*.netlify.app` regex was previously
+    // accepted here too, but Netlify issues preview subdomains to any account,
+    // so it granted trust to origins an attacker controlled. Preview deploys
+    // that need the cookie-less fallback should set FRONTEND_URL to their own
+    // preview URL instead.
+    return trustedOrigins.includes(origin);
 }
 
 export function generateCSRFToken() {
@@ -41,10 +46,7 @@ function tokensMatch(cookieToken, requestToken) {
 
     const cookieBuffer = Buffer.from(cookieToken, 'hex');
     const requestBuffer = Buffer.from(requestToken, 'hex');
-    return (
-        cookieBuffer.length === requestBuffer.length &&
-        crypto.timingSafeEqual(cookieBuffer, requestBuffer)
-    );
+    return cookieBuffer.length === requestBuffer.length && crypto.timingSafeEqual(cookieBuffer, requestBuffer);
 }
 
 export function csrfProtection(req, res, next) {
