@@ -2367,3 +2367,88 @@ body .wishlist-item-image {
     border-radius: 0;
   }
 }
+
+
+/* Footer identity + payment marks */
+body .footer-logo-img {
+  width: 138px;
+  max-width: 138px;
+  height: auto;
+}
+
+body .payment-methods {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .55rem;
+}
+
+body .payment-icon {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .3rem;
+  padding: .35rem .55rem;
+  background: rgba(255,255,255,.96);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 7px;
+  color: #202020;
+  font-size: .68rem;
+  font-weight: 750;
+  letter-spacing: .015em;
+  line-height: 1;
+}
+
+body .payment-icon img {
+  display: block;
+  width: auto;
+  max-width: 62px;
+  height: 18px;
+  object-fit: contain;
+  outline: 0;
+}
+
+body .payment-opay img {
+  max-width: 66px;
+  height: 20px;
+}
+
+body .payment-palmpay {
+  color: #5b21b6;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: -.035em;
+}
+
+body .palmpay-mark {
+  width: 13px;
+  height: 13px;
+  display: inline-block;
+  border: 3px solid #7c3aed;
+  border-radius: 4px 8px 4px 8px;
+  transform: rotate(-12deg);
+}
+
+body .payment-verve {
+  color: #164b9b;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -.06em;
+}
+
+body .payment-channel {
+  color: #303030;
+  font-size: .58rem;
+  letter-spacing: .04em;
+}
+
+@media (max-width: 640px) {
+  body .footer-logo-img {
+    width: 128px;
+    max-width: 128px;
+  }
+
+  body .payment-methods {
+    gap: .45rem;
+  }
+}
