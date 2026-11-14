@@ -101,7 +101,7 @@ window.Components = {
                         <img src="https://gstatic.opayweb.com/website-ng/img/opay-logo.684aa98.svg" alt="OPay" loading="lazy">
                     </span>
                     <span class="payment-icon payment-palmpay" aria-label="PalmPay">
-                        <span class="palmpay-mark" aria-hidden="true"></span><span>PalmPay</span>
+                        <span>PalmPay</span>
                     </span>
                     <span class="payment-icon payment-visa" aria-label="Visa">
                         <img src="https://cdn.simpleicons.org/visa/1A1F71" alt="Visa" loading="lazy">
