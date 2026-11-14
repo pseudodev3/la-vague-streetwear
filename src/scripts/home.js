@@ -8,13 +8,13 @@ const { escapeHTML: homeEscapeHTML, safeURL: homeSafeURL, safeClassToken: homeSa
 const state = {
     currentLook: 0,
     lookbookImages: [
-        { src: '/assets/urbannights.jpg', title: 'Urban Nights', number: '01' },
+        { src: '/assets/hey2.jpg', title: 'Look 01', number: '01' },
         { src: '/assets/daylight.jpg', title: 'Daylight', number: '02' },
         { src: '/assets/skatepark.jpg', title: 'Skate Park', number: '03' },
         { src: '/assets/downtown.jpg', title: 'Downtown', number: '04' },
         { src: '/assets/afterhours.jpg', title: 'After Hours', number: '05' },
-        { src: '/assets/hoodie2.jpg', title: 'Streetwear Layering', number: '06' },
-        { src: '/assets/hoodie3.jpg', title: 'Everyday Essentials', number: '07' }
+        { src: '/assets/hey.jpg', title: 'Look 06', number: '06' },
+        { src: '/assets/urbannights.jpg', title: 'Urban Nights', number: '07' }
     ]
 };
 
