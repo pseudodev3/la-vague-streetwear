@@ -1182,12 +1182,12 @@ body .footer-bottom {
   gap: 1.25rem 2rem;
 }
 
-body .payment-methods {
+body .footer-bottom .payment-methods {
   flex-wrap: wrap;
   gap: .55rem;
 }
 
-body .payment-icon {
+body .footer-bottom .payment-icon {
   border-radius: 7px;
   border-color: var(--lv-border);
   white-space: nowrap;
@@ -1255,7 +1255,7 @@ body .payment-icon {
     max-width: 34ch;
   }
 
-  body .payment-methods {
+  body .footer-bottom .payment-methods {
     justify-content: flex-start;
   }
 }
@@ -2376,14 +2376,21 @@ body .footer-logo-img {
   height: auto;
 }
 
-body .payment-methods {
+body .footer-bottom .payment-methods {
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: .55rem;
+  min-width: 0;
 }
 
-body .payment-icon {
+body .footer-bottom .payment-icon {
+  width: auto;
+  min-width: 0;
+  height: 34px;
   min-height: 34px;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2397,9 +2404,11 @@ body .payment-icon {
   font-weight: 750;
   letter-spacing: .015em;
   line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
-body .payment-icon img {
+body .footer-bottom .payment-icon img {
   display: block;
   width: auto;
   max-width: 62px;
@@ -2408,19 +2417,19 @@ body .payment-icon img {
   outline: 0;
 }
 
-body .payment-opay img {
+body .footer-bottom .payment-opay img {
   max-width: 66px;
   height: 20px;
 }
 
-body .payment-palmpay {
+body .footer-bottom .payment-palmpay {
   color: #5b21b6;
   font-size: .75rem;
   font-weight: 800;
   letter-spacing: -.035em;
 }
 
-body .palmpay-mark {
+body .footer-bottom .palmpay-mark {
   width: 13px;
   height: 13px;
   display: inline-block;
@@ -2429,14 +2438,14 @@ body .palmpay-mark {
   transform: rotate(-12deg);
 }
 
-body .payment-verve {
+body .footer-bottom .payment-verve {
   color: #164b9b;
   font-style: italic;
   font-weight: 900;
   letter-spacing: -.06em;
 }
 
-body .payment-channel {
+body .footer-bottom .payment-channel {
   color: #303030;
   font-size: .58rem;
   letter-spacing: .04em;
@@ -2448,7 +2457,8 @@ body .payment-channel {
     max-width: 128px;
   }
 
-  body .payment-methods {
+  body .footer-bottom .payment-methods {
+    justify-content: flex-start;
     gap: .45rem;
   }
 }
