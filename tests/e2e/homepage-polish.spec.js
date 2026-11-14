@@ -31,7 +31,10 @@ test.describe('Homepage visual polish', () => {
 
     const groups = page.locator('.marquee-group');
     await expect(groups).toHaveCount(2);
-    await expect(groups.nth(0)).toHaveText(await groups.nth(1).innerText());
+    const groupCopy = await groups.evaluateAll(items =>
+      items.map(item => item.textContent.replace(/\\s+/g, ' ').trim())
+    );
+    expect(groupCopy[0]).toBe(groupCopy[1]);
   });
 
   test('does not rewrite unchanged ticker copy during the settings refresh', async ({ page }) => {
