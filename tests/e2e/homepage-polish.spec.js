@@ -64,7 +64,8 @@ test.describe('Homepage visual polish', () => {
     await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-start', '1');
     await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-end', '4');
 
-    await expect(page.locator('.lookbook-item')).toHaveCount(7);\n    await expect(page.locator('.lookbook-info h3')).toHaveCount(0);
+    await expect(page.locator('.lookbook-item')).toHaveCount(7);
+    await expect(page.locator('.lookbook-info h3')).toHaveCount(0);
     await expect(page.locator('#lightboxTitle')).toHaveCount(0);
     await page.locator('.lookbook-item').first().click();
     await expect(page.locator('#lightbox')).toHaveClass(/active/);
