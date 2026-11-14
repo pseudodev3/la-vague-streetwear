@@ -1060,8 +1060,6 @@
     margin: 0 auto clamp(2.5rem, 5vw, 4.5rem);
     text-align: center;
 }
-.lookbook-original-heading .section-tag,
-.lookbook-original-heading .section-title { color: #f2f0eb; }
 .lookbook-frame { overflow: visible; }
 .lookbook-frame img { overflow: hidden; }
 .lookbook-number {
