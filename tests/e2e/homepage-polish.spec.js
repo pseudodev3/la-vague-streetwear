@@ -17,14 +17,13 @@ test.describe('Homepage visual polish', () => {
         })
       }));
 
+      await page.setViewportSize({ width: 1440, height: 1000 });
       await page.goto('/');
       const featured = page.locator('#featuredProducts');
       await expect(featured.locator('.product-card')).toHaveCount(count);
       await expect(featured).toHaveClass(/featured-grid-editorial/);
-      const rowCount = await featured.evaluate(element =>
-        getComputedStyle(element).gridTemplateRows.split(' ').length
-      );
-      expect(rowCount).toBe(count - 1);
+      await expect(featured).toHaveAttribute('data-product-count', String(count));
+      await expect(featured.locator('.product-card').first()).toHaveCSS('grid-column-end', 'span 2');
     });
   }
 
@@ -57,12 +56,12 @@ test.describe('Homepage visual polish', () => {
       })
     }));
 
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/');
     const featured = page.locator('#featuredProducts');
     await expect(featured.locator('.product-card')).toHaveCount(4);
     await expect(featured).toHaveClass(/featured-grid-editorial/);
-    await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-start', '1');
-    await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-end', '4');
+    await expect(featured.locator('.product-card').first()).toHaveCSS('grid-column-end', 'span 2');
 
     await expect(page.locator('.lookbook-item')).toHaveCount(7);
     await expect(page.locator('.lookbook-info h3')).toHaveCount(0);
