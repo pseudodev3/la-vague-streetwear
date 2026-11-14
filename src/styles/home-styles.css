@@ -712,3 +712,43 @@
     .lookbook-item:nth-child(7) { grid-column: 1 / -1; }
     .lookbook-info { padding: 0.75rem; }
 }
+
+
+/* Refined bestseller cards: cleaner hierarchy and more tactile product tiles */
+.featured-grid-editorial .product-card:first-child {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 22px;
+    box-shadow: 0 18px 48px rgba(0,0,0,0.16);
+}
+.featured-grid-editorial .product-card:first-child .product-image-wrapper {
+    overflow: hidden;
+    background: #151515;
+}
+.featured-grid-editorial .product-card:first-child .product-info {
+    padding: 1.2rem 1.35rem 1.4rem;
+}
+.featured-grid-editorial .product-card:not(:first-child) {
+    transition: border-color var(--transition-medium), background var(--transition-medium), transform var(--transition-medium);
+}
+.featured-grid-editorial .product-card:not(:first-child):hover {
+    border-color: rgba(255,255,255,0.24);
+    background: rgba(255,255,255,0.055);
+    transform: translateX(4px);
+}
+.featured-grid-editorial .product-card:not(:first-child) .product-image-wrapper {
+    overflow: hidden;
+    background: #151515;
+}
+.featured-grid-editorial .product-card:not(:first-child) .product-image {
+    transition: transform var(--transition-medium);
+}
+.featured-grid-editorial .product-card:not(:first-child):hover .product-image {
+    transform: scale(1.045);
+}
+@media (max-width: 1024px) {
+    .featured-grid-editorial .product-card:not(:first-child):hover {
+        transform: translateY(-3px);
+    }
+}
