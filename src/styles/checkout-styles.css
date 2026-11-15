@@ -216,9 +216,31 @@
     accent-color: var(--color-text);
 }
 
-.payment-method span {
+/* Two-line method row: bold title + Paystack reassurance sub-line. The
+   wrapper span takes flex: 1 so the icons stay pushed to the right edge. */
+.payment-method-copy {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.payment-method-title {
     font-weight: 600;
+}
+
+.payment-method-sub {
+    font-weight: 400;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+}
+
+.paystack-brand {
+    color: #00c3f7;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
 .payment-icons {

@@ -2354,11 +2354,18 @@ body .wishlist-item-image {
 }
 
 
-/* Footer identity + payment marks */
+/* Footer identity + payment marks. The wordmark PNG's canvas carries
+   transparent margins around the oval (artwork spans 12.5%-87.5% of width,
+   28.6%-71.4% of height), so the mark is pulled left by its own inset to
+   align with the tagline, and the bottom margin compensates the invisible
+   band below the artwork. */
 body .footer-logo-img {
-  width: 138px;
-  max-width: 138px;
+  --footer-logo-w: 110px;
+  width: var(--footer-logo-w);
+  max-width: var(--footer-logo-w);
   height: auto;
+  margin-left: calc(var(--footer-logo-w) * -0.125);
+  margin-bottom: calc(1rem - var(--footer-logo-w) * 0.245);
 }
 
 body .footer-bottom .payment-methods {
@@ -2438,8 +2445,7 @@ body .footer-bottom .payment-channel {
 
 @media (max-width: 640px) {
   body .footer-logo-img {
-    width: 128px;
-    max-width: 128px;
+    --footer-logo-w: 100px;
   }
 
   body .footer-bottom .payment-methods {
