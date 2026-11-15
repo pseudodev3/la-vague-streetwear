@@ -9,7 +9,7 @@ window.Components = {
         nav: `
         <div class="nav-container">
             <a href="/" class="nav-logo" aria-label="LA VAGUE home">
-                <img src="/la-vague-red-wordmark.png" alt="LA VAGUE" class="nav-logo-img" width="42" height="36">
+                <img src="/la-vague-red-wordmark.png" alt="LA VAGUE" class="nav-logo-img" width="48" height="41">
             </a>
             <ul class="nav-links" id="navLinks">
                 <li><a href="/shop" class="nav-link">Shop</a></li>
