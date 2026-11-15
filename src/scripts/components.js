@@ -8,8 +8,8 @@ window.Components = {
     templates: {
         nav: `
         <div class="nav-container">
-            <a href="/" class="nav-logo">
-                <span class="logo-text">LA VAGUE</span>
+            <a href="/" class="nav-logo" aria-label="LA VAGUE home">
+                <img src="/la-vague-red-wordmark.png" alt="LA VAGUE" class="nav-logo-img" width="70" height="60">
             </a>
             <ul class="nav-links" id="navLinks">
                 <li><a href="/shop" class="nav-link">Shop</a></li>

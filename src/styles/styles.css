@@ -78,9 +78,9 @@ html, body {
         padding: 0.75rem 0;
     }
 
-    .nav-logo {
-        font-size: 1.15rem;
-        letter-spacing: 0.1em;
+    .nav-logo-img {
+        width: 60px;
+        height: auto;
     }
 
     .nav-btn {
@@ -94,10 +94,11 @@ html, body {
 }
 
 @media (max-width: 380px) {
-    .nav-logo {
-        font-size: 1rem;
+    .nav-logo-img {
+        width: 54px;
+        height: auto;
     }
-    
+
     .nav-actions {
         gap: 0.15rem;
     }
@@ -187,7 +188,7 @@ button {
     top: 0;
     background: rgba(10, 10, 10, 0.95);
     backdrop-filter: blur(20px);
-    padding: 1rem 0;
+    padding: .5rem 0; /* match body .nav's resting padding - was 1rem, which made the bar grow on scroll */
     border-bottom: 1px solid var(--color-border);
 }
 
@@ -201,15 +202,43 @@ button {
 }
 
 .nav-logo {
-    font-family: var(--font-heading);
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
+    display: inline-flex;
+    align-items: center;
     transition: var(--transition-fast);
 }
 
 .nav-logo:hover {
     opacity: 0.8;
+}
+
+/* The brand mark sits in the nav (the hero no longer repeats it). It does a
+   single eased 360 roll every few seconds - a sticker-spin accent, not a
+   loading spinner - and stays still under reduced motion. Height is auto:
+   the PNG carries wide transparent bands above/below the oval, so a fixed
+   box height would stretch the artwork. */
+.nav-logo-img {
+    display: block;
+    width: 70px;
+    height: auto;
+    outline: none; /* the storefront system frames every img; the nav mark floats free */
+    transform-origin: center;
+    animation: logo-roll 7s linear infinite;
+}
+
+@keyframes logo-roll {
+    0%, 84% {
+        transform: rotate(0deg);
+        animation-timing-function: cubic-bezier(0.55, 0.06, 0.45, 0.94);
+    }
+    96%, 100% {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-logo-img {
+        animation: none;
+    }
 }
 
 .nav-links {
@@ -345,23 +374,6 @@ button {
     z-index: 1;
     text-align: center;
     padding: 2rem;
-}
-
-.hero-logo {
-    margin-bottom: 2rem;
-}
-
-.hero-logo img {
-    height: 100px;
-    width: auto;
-    max-width: 90vw;
-    filter: drop-shadow(0 10px 40px rgba(220, 38, 38, 0.3));
-}
-
-@media (max-width: 768px) {
-    .hero-logo img {
-        height: 70px;
-    }
 }
 
 .hero-title {
@@ -1212,8 +1224,8 @@ button {
 
     .about-stats {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 2rem;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
         margin-top: 2rem;
         padding-top: 2rem;
     }
@@ -1222,8 +1234,15 @@ button {
         font-size: 2rem;
     }
 
+    /* The infinity glyph draws smaller than digits in Oswald; size it up so
+       the third stat reads with the same weight as the first two. */
+    .stat:last-child .stat-number {
+        font-size: 2.6rem;
+    }
+
     .stat-label {
-        font-size: 0.7rem;
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
     }
 
     .newsletter {

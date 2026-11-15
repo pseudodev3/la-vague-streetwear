@@ -132,8 +132,8 @@ body .nav:not(.scrolled) {
 
 body .nav {
   min-height: 68px;
-  padding: .75rem 0;
-  background: rgba(8,8,8,.78);
+  padding: .5rem 0; /* was .75rem - trimmed so the larger brand mark doesn't over-tall the bar */
+  background: rgba(8,8,8,.7); /* was .78 - a touch more transparent; blur keeps content behind readable */
   border-bottom: 1px solid transparent;
   backdrop-filter: blur(18px) saturate(120%);
   -webkit-backdrop-filter: blur(18px) saturate(120%);
@@ -150,11 +150,6 @@ body .nav.scrolled {
 
 body .nav-container {
   gap: 1.5rem;
-}
-
-body .nav-logo,
-body .logo-text {
-  letter-spacing: .12em;
 }
 
 body .nav-link {
@@ -374,11 +369,6 @@ body .hero-gradient {
   background:
     radial-gradient(ellipse at 18% 55%, rgba(227,38,46,.06), transparent 38%),
     radial-gradient(ellipse at 82% 40%, rgba(255,255,255,.025), transparent 34%);
-}
-
-body .hero-logo img {
-  filter: drop-shadow(0 16px 38px rgba(227,38,46,.18));
-  outline: 0;
 }
 
 body .hero-title {
@@ -1640,21 +1630,6 @@ body .mobile-menu-btn {
   body .hero-content {
     width: 100%;
     padding-top: 5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  body .hero-logo {
-    margin-top: 1.35rem;
-    margin-bottom: 1.4rem;
-  }
-
-  body .hero-logo img {
-    width: auto;
-    max-width: 68px;
-    height: auto;
-    margin-inline: auto;
-    outline: 0;
   }
 }
 

@@ -211,8 +211,8 @@ function renderStarRating(rating) {
 async function renderFeaturedProducts() {
     if (!elements.featuredProducts) return;
 
-    elements.featuredProducts.classList.remove('featured-grid-editorial', 'featured-grid-single');
-    elements.featuredProducts.style.removeProperty('--featured-support-count');
+    elements.featuredProducts.classList.remove('featured-grid-ranked', 'featured-grid-single');
+    elements.featuredProducts.style.removeProperty('--featured-rank-count');
     let featured = [];
     
     // Try to get from API first
@@ -237,13 +237,13 @@ async function renderFeaturedProducts() {
         return;
     }
     
-    elements.featuredProducts.classList.toggle('featured-grid-editorial', featured.length > 1);
+    elements.featuredProducts.classList.toggle('featured-grid-ranked', featured.length > 1);
     elements.featuredProducts.classList.toggle('featured-grid-single', featured.length === 1);
     if (featured.length > 1) {
-        elements.featuredProducts.style.setProperty('--featured-support-count', String(featured.length - 1));
+        elements.featuredProducts.style.setProperty('--featured-rank-count', String(Math.min(featured.length, 4)));
     }
 
-    elements.featuredProducts.innerHTML = featured.map(product => {
+    elements.featuredProducts.innerHTML = featured.map((product, index) => {
         const inventory = typeof product.inventory === 'string'
             ? JSON.parse(product.inventory || '{}')
             : (product.inventory || {});
@@ -278,6 +278,8 @@ async function renderFeaturedProducts() {
         <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-home-action="open-product" data-slug="${safeSlug}" role="link" tabindex="0">
             <div class="product-image-wrapper">
                 ${badgeHtml}
+                <span class="product-rank" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span>
+                ${index === 0 ? '<span class="product-rank-flag">Most Wanted</span>' : ''}
                 <img src="${firstSrc}" alt="${firstAlt}" class="product-image" loading="lazy">
                 ${secondSrc ? `<img src="${secondSrc}" alt="${secondAlt}" class="product-image-hover" loading="lazy">` : ''}
             </div>

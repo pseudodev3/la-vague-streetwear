@@ -7,59 +7,8 @@
     position: relative;
 }
 
-.hero-logo {
-    position: absolute;
-    top: 0;
-    left: 0;
-    transform: translateX(-110px);
-    margin-bottom: 0;
-    z-index: 2;
-}
-
-.hero-logo img {
-    max-width: 80px;
-    height: auto;
-}
-
 .hero-title {
     margin-top: 0;
-}
-
-@media (max-width: 1024px) {
-    .hero-logo {
-        transform: translateX(-95px);
-    }
-    
-    .hero-logo img {
-        max-width: 70px;
-    }
-}
-
-@media (max-width: 768px) {
-    .hero-logo {
-        transform: translateX(-80px);
-        top: 5px;
-    }
-    
-    .hero-logo img {
-        max-width: 60px;
-    }
-}
-
-@media (max-width: 480px) {
-    .hero-logo {
-        position: relative;
-        transform: none;
-        left: auto;
-        top: auto;
-        display: block;
-        margin-bottom: 1rem;
-        text-align: center;
-    }
-    
-    .hero-logo img {
-        max-width: 60px;
-    }
 }
 
 /* Featured Products Section */
@@ -80,68 +29,70 @@
     justify-content: center;
 }
 
-/* Editorial layout: one lead piece with the remaining products stacked alongside it. */
-.featured-grid.featured-grid-editorial {
-    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-    grid-template-rows: repeat(var(--featured-support-count), minmax(0, 1fr));
-    gap: 1rem;
+/* Ranked layout: the "Most Wanted" list. Every piece gets an equal tile
+   with its rank stamped on the imagery; rank 01 carries the accent. The
+   grid centers itself so a short list (2–3 pieces) stays a tight shelf
+   instead of stretching tiles to container width. */
+.featured-grid.featured-grid-ranked {
+    grid-template-columns: repeat(var(--featured-rank-count, 4), minmax(0, 1fr));
+    gap: 1.25rem;
     align-items: stretch;
+    max-width: calc(
+        var(--featured-rank-count, 4) * 330px +
+        (var(--featured-rank-count, 4) - 1) * 1.25rem
+    );
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.featured-grid-editorial .product-card:first-child {
-    grid-column: 1;
-    grid-row: 1 / span var(--featured-support-count);
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
+.featured-grid-ranked .product-card {
+    position: relative;
     background: var(--color-bg);
 }
 
-.featured-grid-editorial .product-card:first-child .product-image-wrapper {
-    flex: 1 1 auto;
-    min-height: 0;
-    aspect-ratio: 4 / 5;
+.featured-grid-ranked .product-image-wrapper {
+    aspect-ratio: 3 / 4;
     margin-bottom: 0;
 }
 
-.featured-grid-editorial .product-card:first-child .product-info {
-    flex: 0 0 auto;
-    padding: 1.15rem 1.25rem 1.3rem;
+.featured-grid-ranked .product-rank {
+    position: absolute;
+    bottom: 0.55rem;
+    left: 0.7rem;
+    z-index: 2;
+    font-family: var(--font-heading);
+    font-size: clamp(1.7rem, 2.4vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: rgba(255, 255, 255, 0.94);
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+    transition: color var(--transition-medium);
 }
 
-.featured-grid-editorial .product-card:not(:first-child) {
-    display: grid;
-    grid-template-columns: minmax(108px, 0.78fr) minmax(0, 1fr);
-    align-items: center;
-    gap: 1rem;
-    min-width: 0;
-    padding: 0.55rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.025);
+.featured-grid-ranked .product-card:first-child .product-rank {
+    color: var(--color-accent);
 }
 
-.featured-grid-editorial .product-card:not(:first-child) .product-image-wrapper {
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    aspect-ratio: 1 / 1;
-    margin: 0;
-    border-radius: 14px;
+.featured-grid-ranked .product-rank-flag {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.7rem;
+    z-index: 2;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
 
-.featured-grid-editorial .product-card:not(:first-child) .product-info {
-    min-width: 0;
-    padding: 0.5rem 0.65rem 0.5rem 0;
-}
-
-.featured-grid-editorial .product-card:not(:first-child) .product-category {
-    margin-bottom: 0.35rem;
-    font-size: 0.68rem;
-}
-
-.featured-grid-editorial .product-card:not(:first-child) .product-name {
-    font-size: clamp(0.9rem, 1.1vw, 1.05rem);
+/* The lead tile carries the "Most Wanted" flag; a product badge would
+   collide with it on narrow tiles and only restates the section. */
+.featured-grid-ranked .product-card:first-child .product-badge {
+    display: none;
 }
 
 @media (max-width: 1024px) {
@@ -150,42 +101,14 @@
         gap: 1rem;
     }
 
-    .featured-grid.featured-grid-editorial {
+    .featured-grid.featured-grid-ranked {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        grid-template-rows: auto;
+        max-width: none;
         gap: 1rem;
     }
 
-    .featured-grid-editorial .product-card:first-child {
-        grid-column: 1 / -1;
-        grid-row: auto;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .featured-grid-editorial .product-card:first-child .product-image-wrapper {
-        aspect-ratio: 1 / 1;
-    }
-
-    .featured-grid-editorial .product-card:not(:first-child) {
-        display: block;
-        padding: 0;
-        border: 0;
-        border-radius: 0;
-        background: transparent;
-    }
-
-    .featured-grid-editorial .product-card:not(:first-child) .product-image-wrapper {
-        height: auto;
-        aspect-ratio: 3 / 4;
-        margin-bottom: 0;
-        border-radius: 18px;
-    }
-
-    .featured-grid-editorial .product-card:not(:first-child) .product-info {
-        padding: 0.85rem 0.25rem 0;
+    .featured-grid-ranked .product-rank {
+        font-size: 1.5rem;
     }
 }
 
@@ -194,16 +117,8 @@
         gap: 0.9rem;
     }
 
-    .featured-grid.featured-grid-editorial {
+    .featured-grid.featured-grid-ranked {
         gap: 0.9rem;
-    }
-
-    .featured-grid-editorial .product-card:first-child {
-        gap: 0.75rem;
-    }
-
-    .featured-grid-editorial .product-card:first-child .product-info {
-        padding: 0.75rem;
     }
 }
 
@@ -217,25 +132,21 @@
         gap: 0.75rem;
     }
 
-    .featured-grid.featured-grid-editorial {
+    .featured-grid.featured-grid-ranked {
         gap: 0.75rem;
     }
 
-    .featured-grid-editorial .product-card:first-child {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
-        gap: 0.5rem;
+    .featured-grid-ranked .product-rank {
+        bottom: 0.45rem;
+        left: 0.55rem;
+        font-size: 1.3rem;
     }
 
-    .featured-grid-editorial .product-card:first-child .product-info {
-        padding: 0.55rem;
-    }
-
-    .featured-grid-editorial .product-card:first-child .product-name {
-        font-size: 0.95rem;
-    }
-
-    .featured-grid-editorial .product-card:not(:first-child) .product-info {
-        padding: 0.7rem 0.15rem 0;
+    .featured-grid-ranked .product-rank-flag {
+        top: 0.5rem;
+        right: 0.55rem;
+        padding: 0.24rem 0.5rem;
+        font-size: 0.55rem;
     }
 }
 
@@ -250,6 +161,26 @@
 
 .featured-grid .product-image-wrapper {
     aspect-ratio: 3/4;
+}
+
+/* Image sizing lives in shop-styles.css, which the homepage does not load;
+   without this the photos render at intrinsic size and letterbox the tile. */
+.featured-grid .product-image,
+.featured-grid .product-image-hover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.featured-grid .product-image-hover {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: var(--transition-medium);
+}
+
+.featured-grid .product-card:hover .product-image-hover {
+    opacity: 1;
 }
 
 .featured-grid .product-info {
@@ -701,42 +632,35 @@
 }
 
 
-/* Refined bestseller cards: cleaner hierarchy and more tactile product tiles */
-.featured-grid-editorial .product-card:first-child {
-    position: relative;
+/* Refined bestseller cards: ranked tiles with tactile hover feedback */
+.featured-grid-ranked .product-card {
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 22px;
-    box-shadow: 0 18px 48px rgba(0,0,0,0.16);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+    transition: border-color var(--transition-medium), transform var(--transition-medium);
 }
-.featured-grid-editorial .product-card:first-child .product-image-wrapper {
+
+.featured-grid-ranked .product-image-wrapper {
     overflow: hidden;
     background: #151515;
 }
-.featured-grid-editorial .product-card:first-child .product-info {
-    padding: 1.2rem 1.35rem 1.4rem;
-}
-.featured-grid-editorial .product-card:not(:first-child) {
-    transition: border-color var(--transition-medium), background var(--transition-medium), transform var(--transition-medium);
-}
-.featured-grid-editorial .product-card:not(:first-child):hover {
-    border-color: rgba(255,255,255,0.24);
-    background: rgba(255,255,255,0.055);
-    transform: translateX(4px);
-}
-.featured-grid-editorial .product-card:not(:first-child) .product-image-wrapper {
-    overflow: hidden;
-    background: #151515;
-}
-.featured-grid-editorial .product-card:not(:first-child) .product-image {
+
+.featured-grid-ranked .product-image {
     transition: transform var(--transition-medium);
 }
-.featured-grid-editorial .product-card:not(:first-child):hover .product-image {
-    transform: scale(1.045);
-}
-@media (max-width: 1024px) {
-    .featured-grid-editorial .product-card:not(:first-child):hover {
-        transform: translateY(-3px);
+
+@media (hover:hover) and (pointer:fine) {
+    .featured-grid-ranked .product-card:hover {
+        border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    .featured-grid-ranked .product-card:hover .product-image {
+        transform: scale(1.045);
+    }
+
+    .featured-grid-ranked .product-card:not(:first-child):hover .product-rank {
+        color: var(--color-accent);
     }
 }
 
@@ -1226,9 +1150,12 @@
         margin-bottom: 2rem;
     }
 
+    /* Single-column editorial stack: one full-width portrait tile per look.
+       The 2-up collage crops faces off portrait photos at this width and
+       drowns the captions in the imagery. */
     .lookbook-collage {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .7rem;
+        grid-template-columns: 1fr;
+        gap: .9rem;
     }
 
     .lookbook-frame,
@@ -1239,31 +1166,42 @@
     .lookbook-frame--five,
     .lookbook-frame--six,
     .lookbook-frame--seven {
-        aspect-ratio: 4 / 5;
+        aspect-ratio: 3 / 4;
         border-radius: 1px;
     }
 
-    .lookbook-frame--hero {
-        aspect-ratio: 5 / 4;
+    /* Portrait boxes crop faces unless the bias sits above center. */
+    .lookbook-frame img {
+        object-position: 50% 25%;
     }
 
-    .lookbook-frame--four {
-        aspect-ratio: 5 / 4;
+    /* Gradient foot so captions stay legible over any photo. */
+    .lookbook-frame::before {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1;
+        height: 42%;
+        background: linear-gradient(to top, rgba(9, 9, 9, .78), rgba(9, 9, 9, 0));
+        content: "";
+        pointer-events: none;
     }
 
     .lookbook-frame figcaption {
-        right: .5rem;
-        bottom: .5rem;
-        left: 2.45rem;
+        right: .65rem;
+        bottom: .65rem;
+        left: 2.9rem;
         gap: .25rem;
-        font-size: .43rem;
-        letter-spacing: .07em;
+        font-size: .56rem;
+        letter-spacing: .12em;
+        line-height: 1.35;
     }
 
     .lookbook-number {
-        bottom: .5rem;
-        left: .5rem;
-        font-size: .72rem;
+        bottom: .62rem;
+        left: .65rem;
+        font-size: .85rem;
     }
 
     .lookbook-outro {
@@ -1305,7 +1243,7 @@
 @media (max-width: 360px) {
     .lookbook-shell { width: calc(100% - 1.5rem); }
     .lookbook-collage { gap: .55rem; }
-    .lookbook-frame figcaption { font-size: .38rem; }
+    .lookbook-frame figcaption { font-size: .5rem; }
     .lookbook-outro-top { font-size: .37rem; }
     .lookbook-shop-link { font-size: .4rem; padding-inline: .45rem; }
 }
