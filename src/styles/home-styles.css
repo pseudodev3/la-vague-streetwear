@@ -148,7 +148,12 @@
     text-shadow: 0 4px 32px rgba(8, 8, 10, 0.5);
 }
 
-.hero-description {
+/* The tagline reads as clean white over the campaign photography.
+   storefront-system.css re-asserts a muted gray via `body .hero-description`
+   and loads after this file, so the .hero-qualified selector is required
+   to win the cascade. */
+.hero .hero-description {
+    color: #ffffff;
     text-shadow: 0 1px 18px rgba(8, 8, 10, 0.65);
 }
 
