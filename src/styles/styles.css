@@ -79,8 +79,8 @@ html, body {
     }
 
     .nav-logo-img {
-        width: 46px;
-        height: 40px;
+        width: 60px;
+        height: auto;
     }
 
     .nav-btn {
@@ -95,8 +95,8 @@ html, body {
 
 @media (max-width: 380px) {
     .nav-logo-img {
-        width: 41px;
-        height: 35px;
+        width: 54px;
+        height: auto;
     }
 
     .nav-actions {
@@ -213,11 +213,13 @@ button {
 
 /* The brand mark sits in the nav (the hero no longer repeats it). It does a
    single eased 360 roll every few seconds - a sticker-spin accent, not a
-   loading spinner - and stays still under reduced motion. */
+   loading spinner - and stays still under reduced motion. Height is auto:
+   the PNG carries wide transparent bands above/below the oval, so a fixed
+   box height would stretch the artwork. */
 .nav-logo-img {
     display: block;
-    width: 53px;
-    height: 46px;
+    width: 70px;
+    height: auto;
     outline: none; /* the storefront system frames every img; the nav mark floats free */
     transform-origin: center;
     animation: logo-roll 7s linear infinite;
