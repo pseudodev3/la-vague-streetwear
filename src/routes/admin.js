@@ -726,14 +726,17 @@ export default function (productService, inventoryService) {
         verifyAdminSession,
         asyncHandler(async (req, res) => {
             const { search, limit = 50, offset = 0 } = req.query;
+            // Group by email only - grouping also by name/phone would split one
+            // customer into several rows when details vary across orders, and
+            // rows[0] would then undercount orders and lifetime value.
             let sql =
-                'SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value, MAX(created_at) as last_order_date FROM orders';
+                'SELECT customer_email, MAX(customer_name) as customer_name, MAX(customer_phone) as customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value, MAX(created_at) as last_order_date FROM orders';
             const params = [];
             if (search) {
                 sql += ' WHERE customer_email ILIKE $1 OR customer_name ILIKE $1';
                 params.push(`%${search}%`);
             }
-            sql += ` GROUP BY customer_email, customer_name, customer_phone ORDER BY last_order_date DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
+            sql += ` GROUP BY customer_email ORDER BY last_order_date DESC LIMIT ${USE_POSTGRES ? `$${params.length + 1}` : '?'} OFFSET ${USE_POSTGRES ? `$${params.length + 2}` : '?'}`;
             params.push(parseInt(limit), parseInt(offset));
             const result = await query(sql, params);
             res.json({ success: true, customers: result.rows });
@@ -745,9 +748,11 @@ export default function (productService, inventoryService) {
         verifyAdminSession,
         asyncHandler(async (req, res) => {
             const email = decodeURIComponent(req.params.email);
+            // One row per customer: aggregate by email only (name/phone via MAX)
+            // and include first/last order dates for the detail modal.
             const customer = (
                 await query(
-                    'SELECT customer_email, customer_name, customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value FROM orders WHERE customer_email = $1 GROUP BY customer_email, customer_name, customer_phone',
+                    'SELECT customer_email, MAX(customer_name) as customer_name, MAX(customer_phone) as customer_phone, COUNT(*) as order_count, SUM(total) as lifetime_value, MIN(created_at) as first_order_date, MAX(created_at) as last_order_date FROM orders WHERE customer_email = $1 GROUP BY customer_email',
                     [email]
                 )
             ).rows[0];

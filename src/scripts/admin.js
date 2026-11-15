@@ -1617,7 +1617,7 @@ function renderCustomersTable(customers) {
         tr.appendChild(createElement('td', {}, customer.customer_name || 'N/A'));
         tr.appendChild(createElement('td', {}, customer.customer_email));
         tr.appendChild(createElement('td', {}, String(customer.order_count || 0)));
-        tr.appendChild(createElement('td', {}, `₦${(customer.lifetime_value || 0).toLocaleString()}`));
+        tr.appendChild(createElement('td', {}, `₦${Number(customer.lifetime_value || 0).toLocaleString()}`));
         tr.appendChild(createElement('td', {}, formatDate(customer.last_order_date)));
         
         const tdActions = createElement('td');
@@ -1643,15 +1643,40 @@ window.viewCustomer = async function(email) {
         
         const container = createElement('div', { className: 'order-details' });
         
-        // Customer info
+        // Customer info. Values must be appended as text nodes on the <p>
+        // (createElement takes a single content arg and silently drops extras).
         const infoSection = createElement('div', { className: 'order-section' });
         infoSection.appendChild(createElement('h4', {}, customer.customer_name || 'Customer'));
-        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Email: '), customer.customer_email));
-        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Phone: '), customer.customer_phone || 'N/A'));
-        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Total Orders: '), String(customer.order_count || 0)));
-        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Lifetime Value: '), `₦${(customer.lifetime_value || 0).toLocaleString()}`));
-        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'First Order: '), formatDate(customer.first_order_date)));
-        infoSection.appendChild(createElement('p', {}, createElement('strong', {}, 'Last Order: '), formatDate(customer.last_order_date)));
+
+        const emailP = createElement('p', {});
+        emailP.appendChild(createElement('strong', {}, 'Email: '));
+        emailP.appendChild(document.createTextNode(customer.customer_email || 'N/A'));
+        infoSection.appendChild(emailP);
+
+        const phoneP = createElement('p', {});
+        phoneP.appendChild(createElement('strong', {}, 'Phone: '));
+        phoneP.appendChild(document.createTextNode(customer.customer_phone || 'N/A'));
+        infoSection.appendChild(phoneP);
+
+        const ordersP = createElement('p', {});
+        ordersP.appendChild(createElement('strong', {}, 'Total Orders: '));
+        ordersP.appendChild(document.createTextNode(String(Number(customer.order_count) || 0)));
+        infoSection.appendChild(ordersP);
+
+        const ltvP = createElement('p', {});
+        ltvP.appendChild(createElement('strong', {}, 'Lifetime Value: '));
+        ltvP.appendChild(document.createTextNode(`₦${Number(customer.lifetime_value || 0).toLocaleString()}`));
+        infoSection.appendChild(ltvP);
+
+        const firstOrderP = createElement('p', {});
+        firstOrderP.appendChild(createElement('strong', {}, 'First Order: '));
+        firstOrderP.appendChild(document.createTextNode(formatDate(customer.first_order_date)));
+        infoSection.appendChild(firstOrderP);
+
+        const lastOrderP = createElement('p', {});
+        lastOrderP.appendChild(createElement('strong', {}, 'Last Order: '));
+        lastOrderP.appendChild(document.createTextNode(formatDate(customer.last_order_date)));
+        infoSection.appendChild(lastOrderP);
         container.appendChild(infoSection);
         
         // Recent orders
