@@ -132,8 +132,8 @@ body .nav:not(.scrolled) {
 
 body .nav {
   min-height: 68px;
-  padding: .6rem 0; /* was .75rem - trimmed ~5px so the larger brand mark doesn't over-tall the bar */
-  background: rgba(8,8,8,.78);
+  padding: .5rem 0; /* was .75rem - trimmed so the larger brand mark doesn't over-tall the bar */
+  background: rgba(8,8,8,.7); /* was .78 - a touch more transparent; blur keeps content behind readable */
   border-bottom: 1px solid transparent;
   backdrop-filter: blur(18px) saturate(120%);
   -webkit-backdrop-filter: blur(18px) saturate(120%);
