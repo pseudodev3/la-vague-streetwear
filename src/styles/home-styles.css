@@ -197,6 +197,11 @@
     .hero-slide.is-leaving {
         opacity: 1;
     }
+
+    /* The per-slide copy nudge jumps instead of gliding. */
+    .hero-content {
+        transition: none;
+    }
 }
 
 /* Featured Products Section */
@@ -723,8 +728,39 @@
     padding: clamp(7.5rem, 12vh, 9rem) 1.5rem 2rem;
   }
 
+  /* Desktop headline steps down from the 12.5vw giant: at 160px+ the type
+     sat directly on the models' faces on every slide. Mobile reads well
+     because its compact type lets the photography carry the frame - this
+     mirrors that hierarchy. */
   .hero-title {
-    font-size: clamp(6rem, 12.5vw, 10rem);
+    font-size: clamp(4.5rem, 7.5vw, 7rem);
+  }
+
+  /* The nav already carries the brand mark; the floating pill duplicate
+     read as a stray sticker over the imagery on desktop. Mobile keeps it:
+     below 480px it is a static block above the title. */
+  .hero-logo {
+    display: none;
+  }
+
+  /* The landscape downtown shot frames its subjects lower in frame than
+     the portrait studio shots, whose faces sit in the top band. Raise the
+     copy while that slide is active so the headline lands in the foliage
+     gap instead of across the models' faces. :has() degrades to a no-op
+     on engines without support. */
+  .hero-content {
+    transition: transform 0.8s ease;
+  }
+
+  .hero:has(.hero-slide.is-active[data-enter-from="left"]) .hero-content {
+    transform: translateY(-9vh);
+  }
+
+  /* One more dim step on the bright studio shots, desktop only - the
+     mobile treatment stays exactly as approved. Later in the file than
+     the base rule, same specificity: wins on desktop, never on mobile. */
+  .hero-bg-image-dim {
+    filter: saturate(0.92) contrast(1.05) brightness(0.62);
   }
 }
 
@@ -737,8 +773,7 @@
   }
 
   .hero-content {
-    /* Keep the original content-sized, centered positioning context so the
-       absolutely positioned floating logo stays in its original horizontal position. */
+    /* Keep the content-sized, centered positioning context. */
     width: auto;
     max-width: 100%;
     margin: clamp(7rem, 14vh, 8.5rem) auto 0;
@@ -746,7 +781,7 @@
   }
 
   .hero-title {
-    font-size: clamp(5.5rem, 12vh, 8.5rem);
+    font-size: clamp(4.25rem, 9vh, 6.25rem);
     line-height: .86;
     margin-bottom: 1.25rem;
   }
