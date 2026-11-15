@@ -3,7 +3,7 @@ import { mockStoreProducts, mockStorefrontAPI } from '../helpers/e2e-storefront.
 
 test.describe('Homepage visual polish', () => {
   for (const count of [2, 3]) {
-    test(`adapts the editorial bestseller layout to ${count} products`, async ({ page }) => {
+    test(`lays out ${count} bestsellers as a ranked grid`, async ({ page }) => {
       await mockStorefrontAPI(page);
       await page.route('**/api/products', route => route.fulfill({
         status: 200,
@@ -20,21 +20,22 @@ test.describe('Homepage visual polish', () => {
       await page.goto('/');
       const featured = page.locator('#featuredProducts');
       await expect(featured.locator('.product-card')).toHaveCount(count);
-      await expect(featured).toHaveClass(/featured-grid-editorial/);
-      // The editorial grid only spans rows on wide viewports. At max-width
-      // 1024px (home-styles.css) it intentionally collapses: the lead card
-      // stops spanning and rows go back to auto sizing.
+      await expect(featured).toHaveClass(/featured-grid-ranked/);
+      // The ranked shelf gives every piece its own tile: one column per
+      // product on wide viewports, a two-up shelf below 1024px
+      // (home-styles.css), so the column count is the layout invariant.
       const isCompactViewport = await page.evaluate(
         () => window.matchMedia('(max-width: 1024px)').matches
       );
-      if (isCompactViewport) {
-        await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-start', 'auto');
-        return;
-      }
-      const rowCount = await featured.evaluate(element =>
-        getComputedStyle(element).gridTemplateRows.split(' ').length
+      const columnCount = await featured.evaluate(
+        element => getComputedStyle(element).gridTemplateColumns.split(' ').length
       );
-      expect(rowCount).toBe(count - 1);
+      expect(columnCount).toBe(isCompactViewport ? Math.min(count, 2) : count);
+      // Ranks are stamped 01..N on the tiles, in DOM order.
+      const ranks = await featured.locator('.product-rank').allTextContents();
+      expect(ranks).toEqual(
+        Array.from({ length: count }, (_, i) => String(i + 1).padStart(2, '0'))
+      );
     });
   }
 
@@ -50,10 +51,10 @@ test.describe('Homepage visual polish', () => {
     const featured = page.locator('#featuredProducts');
     await expect(featured.locator('.product-card')).toHaveCount(1);
     await expect(featured).toHaveClass(/featured-grid-single/);
-    await expect(featured).not.toHaveClass(/featured-grid-editorial/);
+    await expect(featured).not.toHaveClass(/featured-grid-ranked/);
   });
 
-  test('uses the editorial bestseller layout and keeps lookbook titles out of the UI', async ({ page }) => {
+  test('ranks the bestseller shelf and keeps lookbook titles out of the UI', async ({ page }) => {
     await mockStorefrontAPI(page);
     await page.route('**/api/products', route => route.fulfill({
       status: 200,
@@ -70,19 +71,23 @@ test.describe('Homepage visual polish', () => {
     await page.goto('/');
     const featured = page.locator('#featuredProducts');
     await expect(featured.locator('.product-card')).toHaveCount(4);
-    await expect(featured).toHaveClass(/featured-grid-editorial/);
-    // The lead card spans all support rows alongside it: 4 products -> 3 support
-    // rows -> grid-row "1 / span 3". getComputedStyle returns grid-row-end as the
-    // span form, so assert the span rather than the resolved end line number.
-    // Below 1024px the compact layout takes over and the lead card goes back to
-    // auto placement, so only assert the span geometry on wide viewports.
+    await expect(featured).toHaveClass(/featured-grid-ranked/);
+    // Four equal tiles on a wide viewport, a two-up shelf below 1024px
+    // (home-styles.css). Every card auto-places into the grid — no card
+    // spans rows the way the old editorial lead card did.
     const isCompactViewport = await page.evaluate(
       () => window.matchMedia('(max-width: 1024px)').matches
     );
-    if (!isCompactViewport) {
-      await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-start', '1');
-      await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-end', 'span 3');
-    }
+    const columnCount = await featured.evaluate(
+      element => getComputedStyle(element).gridTemplateColumns.split(' ').length
+    );
+    expect(columnCount).toBe(isCompactViewport ? 2 : 4);
+    await expect(featured.locator('.product-card').first()).toHaveCSS('grid-row-start', 'auto');
+    // The shelf reads as a wanted list: ranks 01-04 in order, with the
+    // lead piece flagged.
+    await expect(featured.locator('.product-rank')).toHaveCount(4);
+    await expect(featured.locator('.product-rank').first()).toHaveText('01');
+    await expect(featured.locator('.product-rank-flag')).toHaveText('Most Wanted');
 
     await expect(page.locator('.lookbook-item')).toHaveCount(7);
     await expect(page.locator('.lookbook-info h3')).toHaveCount(0);

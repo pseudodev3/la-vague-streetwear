@@ -49,7 +49,10 @@
     
     <!-- Styles -->
     <link rel="stylesheet" href="src/styles/styles.css?v=9.2">
-    <link rel="stylesheet" href="src/styles/home-styles.css?v=9.3">
+    <link rel="stylesheet" href="src/styles/home-styles.css?v=9.4">
+
+    <!-- Hero imagery (LCP) -->
+    <link rel="preload" as="image" href="/assets/downtown.jpg" fetchpriority="high">
     
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -106,9 +109,17 @@
 
     <!-- Hero Section -->
     <section class="hero" id="home">
-        <div class="hero-bg">
+        <div class="hero-bg" role="presentation">
+            <img class="hero-bg-image" src="/assets/downtown.jpg" alt="" fetchpriority="high" decoding="async">
+            <div class="hero-scrim"></div>
             <div class="hero-gradient"></div>
         </div>
+        <figure class="hero-panel hero-panel--left" aria-hidden="true">
+            <img src="/assets/hoodie2.jpg" alt="" loading="lazy" decoding="async">
+        </figure>
+        <figure class="hero-panel hero-panel--right" aria-hidden="true">
+            <img src="/assets/hoodie3.jpg" alt="" loading="lazy" decoding="async">
+        </figure>
         <div class="hero-content">
             <div class="hero-logo reveal-up">
                 <img src="/la-vague-red-wordmark.png" alt="LA VAGUE" width="400" height="auto">
