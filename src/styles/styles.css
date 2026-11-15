@@ -188,7 +188,7 @@ button {
     top: 0;
     background: rgba(10, 10, 10, 0.95);
     backdrop-filter: blur(20px);
-    padding: 1rem 0;
+    padding: .5rem 0; /* match body .nav's resting padding - was 1rem, which made the bar grow on scroll */
     border-bottom: 1px solid var(--color-border);
 }
 
