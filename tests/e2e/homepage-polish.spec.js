@@ -109,6 +109,68 @@ test.describe('Homepage visual polish', () => {
     expect(groupCopy.every(copy => copy === groupCopy[0])).toBe(true);
   });
 
+  test('cycles the hero slideshow through every slide without controls', async ({ page }) => {
+    await page.clock.install({ time: new Date('2030-01-01T12:00:00Z') });
+    await mockStorefrontAPI(page);
+    await page.goto('/');
+
+    const slides = page.locator('.hero-slide');
+    await expect(slides).toHaveCount(3);
+    // No dots, counters or any other slideshow chrome.
+    await expect(page.locator('.hero-dots, .hero-counter, .hero-pagination, .hero-slide-indicator')).toHaveCount(0);
+    // The preloaded campaign photo is the opening slide.
+    await expect(slides.first()).toHaveClass(/is-active/);
+    await expect(slides.nth(1)).not.toHaveClass(/is-active/);
+    // Entry directions differ per slide so the loop mixes sideways and
+    // vertical moves (home-styles.css keys off data-enter-from).
+    const directions = await slides.evaluateAll(items =>
+      items.map(item => item.dataset.enterFrom)
+    );
+    expect(new Set(directions).size).toBe(directions.length);
+
+    // The copy layer must paint above the slides. hero-bg owns a stacking
+    // context (home-styles.css); losing it buries the headline under the
+    // photos, so probe the headline's center for what actually receives
+    // the hit there.
+    const headlineVisibleAboveSlides = await page.evaluate(() => {
+      const title = document.querySelector('.hero-title');
+      if (!title) return false;
+      const rect = title.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2
+      );
+      return Boolean(hit && hit.closest('.hero-content'));
+    });
+    expect(headlineVisibleAboveSlides).toBe(true);
+
+    // Fast-forward past the 6.5s hold: slide 2 takes over ...
+    await page.clock.fastForward(8000);
+    await expect(slides.nth(1)).toHaveClass(/is-active/);
+    await expect(slides.first()).not.toHaveClass(/is-active/);
+
+    // ... then slide 3 ...
+    await page.clock.fastForward(8000);
+    await expect(slides.nth(2)).toHaveClass(/is-active/);
+
+    // ... and a full loop returns to the opening slide.
+    await page.clock.fastForward(8000);
+    await expect(slides.first()).toHaveClass(/is-active/);
+  });
+
+  test('crossfades the hero slideshow instead of sliding under reduced motion', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await mockStorefrontAPI(page);
+    await page.goto('/');
+
+    const styles = await page.locator('.hero-slide').nth(1).evaluate(element => {
+      const computed = getComputedStyle(element);
+      return { transform: computed.transform, transitionProperty: computed.transitionProperty };
+    });
+    expect(styles.transform).toBe('none');
+    expect(styles.transitionProperty).toBe('opacity');
+  });
+
   test('does not rewrite unchanged ticker copy during the settings refresh', async ({ page }) => {
     await page.clock.install({ time: new Date('2030-01-01T12:00:00Z') });
     await mockStorefrontAPI(page);

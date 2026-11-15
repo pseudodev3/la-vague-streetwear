@@ -146,12 +146,73 @@ async function initHome() {
 
     initMarquee();
     await renderFeaturedProducts();
-    
+
     updateCartCount();
     updateWishlistCount();
     bindEvents();
     initRevealAnimations();
     initLookbookMotion();
+    initHeroSlideshow();
+}
+
+// ==========================================
+// HERO SLIDESHOW
+// ==========================================
+
+const HERO_SLIDE_HOLD_MS = 6500;
+const HERO_SLIDE_ENTER_MS = 1150;
+
+/* Ambient slideshow: no dots, no counter, no interaction. The incoming
+   slide slides in from its data-enter-from edge while the outgoing one
+   holds still underneath; entry directions differ per slide so the loop
+   mixes sideways and vertical moves. Pauses when the tab is hidden or the
+   hero scrolls out of view. */
+function initHeroSlideshow() {
+    const slides = Array.from(document.querySelectorAll('.hero-slide'));
+    if (slides.length < 2) return;
+
+    const hero = document.querySelector('.hero');
+    let current = 0;
+    let timer = null;
+    let transitioning = false;
+    let heroInView = true;
+
+    const advance = () => {
+        if (transitioning) return;
+        const outgoing = slides[current];
+        current = (current + 1) % slides.length;
+        const incoming = slides[current];
+
+        transitioning = true;
+        incoming.classList.add('is-active');
+        outgoing.classList.add('is-leaving');
+        outgoing.classList.remove('is-active');
+
+        // The outgoing slide is fully covered by now; retire it silently.
+        window.setTimeout(() => {
+            outgoing.classList.remove('is-leaving');
+            transitioning = false;
+        }, HERO_SLIDE_ENTER_MS + 200);
+    };
+
+    const schedule = () => {
+        window.clearTimeout(timer);
+        if (document.hidden || !heroInView) return;
+        timer = window.setTimeout(() => {
+            advance();
+            schedule();
+        }, HERO_SLIDE_HOLD_MS);
+    };
+
+    if (hero) {
+        new IntersectionObserver(entries => {
+            heroInView = entries[entries.length - 1].isIntersecting;
+            schedule();
+        }, { threshold: 0 }).observe(hero);
+    }
+
+    document.addEventListener('visibilitychange', schedule);
+    schedule();
 }
 
 // ==========================================

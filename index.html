@@ -49,7 +49,7 @@
     
     <!-- Styles -->
     <link rel="stylesheet" href="src/styles/styles.css?v=9.2">
-    <link rel="stylesheet" href="src/styles/home-styles.css?v=9.4">
+    <link rel="stylesheet" href="src/styles/home-styles.css?v=9.5">
 
     <!-- Hero imagery (LCP) -->
     <link rel="preload" as="image" href="/assets/downtown.jpg" fetchpriority="high">
@@ -110,16 +110,20 @@
     <!-- Hero Section -->
     <section class="hero" id="home">
         <div class="hero-bg" role="presentation">
-            <img class="hero-bg-image" src="/assets/downtown.jpg" alt="" fetchpriority="high" decoding="async">
+            <div class="hero-slideshow" aria-hidden="true">
+                <div class="hero-slide is-active" data-enter-from="left">
+                    <img class="hero-bg-image" src="/assets/downtown.jpg" alt="" fetchpriority="high" decoding="async">
+                </div>
+                <div class="hero-slide" data-enter-from="right">
+                    <img class="hero-bg-image" src="/assets/hoodie2.jpg" alt="" decoding="async">
+                </div>
+                <div class="hero-slide" data-enter-from="top">
+                    <img class="hero-bg-image" src="/assets/hoodie3.jpg" alt="" decoding="async">
+                </div>
+            </div>
             <div class="hero-scrim"></div>
             <div class="hero-gradient"></div>
         </div>
-        <figure class="hero-panel hero-panel--left" aria-hidden="true">
-            <img src="/assets/hoodie2.jpg" alt="" loading="lazy" decoding="async">
-        </figure>
-        <figure class="hero-panel hero-panel--right" aria-hidden="true">
-            <img src="/assets/hoodie3.jpg" alt="" loading="lazy" decoding="async">
-        </figure>
         <div class="hero-content">
             <div class="hero-logo reveal-up">
                 <img src="/la-vague-red-wordmark.png" alt="LA VAGUE" width="400" height="auto">
@@ -379,7 +383,7 @@
     <script src="src/scripts/cart.js?v=10.0"></script>
     <script src="src/scripts/components.js?v=10.0"></script>
 <script src="src/scripts/cookie-consent.js?v=9.0"></script>
-    <script src="src/scripts/home.js?v=9.3"></script>
+    <script src="src/scripts/home.js?v=9.4"></script>
     <script src="src/scripts/pwa-register.js?v=1.0"></script>
 </body>
 </html>

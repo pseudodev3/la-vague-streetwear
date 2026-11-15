@@ -62,19 +62,65 @@
     }
 }
 
-/* Hero imagery: full-bleed campaign photo with a legibility scrim and
-   two editorial side panels on wide viewports. The base gradient on
-   .hero-bg (styles.css) stays as the paint-behind while the photo loads. */
+/* Hero imagery: an ambient full-bleed slideshow - no dots, no counter.
+   Each slide enters from its own edge (data-enter-from) so the loop mixes
+   directions: sideways, top-down, and back the other way. The base gradient
+   on .hero-bg (styles.css) stays as the paint-behind while photos load. */
+/* z-index: 0 gives .hero-bg a stacking context of its own. Without it the
+   slide z-indexes escape into .hero and bury .hero-content (z-index 1)
+   under the photos. */
+.hero-bg {
+    z-index: 0;
+}
+
+.hero-slideshow {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.hero-slide {
+    position: absolute;
+    inset: 0;
+    visibility: hidden;
+    z-index: 1;
+}
+
+.hero-slide[data-enter-from="right"]  { transform: translateX(101%) scale(1.05); }
+.hero-slide[data-enter-from="left"]   { transform: translateX(-101%) scale(1.05); }
+.hero-slide[data-enter-from="top"]    { transform: translateY(-101%) scale(1.05); }
+.hero-slide[data-enter-from="bottom"] { transform: translateY(101%) scale(1.05); }
+
+/* The incoming slide travels across the frame above the one it covers. */
+.hero-slide.is-active {
+    visibility: visible;
+    z-index: 3;
+    transform: translate(0, 0) scale(1);
+    transition: transform 1.15s cubic-bezier(0.22, 0.61, 0.21, 1);
+}
+
+/* The outgoing slide holds still beneath the incoming one until covered. */
+.hero-slide.is-leaving {
+    visibility: visible;
+    z-index: 2;
+    transform: translate(0, 0) scale(1);
+}
+
 .hero-bg-image {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* Biased right of center so the models sit clear of the left side panel. */
-    object-position: 40% 30%;
+    object-position: 50% 30%;
     filter: saturate(0.92) contrast(1.05);
     animation: hero-drift 26s ease-in-out infinite alternate;
+    animation-play-state: paused;
+}
+
+.hero-slide.is-active .hero-bg-image,
+.hero-slide.is-leaving .hero-bg-image {
+    animation-play-state: running;
 }
 
 @keyframes hero-drift {
@@ -82,79 +128,81 @@
     to   { transform: scale(1.09) translateX(-1.2%); }
 }
 
+/* The mobile-tuned scrim: the type carries the photo alone at every width
+   now, so the darker band behind the tagline applies everywhere. The first
+   layer is a soft pool behind the copy block itself - headline, tagline and
+   CTAs all sit in that ellipse, so it buys contrast without dimming the
+   whole photo. */
 .hero-scrim {
     position: absolute;
     inset: 0;
     background:
+        radial-gradient(ellipse 58% 44% at 50% 46%, rgba(8, 8, 10, 0.5) 0%, rgba(8, 8, 10, 0) 75%),
         linear-gradient(to bottom,
-            rgba(8, 8, 10, 0.64) 0%,
-            rgba(8, 8, 10, 0.5) 34%,
-            rgba(8, 8, 10, 0.6) 62%,
-            rgba(8, 8, 10, 0.88) 100%),
-        radial-gradient(ellipse at 50% 48%, rgba(8, 8, 10, 0.28) 0%, rgba(8, 8, 10, 0.6) 100%);
+            rgba(8, 8, 10, 0.66) 0%,
+            rgba(8, 8, 10, 0.61) 36%,
+            rgba(8, 8, 10, 0.69) 64%,
+            rgba(8, 8, 10, 0.9) 100%),
+        radial-gradient(ellipse at 50% 50%, rgba(8, 8, 10, 0.32) 0%, rgba(8, 8, 10, 0.64) 100%);
 }
 
-/* Insurance for the big type and the thin tagline crossing bright clothing. */
+/* Insurance for the big type and the thin tagline crossing bright clothing.
+   The tight 0.75 core keeps glyph-to-halo contrast >= 3:1 even where the
+   headline crosses blown-out highlights (large-text WCAG floor). */
 .hero-title {
-    text-shadow: 0 4px 32px rgba(8, 8, 10, 0.5);
+    text-shadow:
+        0 2px 10px rgba(8, 8, 10, 0.75),
+        0 8px 40px rgba(8, 8, 10, 0.55);
 }
 
-.hero-description {
-    text-shadow: 0 1px 18px rgba(8, 8, 10, 0.65);
+/* storefront-system.css re-asserts the muted gray via `body` specificity and
+   loads after this file, so the tagline needs the .hero-qualified selector to
+   win. The dark glass seat mirrors the CTA pill: the tagline crosses
+   blown-out highlights (pale shirts, bright walls) that no scrim can tame,
+   and the seat guarantees legibility on every slide. */
+.hero .hero-description {
+    color: #f2f0eb;
+    font-weight: 500;
+    max-width: min(500px, calc(100% - 1rem));
+    display: inline-block;
+    padding: 0.55rem 1.35rem;
+    border-radius: 999px;
+    background: rgba(8, 8, 10, 0.85);
+    text-shadow: 0 1px 4px rgba(8, 8, 10, 0.45);
 }
 
-/* Side panels are anchored to the content column (not the viewport edge),
-   so they can never crowd the centered hero copy at any width. */
-.hero-panel {
-    position: absolute;
-    top: 50%;
-    width: clamp(150px, 13vw, 210px);
-    aspect-ratio: 3 / 4;
-    margin: 0;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-    pointer-events: none;
-    display: none;
+/* The ghost CTA vanishes over bright campaign photos; give it a
+   dark glass seat and a firm border (hero only). */
+.hero-cta .btn-secondary {
+    background: rgba(8, 8, 10, 0.72);
+    border-color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 1px 10px rgba(8, 8, 10, 0.55);
 }
 
-.hero-panel img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-@media (min-width: 1280px) {
-    .hero-panel { display: block; }
-
-    .hero-panel--left {
-        right: calc(50% + 340px);
-        transform: translateY(-52%) rotate(-2.5deg);
-    }
-
-    .hero-panel--right {
-        left: calc(50% + 340px);
-        transform: translateY(-48%) rotate(2deg);
-    }
+.hero-cta .btn-secondary:hover {
+    background: var(--color-text);
+    border-color: var(--color-text);
+    color: var(--color-bg);
+    text-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
     .hero-bg-image { animation: none; }
-}
 
-/* Mobile: no side panels, so the type carries the photo alone — keep the
-   tagline band a step darker where clothing highlights run brightest. */
-@media (max-width: 768px) {
-    .hero-scrim {
-        background:
-            linear-gradient(to bottom,
-                rgba(8, 8, 10, 0.66) 0%,
-                rgba(8, 8, 10, 0.56) 36%,
-                rgba(8, 8, 10, 0.66) 64%,
-                rgba(8, 8, 10, 0.9) 100%),
-            radial-gradient(ellipse at 50% 50%, rgba(8, 8, 10, 0.32) 0%, rgba(8, 8, 10, 0.64) 100%);
+    /* Slides crossfade in place instead of travelling. */
+    .hero-slide,
+    .hero-slide[data-enter-from="right"],
+    .hero-slide[data-enter-from="left"],
+    .hero-slide[data-enter-from="top"],
+    .hero-slide[data-enter-from="bottom"] {
+        transform: none;
+        opacity: 0;
+        transition: opacity 0.6s ease;
+    }
+
+    .hero-slide.is-active,
+    .hero-slide.is-leaving {
+        opacity: 1;
     }
 }
 
