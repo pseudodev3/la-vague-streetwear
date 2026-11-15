@@ -116,6 +116,11 @@ test.describe('Homepage visual polish', () => {
 
     const slides = page.locator('.hero-slide');
     await expect(slides).toHaveCount(3);
+    // The preloaded campaign photo opens, followed by the two hero shots.
+    const slideSrcs = await slides.locator('img').evaluateAll(imgs =>
+      imgs.map(img => img.getAttribute('src'))
+    );
+    expect(slideSrcs).toEqual(['/assets/downtown.jpg', '/assets/hero.jpg', '/assets/hero2.jpg']);
     // No dots, counters or any other slideshow chrome.
     await expect(page.locator('.hero-dots, .hero-counter, .hero-pagination, .hero-slide-indicator')).toHaveCount(0);
     // The preloaded campaign photo is the opening slide.
