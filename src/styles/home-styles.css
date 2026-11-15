@@ -7,59 +7,8 @@
     position: relative;
 }
 
-.hero-logo {
-    position: absolute;
-    top: 0;
-    left: 0;
-    transform: translateX(-110px);
-    margin-bottom: 0;
-    z-index: 2;
-}
-
-.hero-logo img {
-    max-width: 80px;
-    height: auto;
-}
-
 .hero-title {
     margin-top: 0;
-}
-
-@media (max-width: 1024px) {
-    .hero-logo {
-        transform: translateX(-95px);
-    }
-    
-    .hero-logo img {
-        max-width: 70px;
-    }
-}
-
-@media (max-width: 768px) {
-    .hero-logo {
-        transform: translateX(-80px);
-        top: 5px;
-    }
-    
-    .hero-logo img {
-        max-width: 60px;
-    }
-}
-
-@media (max-width: 480px) {
-    .hero-logo {
-        position: relative;
-        transform: none;
-        left: auto;
-        top: auto;
-        display: block;
-        margin-bottom: 1rem;
-        text-align: center;
-    }
-    
-    .hero-logo img {
-        max-width: 60px;
-    }
 }
 
 /* Featured Products Section */
@@ -1201,9 +1150,12 @@
         margin-bottom: 2rem;
     }
 
+    /* Single-column editorial stack: one full-width portrait tile per look.
+       The 2-up collage crops faces off portrait photos at this width and
+       drowns the captions in the imagery. */
     .lookbook-collage {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .7rem;
+        grid-template-columns: 1fr;
+        gap: .9rem;
     }
 
     .lookbook-frame,
@@ -1214,31 +1166,42 @@
     .lookbook-frame--five,
     .lookbook-frame--six,
     .lookbook-frame--seven {
-        aspect-ratio: 4 / 5;
+        aspect-ratio: 3 / 4;
         border-radius: 1px;
     }
 
-    .lookbook-frame--hero {
-        aspect-ratio: 5 / 4;
+    /* Portrait boxes crop faces unless the bias sits above center. */
+    .lookbook-frame img {
+        object-position: 50% 25%;
     }
 
-    .lookbook-frame--four {
-        aspect-ratio: 5 / 4;
+    /* Gradient foot so captions stay legible over any photo. */
+    .lookbook-frame::before {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1;
+        height: 42%;
+        background: linear-gradient(to top, rgba(9, 9, 9, .78), rgba(9, 9, 9, 0));
+        content: "";
+        pointer-events: none;
     }
 
     .lookbook-frame figcaption {
-        right: .5rem;
-        bottom: .5rem;
-        left: 2.45rem;
+        right: .65rem;
+        bottom: .65rem;
+        left: 2.9rem;
         gap: .25rem;
-        font-size: .43rem;
-        letter-spacing: .07em;
+        font-size: .56rem;
+        letter-spacing: .12em;
+        line-height: 1.35;
     }
 
     .lookbook-number {
-        bottom: .5rem;
-        left: .5rem;
-        font-size: .72rem;
+        bottom: .62rem;
+        left: .65rem;
+        font-size: .85rem;
     }
 
     .lookbook-outro {
@@ -1280,7 +1243,7 @@
 @media (max-width: 360px) {
     .lookbook-shell { width: calc(100% - 1.5rem); }
     .lookbook-collage { gap: .55rem; }
-    .lookbook-frame figcaption { font-size: .38rem; }
+    .lookbook-frame figcaption { font-size: .5rem; }
     .lookbook-outro-top { font-size: .37rem; }
     .lookbook-shop-link { font-size: .4rem; padding-inline: .45rem; }
 }
