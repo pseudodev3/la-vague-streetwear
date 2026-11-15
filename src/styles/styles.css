@@ -79,8 +79,8 @@ html, body {
     }
 
     .nav-logo-img {
-        width: 42px;
-        height: 36px;
+        width: 46px;
+        height: 40px;
     }
 
     .nav-btn {
@@ -95,8 +95,8 @@ html, body {
 
 @media (max-width: 380px) {
     .nav-logo-img {
-        width: 38px;
-        height: 33px;
+        width: 41px;
+        height: 35px;
     }
 
     .nav-actions {
@@ -216,8 +216,8 @@ button {
    loading spinner - and stays still under reduced motion. */
 .nav-logo-img {
     display: block;
-    width: 48px;
-    height: 41px;
+    width: 53px;
+    height: 46px;
     outline: none; /* the storefront system frames every img; the nav mark floats free */
     transform-origin: center;
     animation: logo-roll 7s linear infinite;
