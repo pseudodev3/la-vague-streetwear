@@ -237,6 +237,42 @@
     color: var(--color-accent);
 }
 
+/* Paystack reassurance strip - names the processor and where card details
+   are entered (Paystack popup / hosted page), in Paystack's brand blue. */
+.paystack-reassure {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(0, 195, 247, 0.25);
+    background: rgba(0, 195, 247, 0.06);
+    border-radius: 4px;
+}
+
+.paystack-reassure svg {
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    color: #00c3f7;
+}
+
+.paystack-reassure p {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+.paystack-reassure strong {
+    color: var(--color-text);
+}
+
+.paystack-brand {
+    color: #00c3f7;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
 .card-icons {
     display: flex;
     gap: 0.5rem;
