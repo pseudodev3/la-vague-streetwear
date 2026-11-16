@@ -2414,20 +2414,18 @@ body .footer-bottom .payment-opay img {
   height: 20px;
 }
 
+/* Paystack wordmark is wider than the card marks - give it room at its
+   natural 157:28 aspect or object-fit shrinks it to a sliver. */
+body .footer-bottom .payment-paystack img {
+  max-width: 88px;
+  height: 16px;
+}
+
 body .footer-bottom .payment-palmpay {
   color: #5b21b6;
   font-size: .75rem;
   font-weight: 800;
   letter-spacing: -.035em;
-}
-
-body .footer-bottom .palmpay-mark {
-  width: 13px;
-  height: 13px;
-  display: inline-block;
-  border: 3px solid #7c3aed;
-  border-radius: 4px 8px 4px 8px;
-  transform: rotate(-12deg);
 }
 
 body .footer-bottom .payment-verve {
