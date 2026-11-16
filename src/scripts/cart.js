@@ -60,6 +60,15 @@ const CartState = {
             this.renderCart(false);
         }
     },
+
+    clearCart() {
+        this.cart = [];
+        localStorage.removeItem('cart');
+        this.updateCartCount();
+        if (document.getElementById('cartSidebar')?.classList.contains('active')) {
+            this.renderCart(false);
+        }
+    },
     
     saveWishlist() {
         localStorage.setItem('wishlist', JSON.stringify(this.wishlist));

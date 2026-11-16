@@ -80,9 +80,17 @@
         });
     }
 
+    function clearCheckoutCart() {
+        if (window.CartState && typeof window.CartState.clearCart === 'function') {
+            window.CartState.clearCart();
+        } else {
+            localStorage.removeItem('cart');
+        }
+    }
+
     function redirectToConfirmation(orderId) {
-        localStorage.removeItem('cart');
-        window.location.href = `order-confirmation.html?order=${encodeURIComponent(orderId)}&status=success`;
+        clearCheckoutCart();
+        window.location.href = `/order-confirmation?order=${encodeURIComponent(orderId)}&status=success`;
     }
 
     async function getCsrfToken() {
@@ -190,6 +198,7 @@
     }
 
     function showPaymentSuccess(orderId) {
+        clearCheckoutCart();
         const icon = document.getElementById('paystack-status-icon');
         if (icon) {
             icon.className = 'paystack-modal-icon paystack-modal-icon--success';
@@ -276,6 +285,7 @@
             const popup = paystackInstance || new window.PaystackPop();
             popup.resumeTransaction(paystackData.access_code, {
                 onSuccess: async transaction => {
+                    clearCheckoutCart();
                     showPaymentPendingMessage(orderId);
                     try {
                         const result = await verifyPayment(orderId, transaction?.reference);
@@ -325,8 +335,10 @@
         isAvailable: () => isPaystackAvailable,
         processOrder: processOrderWithPaystack,
         init: async function () {
-            await loadPaystackConfig();
-            await loadPaystackScript();
+            const configured = await loadPaystackConfig();
+            if (configured || isPaystackConfigured()) {
+                await loadPaystackScript();
+            }
         }
     };
 

@@ -219,6 +219,24 @@ describe('CartState', () => {
     expect(badge.textContent).toBe('5');
     expect(badge.classList.contains('active')).toBe(true);
   });
+
+  it('clears the cart in memory, storage, and badge count', () => {
+    CartState.cart = [
+      createMockCartItem({ id: 'lv-hoodie-001', quantity: 2 }),
+      createMockCartItem({ id: 'lv-tee-001', quantity: 1 })
+    ];
+    CartState.saveCart();
+    expect(getCart()).toHaveLength(2);
+    expect(document.getElementById('cartCount').textContent).toBe('3');
+
+    CartState.clearCart();
+
+    expect(CartState.cart).toEqual([]);
+    expect(getCart()).toEqual([]);
+    expect(localStorage.getItem('cart')).toBeNull();
+    expect(document.getElementById('cartCount').textContent).toBe('0');
+    expect(document.getElementById('cartCount').classList.contains('active')).toBe(false);
+  });
 });
 
 describe('CurrencyConfig', () => {
