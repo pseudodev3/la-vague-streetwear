@@ -275,26 +275,36 @@ async function renderFeaturedProducts() {
         const reviewCount = Math.max(0, Number.parseInt(product.review_count, 10) || 0);
 
         return `
-        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''}" data-home-action="open-product" data-slug="${safeSlug}" role="link" tabindex="0">
+        <article class="product-card reveal-up ${isSoldOut ? 'sold-out' : ''} ${index === 0 ? 'is-lead-rank' : ''}" data-home-action="open-product" data-slug="${safeSlug}" role="link" tabindex="0">
+            <div class="product-card-topline" aria-hidden="true">
+                <span class="product-card-index">NO. ${String(index + 1).padStart(2, '0')}</span>
+                <span class="product-card-dept">${homeEscapeHTML(categoryName)}</span>
+            </div>
             <div class="product-image-wrapper">
                 ${badgeHtml}
                 <span class="product-rank" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span>
                 ${index === 0 ? '<span class="product-rank-flag">Most Wanted</span>' : ''}
                 <img src="${firstSrc}" alt="${firstAlt}" class="product-image" loading="lazy">
                 ${secondSrc ? `<img src="${secondSrc}" alt="${secondAlt}" class="product-image-hover" loading="lazy">` : ''}
+                <div class="product-quick-bar" aria-hidden="true">
+                    <span>${isSoldOut ? 'Sold Out' : 'View Piece'}</span>
+                    <span class="product-quick-arrow">↗</span>
+                </div>
             </div>
             <div class="product-info">
-                <p class="product-category">${homeEscapeHTML(categoryName)}</p>
-                <h3 class="product-name">${homeEscapeHTML(product.name)}</h3>
+                <div class="product-info-main">
+                    <p class="product-category">${homeEscapeHTML(categoryName)}</p>
+                    <h3 class="product-name">${homeEscapeHTML(product.name)}</h3>
+                    ${reviewCount > 0 ? `
+                        <div class="product-rating">
+                            <span class="star-rating-small">${renderStarRating(Number(product.average_rating) || 0)}</span>
+                            <span class="rating-text">(${reviewCount})</span>
+                        </div>
+                    ` : ''}
+                </div>
                 <div class="product-price">
                     <span class="current-price">${CurrencyConfig.formatPrice(Number(product.price) || 0)}</span>
                 </div>
-                ${reviewCount > 0 ? `
-                    <div class="product-rating">
-                        <span class="star-rating-small">${renderStarRating(Number(product.average_rating) || 0)}</span>
-                        <span class="rating-text">(${reviewCount})</span>
-                    </div>
-                ` : ''}
             </div>
         </article>
     `;

@@ -49,7 +49,7 @@
     
     <!-- Styles -->
     <link rel="stylesheet" href="src/styles/styles.css?v=9.8">
-    <link rel="stylesheet" href="src/styles/home-styles.css?v=9.4">
+    <link rel="stylesheet" href="src/styles/home-styles.css?v=9.5">
     
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -150,14 +150,28 @@
     <!-- Featured Products Section -->
     <section class="featured-products" id="featured">
         <div class="container">
-            <div class="section-header">
-                <span class="section-tag reveal-up">Bestsellers</span>
-                <h2 class="section-title reveal-up">Most Wanted</h2>
+            <div class="section-header featured-masthead">
+                <div class="featured-masthead-copy">
+                    <div class="featured-kicker-row reveal-up">
+                        <span class="section-tag">Bestsellers</span>
+                        <span class="featured-kicker-rule" aria-hidden="true"></span>
+                        <span class="featured-kicker-meta">ARCHIVE ROTATION // 01–04</span>
+                    </div>
+                    <h2 class="section-title reveal-up">Most Wanted</h2>
+                </div>
+                <div class="featured-masthead-aside reveal-up">
+                    <p class="featured-masthead-note">Heavyweight staples and limited-run silhouettes leading the current drop.</p>
+                    <a href="/shop" class="featured-archive-link">
+                        <span>Explore Full Catalog</span>
+                        <span class="featured-archive-arrow" aria-hidden="true">↗</span>
+                    </a>
+                </div>
             </div>
             <div class="featured-grid" id="featuredProducts">
                 <!-- Loaded dynamically -->
             </div>
-            <div class="section-cta reveal-up">
+            <div class="section-cta featured-footer-bar reveal-up">
+                <span class="featured-footer-meta">SMALL-BATCH PRODUCTION • CRAFTED IN NIGERIA</span>
                 <a href="/shop" class="btn btn-secondary">View All Products</a>
             </div>
         </div>
@@ -166,52 +180,81 @@
     <!-- Collections Section -->
     <section class="collections" id="collections">
         <div class="container">
-            <div class="section-header">
-                <span class="section-tag reveal-up">Collections</span>
-                <h2 class="section-title reveal-up">Shop by Category</h2>
+            <div class="section-header collections-masthead">
+                <div class="collections-masthead-copy">
+                    <div class="featured-kicker-row reveal-up">
+                        <span class="section-tag">Collections</span>
+                        <span class="featured-kicker-rule" aria-hidden="true"></span>
+                        <span class="featured-kicker-meta">04 CORE DEPARTMENTS</span>
+                    </div>
+                    <h2 class="section-title reveal-up">Shop by Category</h2>
+                </div>
+                <p class="collections-masthead-note reveal-up">Engineered across four foundational categories built for daily uniform rotation.</p>
             </div>
             <div class="collections-grid">
-                <a href="shop.html?category=hoodies" class="collection-card featured reveal-scale">
+                <a href="shop.html?category=hoodies" class="collection-card featured reveal-scale" data-collection-index="01">
                     <div class="collection-image">
                         <img src="/assets/hoodie.jpg" alt="Hoodies Collection" loading="lazy">
                         <div class="collection-overlay">
+                            <span class="collection-index" aria-hidden="true">01</span>
                             <span class="collection-tag">New</span>
                         </div>
                     </div>
                     <div class="collection-info">
-                        <h3>Hoodies</h3>
-                        <p>Premium heavyweight essentials</p>
-                        <span class="collection-link">Shop Now →</span>
+                        <div class="collection-info-text">
+                            <span class="collection-kicker">Core Fleece</span>
+                            <h3>Hoodies</h3>
+                            <p>Premium heavyweight essentials</p>
+                        </div>
+                        <span class="collection-link">Shop Now <span aria-hidden="true">→</span></span>
                     </div>
                 </a>
-                <a href="shop.html?category=tees" class="collection-card reveal-scale">
+                <a href="shop.html?category=tees" class="collection-card reveal-scale" data-collection-index="02">
                     <div class="collection-image">
                         <img src="/assets/tshirts.jpg" alt="Tees Collection" loading="lazy">
+                        <div class="collection-overlay">
+                            <span class="collection-index" aria-hidden="true">02</span>
+                        </div>
                     </div>
                     <div class="collection-info">
-                        <h3>T-Shirts</h3>
-                        <p>Bold statements, premium fit</p>
-                        <span class="collection-link">Shop Now →</span>
+                        <div class="collection-info-text">
+                            <span class="collection-kicker">Graphic &amp; Box Fit</span>
+                            <h3>T-Shirts</h3>
+                            <p>Bold statements, premium fit</p>
+                        </div>
+                        <span class="collection-link">Shop Now <span aria-hidden="true">→</span></span>
                     </div>
                 </a>
-                <a href="shop.html?category=bottoms" class="collection-card reveal-scale">
+                <a href="shop.html?category=bottoms" class="collection-card reveal-scale" data-collection-index="03">
                     <div class="collection-image">
                         <img src="/assets/bottoms.jpg" alt="Bottoms Collection" loading="lazy">
+                        <div class="collection-overlay">
+                            <span class="collection-index" aria-hidden="true">03</span>
+                        </div>
                     </div>
                     <div class="collection-info">
-                        <h3>Bottoms</h3>
-                        <p>From cargo to denim</p>
-                        <span class="collection-link">Shop Now →</span>
+                        <div class="collection-info-text">
+                            <span class="collection-kicker">Utility &amp; Denim</span>
+                            <h3>Bottoms</h3>
+                            <p>From cargo to denim</p>
+                        </div>
+                        <span class="collection-link">Shop Now <span aria-hidden="true">→</span></span>
                     </div>
                 </a>
-                <a href="shop.html?category=accessories" class="collection-card reveal-scale">
+                <a href="shop.html?category=accessories" class="collection-card collection-card-wide reveal-scale" data-collection-index="04">
                     <div class="collection-image">
                         <img src="/assets/accessories.jpg" alt="Accessories Collection" loading="lazy">
+                        <div class="collection-overlay">
+                            <span class="collection-index" aria-hidden="true">04</span>
+                        </div>
                     </div>
                     <div class="collection-info">
-                        <h3>Accessories</h3>
-                        <p>Complete the look</p>
-                        <span class="collection-link">Shop Now →</span>
+                        <div class="collection-info-text">
+                            <span class="collection-kicker">Headwear &amp; Carry</span>
+                            <h3>Accessories</h3>
+                            <p>Complete the look</p>
+                        </div>
+                        <span class="collection-link">Shop Now <span aria-hidden="true">→</span></span>
                     </div>
                 </a>
             </div>
@@ -365,7 +408,7 @@
     <script src="src/scripts/cart.js?v=10.0"></script>
     <script src="src/scripts/components.js?v=10.7"></script>
 <script src="src/scripts/cookie-consent.js?v=9.0"></script>
-    <script src="src/scripts/home.js?v=9.3"></script>
+    <script src="src/scripts/home.js?v=9.4"></script>
     <script src="src/scripts/pwa-register.js?v=1.0"></script>
 </body>
 </html>
