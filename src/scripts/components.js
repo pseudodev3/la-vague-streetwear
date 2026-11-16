@@ -172,7 +172,35 @@ window.Components = {
                 const searchOverlay = document.getElementById('searchOverlay');
 
                 if (nav) nav.innerHTML = this.templates.nav;
-                if (footer) footer.innerHTML = this.templates.footer;
+                if (footer) {
+                    footer.innerHTML = this.templates.footer;
+                    footer.querySelectorAll('.footer-links h4').forEach(heading => {
+                        heading.setAttribute('role', 'button');
+                        heading.setAttribute('tabindex', '0');
+                        heading.setAttribute('aria-expanded', 'false');
+                        const toggle = () => {
+                            if (!window.matchMedia('(max-width: 640px)').matches) return;
+                            const section = heading.closest('.footer-links');
+                            if (!section) return;
+                            const willOpen = !section.classList.contains('is-open');
+                            footer.querySelectorAll('.footer-links.is-open').forEach(openSection => {
+                                if (openSection !== section) {
+                                    openSection.classList.remove('is-open');
+                                    openSection.querySelector('h4')?.setAttribute('aria-expanded', 'false');
+                                }
+                            });
+                            section.classList.toggle('is-open', willOpen);
+                            heading.setAttribute('aria-expanded', String(willOpen));
+                        };
+                        heading.addEventListener('click', toggle);
+                        heading.addEventListener('keydown', event => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                toggle();
+                            }
+                        });
+                    });
+                }
                 if (cartSidebar) cartSidebar.innerHTML = this.templates.cartSidebar;
                 if (wishlistSidebar) wishlistSidebar.innerHTML = this.templates.wishlistSidebar;
                 if (searchOverlay) searchOverlay.innerHTML = this.templates.searchOverlay;

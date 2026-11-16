@@ -116,5 +116,18 @@ test.describe('Checkout', () => {
     });
     expect(footerPayments.bg).toBe('rgba(0, 0, 0, 0)');
     expect(footerPayments.paddingTop).toBe('0px');
+
+    const footerSections = page.locator('.footer .footer-links');
+    await expect(footerSections.first().locator('ul')).toBeHidden();
+    const collapsedHeight = await page.locator('footer.footer').evaluate(el => el.getBoundingClientRect().height);
+    expect(collapsedHeight).toBeLessThan(520);
+
+    await footerSections.nth(0).locator('h4').click();
+    await expect(footerSections.nth(0)).toHaveClass(/is-open/);
+    await expect(footerSections.nth(0).locator('ul')).toBeVisible();
+
+    await footerSections.nth(1).locator('h4').click();
+    await expect(footerSections.nth(1)).toHaveClass(/is-open/);
+    await expect(footerSections.nth(0)).not.toHaveClass(/is-open/);
   });
 });
