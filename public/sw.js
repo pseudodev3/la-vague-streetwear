@@ -16,7 +16,7 @@ const APP_SHELL = [
 const NETWORK_ONLY_ROUTES = [
     /\/api\//,
     /\/admin(?:\.html)?$/,
-    /paystack/i,
+    /\/api\/paystack/i,
     /checkout\.paystack\.com/i,
     /js\.paystack\.co/i
 ];
