@@ -601,12 +601,83 @@
     }
     
     .shipping-option {
-        padding: 0.875rem;
-        gap: 0.75rem;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 1rem;
+        gap: 0.875rem;
     }
-    
+
+    .shipping-info {
+        min-width: 0;
+        gap: 0.2rem;
+    }
+
+    .shipping-name {
+        font-size: 0.9375rem;
+        line-height: 1.25;
+    }
+
+    .shipping-time {
+        font-size: 0.8125rem;
+        line-height: 1.35;
+    }
+
     .shipping-price {
-        font-size: 0.875rem;
+        flex: 0 0 auto;
+        font-size: 0.9375rem;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        margin-left: auto;
+    }
+
+    .payment-method {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr) auto;
+        column-gap: 0.75rem;
+        row-gap: 0.5rem;
+        align-items: center;
+        padding: 1rem;
+    }
+
+    .payment-method input {
+        grid-column: 1;
+        grid-row: 1;
+        align-self: center;
+        margin: 0;
+    }
+
+    .payment-method-copy {
+        display: contents;
+    }
+
+    .payment-method-title {
+        grid-column: 2;
+        grid-row: 1;
+        font-size: 0.9375rem;
+        line-height: 1.3;
+        align-self: center;
+    }
+
+    .payment-icons {
+        grid-column: 3;
+        grid-row: 1;
+        align-self: center;
+        gap: 0.45rem;
+    }
+
+    .payment-method .payment-icon {
+        width: 30px;
+        height: 30px;
+        padding: 0.32rem;
+        border-radius: 7px;
+    }
+
+    .payment-method-sub {
+        grid-column: 2 / -1;
+        grid-row: 2;
+        font-size: 0.8rem;
+        line-height: 1.5;
     }
     
     .card-form {
@@ -682,18 +753,5 @@
     
     .summary-discount button {
         width: 100%;
-    }
-    
-    .shipping-option {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    
-    .shipping-price {
-        width: 100%;
-        text-align: left;
-        margin-top: 0;
-        padding-left: 1.75rem;
     }
 }

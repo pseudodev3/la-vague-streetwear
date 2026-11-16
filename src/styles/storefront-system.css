@@ -2384,72 +2384,98 @@ body .footer-bottom .payment-methods {
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: .55rem;
+  gap: .65rem 1.15rem;
   min-width: 0;
 }
 
 body .footer-bottom .payment-icon {
   width: auto;
   min-width: 0;
-  height: 34px;
-  min-height: 34px;
+  height: 22px;
+  min-height: 22px;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: .3rem;
-  padding: .35rem .55rem;
-  background: rgba(255,255,255,.96);
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 7px;
-  color: #202020;
-  font-size: .68rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--lv-text);
+  font-size: .72rem;
   font-weight: 750;
   letter-spacing: .015em;
   line-height: 1;
   white-space: nowrap;
   box-sizing: border-box;
+  opacity: .88;
+  transition: opacity 150ms var(--lv-ease);
+}
+
+@media (hover:hover) and (pointer:fine) {
+  body .footer-bottom .payment-icon:hover {
+    opacity: 1;
+  }
 }
 
 body .footer-bottom .payment-icon img {
   display: block;
   width: auto;
-  max-width: 62px;
-  height: 18px;
+  max-width: 58px;
+  height: 16px;
   object-fit: contain;
   outline: 0;
-}
-
-body .footer-bottom .payment-opay img {
-  max-width: 66px;
-  height: 20px;
 }
 
 /* Paystack wordmark is wider than the card marks - give it room at its
    natural 157:28 aspect or object-fit shrinks it to a sliver. */
 body .footer-bottom .payment-paystack img {
-  max-width: 88px;
-  height: 16px;
+  max-width: 86px;
+  height: 15px;
+}
+
+body .footer-bottom .payment-visa img {
+  max-width: 48px;
+  height: 15px;
+}
+
+body .footer-bottom .payment-mastercard img {
+  max-width: 28px;
+  height: 17px;
+}
+
+body .footer-bottom .payment-opay img {
+  max-width: 44px;
+  height: 18px;
 }
 
 body .footer-bottom .payment-palmpay {
-  color: #5b21b6;
-  font-size: .75rem;
+  color: #b794f4;
+  font-size: .76rem;
   font-weight: 800;
-  letter-spacing: -.035em;
+  letter-spacing: -.03em;
 }
 
 body .footer-bottom .payment-verve {
-  color: #164b9b;
+  color: var(--lv-text);
+  font-size: .76rem;
   font-style: italic;
   font-weight: 900;
-  letter-spacing: -.06em;
+  letter-spacing: -.05em;
 }
 
 body .footer-bottom .payment-channel {
-  color: #303030;
+  height: 22px;
+  min-height: 22px;
+  padding: 0 .48rem;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 5px;
+  background: rgba(255,255,255,.025);
+  color: var(--lv-muted);
   font-size: .58rem;
-  letter-spacing: .04em;
+  font-weight: 700;
+  letter-spacing: .065em;
 }
 
 @media (max-width: 640px) {
@@ -2459,7 +2485,7 @@ body .footer-bottom .payment-channel {
 
   body .footer-bottom .payment-methods {
     justify-content: flex-start;
-    gap: .45rem;
+    gap: .55rem .95rem;
   }
 }
 

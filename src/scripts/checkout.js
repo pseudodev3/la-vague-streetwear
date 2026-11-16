@@ -312,7 +312,12 @@ async function handlePlaceOrder(event) {
             throw new Error(result.error || 'Could not place order');
         }
 
-        localStorage.removeItem('cart');
+        state.cart = [];
+        if (window.CartState && typeof window.CartState.clearCart === 'function') {
+            window.CartState.clearCart();
+        } else {
+            localStorage.removeItem('cart');
+        }
         window.location.href = `/order-confirmation?order=${encodeURIComponent(result.orderId)}`;
     } catch (error) {
         showToast(error.message || 'Could not place order', 'error');

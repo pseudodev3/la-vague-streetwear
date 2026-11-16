@@ -129,7 +129,7 @@ window.Components = {
                 <span>Subtotal</span>
                 <span id="cartSubtotal">$0</span>
             </div>
-            <a href="checkout.html" class="btn btn-primary btn-full">Checkout</a>
+            <a href="/checkout" class="btn btn-primary btn-full">Checkout</a>
             <p class="cart-note">Shipping & taxes calculated at checkout</p>
         </div>
         `,

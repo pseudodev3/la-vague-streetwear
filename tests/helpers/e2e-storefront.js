@@ -71,6 +71,13 @@ export const mockStoreProducts = [
 ];
 
 export async function mockStorefrontAPI(page) {
+  await page.route('https://fonts.googleapis.com/**', route =>
+    route.fulfill({ status: 200, contentType: 'text/css', body: '' })
+  );
+  await page.route('https://fonts.gstatic.com/**', route =>
+    route.fulfill({ status: 200, contentType: 'font/woff2', body: '' })
+  );
+
   await page.route('**/api/products**', async route => {
     const url = new URL(route.request().url());
     const path = url.pathname;
