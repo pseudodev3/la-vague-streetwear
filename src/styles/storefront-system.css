@@ -1149,6 +1149,13 @@ body .footer-links {
   min-width: 0;
 }
 
+body .footer-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
 body .footer-logo-img {
   max-width: min(200px, 70vw);
   height: auto;
@@ -1157,6 +1164,8 @@ body .footer-logo-img {
 
 body .footer-tagline {
   max-width: 34ch;
+  margin: 0;
+  text-align: left;
 }
 
 body .footer-links h4 {
@@ -2357,15 +2366,17 @@ body .wishlist-item-image {
 /* Footer identity + payment marks. The wordmark PNG's canvas carries
    transparent margins around the oval (artwork spans 12.5%-87.5% of width,
    28.6%-71.4% of height), so the mark is pulled left by its own inset to
-   align with the tagline, and the bottom margin compensates the invisible
-   band below the artwork. */
+   align with the tagline, and the vertical margins compensate the invisible
+   bands above and below the artwork. */
 body .footer-logo-img {
-  --footer-logo-w: 110px;
+  --footer-logo-w: 60px;
   width: var(--footer-logo-w);
   max-width: var(--footer-logo-w);
   height: auto;
+  display: block;
+  margin-top: calc(var(--footer-logo-w) * -0.245);
   margin-left: calc(var(--footer-logo-w) * -0.125);
-  margin-bottom: calc(1rem - var(--footer-logo-w) * 0.245);
+  margin-bottom: calc(0.65rem - var(--footer-logo-w) * 0.245);
 }
 
 body .footer-bottom .payment-methods {
@@ -2443,7 +2454,7 @@ body .footer-bottom .payment-channel {
 
 @media (max-width: 640px) {
   body .footer-logo-img {
-    --footer-logo-w: 100px;
+    --footer-logo-w: 56px;
   }
 
   body .footer-bottom .payment-methods {
