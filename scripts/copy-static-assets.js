@@ -8,6 +8,7 @@ const dist = resolve(root, 'dist');
 
 const files = [
     'la-vague-red-wordmark.png',
+    'favicon.png',
     'src/config/sentry-env.js',
     'src/config/sentry-browser.js'
 ];
