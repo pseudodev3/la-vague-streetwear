@@ -1,11 +1,20 @@
+import crypto from 'crypto';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { asyncHandler, APIError } from '../middleware/errorHandler.js';
 import { query, USE_POSTGRES } from '../config/db.js';
 import { csrfProtection } from '../middleware/csrf.js';
+import { validateReview } from '../middleware/validation.js';
 import { sendReviewConfirmationEmail, sendNewReviewNotification } from '../../email-templates/index.js';
 import { cacheService } from '../utils/cache.js';
 
 const router = express.Router();
+
+const reviewLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { success: false, error: 'Too many review submissions, please try again later.' }
+});
 
 const safeParseJSON = (val, defaultValue = null) => {
     if (val === null || val === undefined) return defaultValue;
@@ -73,21 +82,24 @@ router.get('/:slug', asyncHandler(async (req, res) => {
     res.json({ success: true, product });
 }));
 
-// Get reviews for a product
+// Get reviews for a product (public: approved reviews only, no PII)
 router.get('/:id/reviews', asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { status = 'approved', sort = 'newest' } = req.query;
-
-    let sql = 'SELECT * FROM reviews WHERE product_id = $1';
-    const params = [id];
-    if (status) { sql += ' AND status = $2'; params.push(status); }
+    const { sort = 'newest' } = req.query;
 
     const sortOrder = sort === 'newest' ? 'created_at DESC' :
         sort === 'highest' ? 'rating DESC' :
             sort === 'lowest' ? 'rating ASC' : 'created_at DESC';
-    sql += ` ORDER BY ${sortOrder}`;
 
-    const result = await query(sql, params);
+    const sql = `
+        SELECT id, product_id, customer_name, rating, title, review_text, photos,
+               verified_purchase, status, admin_response, created_at
+        FROM reviews
+        WHERE product_id = $1 AND status = 'approved'
+        ORDER BY ${sortOrder}
+    `;
+
+    const result = await query(sql, [id]);
     const reviews = result.rows.map(r => ({ ...r, photos: safeParseJSON(r.photos, []) }));
 
     const summaryResult = await query(`
@@ -99,23 +111,40 @@ router.get('/:id/reviews', asyncHandler(async (req, res) => {
 }));
 
 // Submit review
-router.post('/:id/reviews', csrfProtection, asyncHandler(async (req, res) => {
+router.post('/:id/reviews', csrfProtection, reviewLimiter, validateReview, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { orderId, customerEmail, customerName, rating, title, reviewText, photos } = req.body;
-    const reviewId = `rvw-${Date.now()}`;
-    const isVerified = !!orderId;
+
+    const productResult = await query('SELECT id, name FROM products WHERE id = $1', [id]);
+    if (productResult.rows.length === 0) {
+        throw new APIError('Product not found', 404);
+    }
+    const productName = productResult.rows[0].name || id;
+
+    const reviewId = `rvw-${crypto.randomBytes(6).toString('hex')}`;
+
+    let isVerified = false;
+    if (orderId) {
+        const orderResult = await query(
+            `SELECT items FROM orders WHERE id = $1 AND LOWER(customer_email) = LOWER($2) AND payment_status = 'paid'`,
+            [orderId, customerEmail]
+        );
+        if (orderResult.rows.length > 0) {
+            const items = safeParseJSON(orderResult.rows[0].items, []);
+            isVerified = Array.isArray(items) && items.some(
+                item => String(item?.id || item?.productId || '') === String(id)
+            );
+        }
+    }
 
     await query(`
         INSERT INTO reviews (id, product_id, order_id, customer_email, customer_name, rating, title, review_text, photos, verified_purchase)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    `, [reviewId, id, orderId || null, customerEmail, customerName, rating, title, reviewText, JSON.stringify(photos || []), isVerified]);
+    `, [reviewId, id, orderId || null, customerEmail, customerName, rating, title || '', reviewText, JSON.stringify(photos || []), USE_POSTGRES ? isVerified : (isVerified ? 1 : 0)]);
 
     // Send notifications asynchronously
     (async () => {
         try {
-            const productResult = await query('SELECT name FROM products WHERE id = $1', [id]);
-            const productName = productResult.rows[0]?.name || id;
-
             await sendReviewConfirmationEmail({
                 customerEmail,
                 customerName,
