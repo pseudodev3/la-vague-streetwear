@@ -164,39 +164,48 @@ Production PostgreSQL paths use transactions and row locking to reduce race cond
 
 ## Admin Panel
 
-The admin panel is available through the storefront deployment and authenticates against the API.
+The admin panel is available through the storefront deployment (`/admin.html`) and authenticates against the API.
 
-Admin credentials are server-side environment variables. The browser does not contain the admin password.
+Initial setup credentials use `ADMIN_PASSWORD` on the server until the store owner sets a private password in **Settings → Admin Security & Handover** (`POST /api/admin/change-password`). Once set, the salted `scrypt` hash in `settings` (`admin_password_hash`) replaces `ADMIN_PASSWORD` and revokes all other active sessions. The browser never stores the admin password.
 
-Admin sessions use browser session storage and protected API routes. The panel includes:
+Admin sessions use `HttpOnly`, `SameSite=Strict` server session cookies (`la_vague_admin_session`) and CSRF-protected API routes. The panel includes:
 
 - overview and revenue metrics
 - orders and order status management
 - products and inventory
 - coupons
 - reviews
-- store settings
+- store settings, pre-launch lock, and drop countdown
 
 In **Settings → Store announcement**, enable a campaign, enter its message, and
 choose an end date. A start date is optional; times use your browser's timezone.
 Outside the campaign dates, the announcement bar shows the current free-shipping
 policy. Expired campaigns stop automatically, including on pages already open.
 
+In **Settings → Website Pre-Launch Lock**, you can lock the storefront behind an
+early-access visitor password until your website launch date (enforced server-side
+on `/api/products`, `/api/orders`, and `/api/gdpr`). Independently, **Settings →
+Product / Drop Launch Countdown** controls the live countdown banner in the
+homepage hero.
+
 ## Security
 
 Current hardening includes:
 
-- server-side Paystack verification
+- server-side Paystack verification and Paystack-only checkout order validation
 - order-bound payment references and amount checks
 - HMAC verification for Paystack webhooks
 - server-owned prices, shipping totals, and coupon calculations
+- server-side pre-launch API lock (`requirePrelaunchUnlocked`) with HMAC-signed `HttpOnly` visitor cookies
+- review PII stripping, verified-purchase order checks, and HTML-escaped review emails
+- strict image MIME upload allowlist (`JPEG`, `PNG`, `WebP`, `GIF`)
 - CSRF protection on state-changing browser requests
 - CORS allow-listing for the storefront
 - Helmet security headers
 - API rate limiting
 - PostgreSQL parameterized queries
 - transactional inventory reservation/finalization
-- admin authentication enforced server-side
+- admin authentication enforced server-side (`HttpOnly` session cookies + `scrypt` owner password rotation)
 - HTTPS enforcement in production
 - Netlify CSP, HSTS, referrer, framing, and MIME-sniffing headers
 - CSP blocks inline executable scripts and script attributes
@@ -272,6 +281,7 @@ npm run check
 
 ## Documentation
 
+- `docs/ADMIN_HANDOVER.md` — client handover, owner password rotation, and daily operations
 - `docs/DEPLOYMENT.md` — current Netlify/Render deployment setup
 - `docs/PWA.md` — service-worker/PWA notes
 - `public/openapi.yaml` — OpenAPI source deployed as `/openapi.yaml`
