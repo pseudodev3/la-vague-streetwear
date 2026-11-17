@@ -17,7 +17,7 @@ import logger from './src/utils/logger.js';
 import productRoutes from './src/routes/products.js';
 import orderRoutes from './src/routes/orders.js';
 import gdprRoutes from './src/routes/gdpr.js';
-import configRoutes from './src/routes/config.js';
+import configRoutes, { requirePrelaunchUnlocked } from './src/routes/config.js';
 import paymentRoutes from './src/routes/payment.js';
 import adminRoutes from './src/routes/admin.js';
 
@@ -231,9 +231,9 @@ app.get('/api/sitemap.xml', async (req, res, next) => {
     }
 });
 
-app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes(productService, inventoryService));
-app.use('/api/gdpr', gdprRoutes);
+app.use('/api/products', requirePrelaunchUnlocked, productRoutes);
+app.use('/api/orders', requirePrelaunchUnlocked, orderRoutes(productService, inventoryService));
+app.use('/api/gdpr', requirePrelaunchUnlocked, gdprRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/payment', paymentRoutes(inventoryService));
 app.use('/api/admin', adminRoutes(productService, inventoryService));

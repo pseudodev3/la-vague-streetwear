@@ -33,7 +33,7 @@ function getPrelaunchSecret() {
 
 function isPrelaunchLocked(settings) {
     if (settings.prelaunchLockEnabled !== 'true') return false;
-    const targetMs = new Date(settings.launchCountdownTarget || DEFAULT_LAUNCH_TARGET).getTime();
+    const targetMs = new Date(settings.prelaunchTarget || DEFAULT_LAUNCH_TARGET).getTime();
     return Number.isFinite(targetMs) && targetMs > Date.now();
 }
 
@@ -114,15 +114,45 @@ router.get(
                 announcement: getActiveAnnouncement(settings),
                 launchCountdown: {
                     enabled: settings.launchCountdownEnabled !== 'false',
-                    title: settings.launchCountdownTitle || 'WEBSITE LAUNCHES IN',
-                    targetDate: settings.launchCountdownTarget || DEFAULT_LAUNCH_TARGET,
+                    title: settings.launchCountdownTitle || 'DROP 001 LAUNCHES IN',
+                    targetDate: settings.launchCountdownTarget || DEFAULT_LAUNCH_TARGET
+                },
+                prelaunchGate: {
                     lockEnabled: isPrelaunchLocked(settings),
-                    unlocked: !isPrelaunchLocked(settings) || hasValidPrelaunchCookie(req, settings)
+                    unlocked: !isPrelaunchLocked(settings) || hasValidPrelaunchCookie(req, settings),
+                    title: settings.prelaunchTitle || 'WEBSITE LAUNCHES IN',
+                    targetDate: settings.prelaunchTarget || DEFAULT_LAUNCH_TARGET
                 }
             }
         });
     })
 );
+
+export async function requirePrelaunchUnlocked(req, res, next) {
+    try {
+        const result = await query('SELECT key, value FROM settings WHERE key IN ($1, $2, $3)', [
+            'prelaunchLockEnabled',
+            'prelaunchTarget',
+            'prelaunch_password_version'
+        ]);
+        const settings = {};
+        result.rows.forEach(row => {
+            settings[row.key] = row.value;
+        });
+
+        if (!isPrelaunchLocked(settings) || hasValidPrelaunchCookie(req, settings)) {
+            return next();
+        }
+
+        return res.status(403).json({
+            success: false,
+            error: 'Website is currently locked until launch.',
+            code: 'PRELAUNCH_LOCKED'
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
 
 router.post(
     '/prelaunch-unlock',

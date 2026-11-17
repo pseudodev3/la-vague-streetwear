@@ -185,7 +185,7 @@ async function initLaunchCountdown() {
         }
 
         if (titleEl) {
-            titleEl.textContent = countdown.title || 'WEBSITE LAUNCHES IN';
+            titleEl.textContent = countdown.title || 'DROP 001 LAUNCHES IN';
         }
 
         const renderTick = () => {

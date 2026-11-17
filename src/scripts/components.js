@@ -226,11 +226,11 @@ async function initPrelaunchGate() {
         const res = await fetch('/api/config/settings', { cache: 'no-store', credentials: 'include' });
         if (!res.ok) return;
         const data = await res.json();
-        const countdown = data?.settings?.launchCountdown;
-        if (!countdown || !countdown.lockEnabled || countdown.unlocked) return;
+        const gateConfig = data?.settings?.prelaunchGate;
+        if (!gateConfig || !gateConfig.lockEnabled || gateConfig.unlocked) return;
         if (document.getElementById('prelaunchGate')) return;
 
-        const targetMs = new Date(countdown.targetDate).getTime();
+        const targetMs = new Date(gateConfig.targetDate).getTime();
         if (!Number.isFinite(targetMs) || targetMs <= Date.now()) return;
 
         const gate = document.createElement('div');
@@ -250,7 +250,7 @@ async function initPrelaunchGate() {
         const title = document.createElement('h1');
         title.id = 'prelaunchGateTitle';
         title.className = 'prelaunch-gate-title';
-        title.textContent = countdown.title || 'WEBSITE LAUNCHES IN';
+        title.textContent = gateConfig.title || 'WEBSITE LAUNCHES IN';
 
         const timer = document.createElement('div');
         timer.className = 'prelaunch-gate-timer';
@@ -313,6 +313,7 @@ async function initPrelaunchGate() {
                 clearInterval(intervalId);
                 document.body.classList.remove('prelaunch-locked');
                 gate.remove();
+                window.location.reload();
                 return;
             }
             const total = Math.floor(diff / 1000);
@@ -353,6 +354,7 @@ async function initPrelaunchGate() {
                 clearInterval(intervalId);
                 document.body.classList.remove('prelaunch-locked');
                 gate.remove();
+                window.location.reload();
             } catch {
                 errEl.textContent = 'Unable to verify password. Please try again.';
                 btn.disabled = false;
