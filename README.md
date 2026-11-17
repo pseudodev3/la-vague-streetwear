@@ -2,18 +2,7 @@
 
 Production e-commerce platform for **LA VAGUE**, a Nigerian streetwear brand.
 
-## About
 
-Founded in 2024 in Nigeria, **LA VAGUE** builds timeless, limited-run streetwear crafted with 100% organic cotton. The platform powers the direct-to-consumer storefront, Paystack NGN checkout, inventory reservations, customer order tracking, and the store admin dashboard.
-
-- Storefront: https://la-vague.store
-- Frontend hosting: Netlify
-- API hosting: Render
-- Database: Aiven PostgreSQL in production, SQLite fallback for local development
-- Payments: Paystack
-- Media: Cloudinary
-- Email: Brevo API/SMTP, generic SMTP, Gmail, or SendGrid
-- Error tracking: Sentry
 
 ## Architecture
 
