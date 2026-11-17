@@ -1530,25 +1530,85 @@ body .collections .collection-card .collection-link {
     }
 }
 
+.lookbook-mobile-kicker {
+    display: none;
+}
+
 @media (max-width: 600px) {
     .lookbook {
         padding: 3rem 0 4rem;
+        overflow-x: clip;
     }
 
     .lookbook-shell {
-        width: calc(100% - 2rem);
+        width: 100%;
     }
 
     .lookbook-original-heading {
-        margin-bottom: 2rem;
+        margin-bottom: 1.35rem;
     }
 
-    /* Single-column editorial stack: one full-width portrait tile per look.
-       The 2-up collage crops faces off portrait photos at this width and
-       drowns the captions in the imagery. */
+    .lookbook-mobile-kicker {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0 1.25rem;
+        margin-bottom: 1.1rem;
+    }
+
+    .lookbook-mobile-statement {
+        display: inline-flex;
+        align-items: center;
+        gap: .6rem;
+    }
+
+    .lookbook-mobile-rule {
+        width: 22px;
+        height: 1px;
+        background: var(--lv-red, #e3262e);
+        flex-shrink: 0;
+    }
+
+    .lookbook-mobile-statement p {
+        margin: 0;
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--color-text, #f5f3ef);
+    }
+
+    .lookbook-mobile-statement em {
+        font-style: italic;
+        color: var(--lv-red, #e3262e);
+    }
+
+    .lookbook-mobile-hint {
+        font-size: .58rem;
+        font-weight: 600;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--color-text-muted, #a1a1aa);
+        white-space: nowrap;
+    }
+
+    /* Horizontal swipe filmstrip: 82vw cards so the next look peeks in */
     .lookbook-collage {
-        grid-template-columns: 1fr;
-        gap: .9rem;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: .85rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: .15rem 1.25rem .75rem;
+        scroll-snap-type: x mandatory;
+        scroll-padding-inline: 1.25rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .lookbook-collage::-webkit-scrollbar {
+        display: none;
     }
 
     .lookbook-frame,
@@ -1559,8 +1619,11 @@ body .collections .collection-card .collection-link {
     .lookbook-frame--five,
     .lookbook-frame--six,
     .lookbook-frame--seven {
+        flex: 0 0 82vw;
+        max-width: 340px;
         aspect-ratio: 3 / 4;
-        border-radius: 1px;
+        border-radius: 16px;
+        scroll-snap-align: start;
     }
 
     /* Portrait boxes crop faces unless the bias sits above center. */
@@ -1575,31 +1638,31 @@ body .collections .collection-card .collection-link {
         bottom: 0;
         left: 0;
         z-index: 1;
-        height: 42%;
-        background: linear-gradient(to top, rgba(9, 9, 9, .78), rgba(9, 9, 9, 0));
+        height: 44%;
+        background: linear-gradient(to top, rgba(9, 9, 9, .82), rgba(9, 9, 9, 0));
         content: "";
         pointer-events: none;
     }
 
     .lookbook-frame figcaption {
-        right: .65rem;
-        bottom: .65rem;
-        left: 2.9rem;
+        right: .85rem;
+        bottom: .85rem;
+        left: 3.1rem;
         gap: .25rem;
-        font-size: .56rem;
-        letter-spacing: .12em;
+        font-size: .6rem;
+        letter-spacing: .13em;
         line-height: 1.35;
     }
 
     .lookbook-number {
-        bottom: .62rem;
-        left: .65rem;
-        font-size: .85rem;
+        bottom: .8rem;
+        left: .85rem;
+        font-size: .9rem;
     }
 
     .lookbook-outro {
-        margin-top: 2.75rem;
-        padding: 1rem 0 0;
+        margin-top: 2.25rem;
+        padding: 1rem 1.25rem 0;
     }
 
     .lookbook-outro-top {
@@ -1634,8 +1697,10 @@ body .collections .collection-card .collection-link {
 }
 
 @media (max-width: 360px) {
-    .lookbook-shell { width: calc(100% - 1.5rem); }
-    .lookbook-collage { gap: .55rem; }
+    .lookbook-shell { width: 100%; }
+    .lookbook-mobile-kicker { padding-inline: 1rem; }
+    .lookbook-collage { gap: .65rem; padding-inline: 1rem; scroll-padding-inline: 1rem; }
+    .lookbook-outro { padding-inline: 1rem; }
     .lookbook-frame figcaption { font-size: .5rem; }
     .lookbook-outro-top { font-size: .37rem; }
     .lookbook-shop-link { font-size: .4rem; padding-inline: .45rem; }
