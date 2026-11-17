@@ -2734,24 +2734,44 @@ body .launch-countdown-sep {
   }
 }
 
-/* Align About stat numbers (including infinity symbol) on a shared baseline */
+/* Align About stat numbers (including infinity symbol) on an identical fixed rem height */
 body .about-stats .stat {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: flex-start;
 }
 
-body .about-stats .stat-number {
+body .about-stats .stat-number,
+body .about-stats .stat:last-child .stat-number {
   display: inline-flex;
   align-items: center;
-  min-height: 1em;
+  height: 2.5rem;
+  min-height: 2.5rem;
   line-height: 1;
 }
 
 body .about-stats .stat-number--symbol {
   font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 2.5rem;
   font-weight: 700;
   line-height: 1;
+}
+
+@media (max-width: 768px) {
+  body .about-stats .stat-number,
+  body .about-stats .stat:last-child .stat-number {
+    height: 2rem;
+    min-height: 2rem;
+    font-size: 2rem;
+  }
+
+  body .about-stats .stat-number--symbol,
+  body .about-stats .stat:last-child .stat-number--symbol {
+    font-size: 2.15rem;
+    height: 2rem;
+    min-height: 2rem;
+  }
 }
 
 /* Pre-launch password gate overlay */

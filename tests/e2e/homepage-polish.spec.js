@@ -138,4 +138,29 @@ test.describe('Homepage visual polish', () => {
     await page.clock.fastForward(60000);
     await expect.poll(() => page.evaluate(() => window.__marqueeMutationCount)).toBe(0);
   });
+
+  test('aligns all three About stat labels horizontally and uses a swipe filmstrip on mobile only', async ({ page }) => {
+    await mockStorefrontAPI(page);
+    await page.goto('/');
+
+    await page.locator('#about').scrollIntoViewIfNeeded();
+    const labelTops = await page.locator('#about .about-stats .stat-label').evaluateAll(els =>
+      els.map(el => Math.round(el.getBoundingClientRect().top))
+    );
+    expect(labelTops).toHaveLength(3);
+    expect(Math.abs(labelTops[1] - labelTops[0])).toBeLessThanOrEqual(1);
+    expect(Math.abs(labelTops[2] - labelTops[0])).toBeLessThanOrEqual(1);
+
+    const isMobileLookbook = await page.evaluate(() => window.matchMedia('(max-width: 600px)').matches);
+    const collageDisplay = await page.locator('.lookbook-collage').evaluate(el => getComputedStyle(el).display);
+    const kickerDisplay = await page.locator('.lookbook-mobile-kicker').evaluate(el => getComputedStyle(el).display);
+
+    if (isMobileLookbook) {
+      expect(collageDisplay).toBe('flex');
+      expect(kickerDisplay).toBe('flex');
+    } else {
+      expect(collageDisplay).toBe('grid');
+      expect(kickerDisplay).toBe('none');
+    }
+  });
 });
