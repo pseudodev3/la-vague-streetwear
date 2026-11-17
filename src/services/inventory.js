@@ -2,6 +2,9 @@
  * Inventory management with reservation-based stock protection.
  * PostgreSQL operations use transactions and row locks in production.
  */
+export const RESERVATION_TTL_MINUTES = 10;
+export const RESERVATION_TTL_MS = RESERVATION_TTL_MINUTES * 60 * 1000;
+
 export class InventoryService {
     constructor(db, usePostgres = false) {
         this.db = db;
@@ -103,7 +106,7 @@ export class InventoryService {
             const reservationId = `${reservation.productId}:${reservation.variantKey}:${orderId}`;
             this.reservations.set(reservationId, {
                 ...reservation,
-                expiresAt: Date.now() + 30 * 60 * 1000
+                expiresAt: Date.now() + RESERVATION_TTL_MS
             });
         }
 
@@ -158,7 +161,7 @@ export class InventoryService {
                 await client.query(
                     `INSERT INTO inventory_reservations
                      (product_id, variant_key, quantity, order_id, expires_at)
-                     VALUES ($1, $2, $3, $4, NOW() + INTERVAL '30 minutes')`,
+                     VALUES ($1, $2, $3, $4, NOW() + INTERVAL '10 minutes')`,
                     [reservation.productId, reservation.variantKey, reservation.quantity, orderId]
                 );
             }
@@ -180,7 +183,7 @@ export class InventoryService {
             await this.db.query(
                 `INSERT INTO inventory_reservations
                  (product_id, variant_key, quantity, order_id, expires_at)
-                 VALUES ($1, $2, $3, $4, NOW() + INTERVAL '30 minutes')`,
+                 VALUES ($1, $2, $3, $4, NOW() + INTERVAL '10 minutes')`,
                 [productId, variantKey, quantity, orderId]
             );
             return;
@@ -191,7 +194,7 @@ export class InventoryService {
             variantKey,
             quantity,
             orderId,
-            expiresAt: Date.now() + 30 * 60 * 1000
+            expiresAt: Date.now() + RESERVATION_TTL_MS
         });
     }
 
