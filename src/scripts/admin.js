@@ -214,6 +214,7 @@ async function checkAuth() {
         if (response.ok) {
             const data = await response.json();
             if (data.success && data.authenticated) {
+                updatePasswordStatusNotice(Boolean(data.customPasswordConfigured));
                 showDashboard();
                 loadAllData();
                 return;
@@ -354,6 +355,18 @@ function updateAnnouncementRequirements() {
     document.getElementById('settingAnnouncementEndsAt').required = enabled;
 }
 
+function updatePasswordStatusNotice(customConfigured) {
+    const statusEl = document.getElementById('adminPasswordStatus');
+    if (!statusEl) return;
+    if (customConfigured) {
+        statusEl.textContent = 'Custom owner password is active. The initial setup password is disabled.';
+        statusEl.style.color = 'var(--color-success, #16a34a)';
+    } else {
+        statusEl.textContent = 'Action recommended: you are still using the initial setup password. Set your own password below to complete handover.';
+        statusEl.style.color = 'var(--color-warning, #d97706)';
+    }
+}
+
 async function loadSettings() {
     try {
         const data = await fetchAPI('/admin/settings');
@@ -374,6 +387,14 @@ async function loadSettings() {
         document.getElementById('settingAnnouncementMessage').value = settings.announcementMessage || '';
         document.getElementById('settingAnnouncementStartsAt').value = localDateTimeInput(settings.announcementStartsAt);
         document.getElementById('settingAnnouncementEndsAt').value = localDateTimeInput(settings.announcementEndsAt);
+
+        const countdownEnabled = document.getElementById('settingLaunchCountdownEnabled');
+        const countdownTitle = document.getElementById('settingLaunchCountdownTitle');
+        const countdownTarget = document.getElementById('settingLaunchCountdownTarget');
+        if (countdownEnabled) countdownEnabled.checked = settings.launchCountdownEnabled !== 'false';
+        if (countdownTitle) countdownTitle.value = settings.launchCountdownTitle || 'DROP 001 LAUNCHES IN';
+        if (countdownTarget) countdownTarget.value = localDateTimeInput(settings.launchCountdownTarget || '2026-12-01T12:00:00+01:00');
+
         updateAnnouncementRequirements();
     } catch (error) {
         console.error('Failed to load settings:', error);
@@ -2292,6 +2313,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
+            const countdownEnabled = document.getElementById('settingLaunchCountdownEnabled')?.checked ?? true;
+            const countdownTitle = document.getElementById('settingLaunchCountdownTitle')?.value.trim() || 'DROP 001 LAUNCHES IN';
+            const countdownTarget = document.getElementById('settingLaunchCountdownTarget')?.value;
+
             const settings = {
                 storeName: document.getElementById('settingStoreName')?.value,
                 supportEmail: document.getElementById('settingSupportEmail')?.value,
@@ -2301,7 +2326,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 announcementEnabled: String(announcementEnabled),
                 announcementMessage: document.getElementById('settingAnnouncementMessage').value.trim(),
                 announcementStartsAt: start ? new Date(start).toISOString() : '',
-                announcementEndsAt: end ? new Date(end).toISOString() : ''
+                announcementEndsAt: end ? new Date(end).toISOString() : '',
+                launchCountdownEnabled: String(countdownEnabled),
+                launchCountdownTitle: countdownTitle,
+                launchCountdownTarget: countdownTarget ? new Date(countdownTarget).toISOString() : ''
             };
             
             try {
@@ -2312,6 +2340,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Settings saved successfully', 'success');
             } catch (error) {
                 showToast('Failed to save settings', 'error');
+            }
+        });
+    }
+
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentAdminPassword')?.value || '';
+            const newPassword = document.getElementById('newAdminPassword')?.value || '';
+            const confirmPassword = document.getElementById('confirmAdminPassword')?.value || '';
+
+            if (newPassword.length < 12) {
+                showToast('New password must be at least 12 characters', 'error');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                showToast('New passwords do not match', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetchAPI('/admin/change-password', {
+                    method: 'POST',
+                    body: { currentPassword, newPassword }
+                });
+                changePasswordForm.reset();
+                updatePasswordStatusNotice(true);
+                showToast(res.message || 'Admin password updated', 'success');
+            } catch (error) {
+                showToast(error.message || 'Failed to update admin password', 'error');
             }
         });
     }

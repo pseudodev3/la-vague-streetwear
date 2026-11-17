@@ -51,7 +51,12 @@ router.get(
                 expressShippingRate: amount(settings.expressShippingRate, 25000),
                 freeShippingThreshold: amount(settings.freeShippingThreshold, 150000),
                 storeName: settings.storeName || 'LA VAGUE',
-                announcement: getActiveAnnouncement(settings)
+                announcement: getActiveAnnouncement(settings),
+                launchCountdown: {
+                    enabled: settings.launchCountdownEnabled !== 'false',
+                    title: settings.launchCountdownTitle || 'DROP 001 LAUNCHES IN',
+                    targetDate: settings.launchCountdownTarget || '2026-12-01T12:00:00+01:00'
+                }
             }
         });
     })

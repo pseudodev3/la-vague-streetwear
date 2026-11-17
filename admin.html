@@ -576,6 +576,26 @@
                                     <p class="text-muted">Dates use your device's local time. Leave the start blank to begin immediately. An enabled campaign needs an end date and stops automatically.</p>
                                 </div>
                                 <div class="form-section">
+                                    <h4>Launch Day Countdown</h4>
+                                    <p class="text-muted">Display a live countdown timer in the homepage hero before launch. It automatically hides once the target date passes.</p>
+                                    <div class="form-group">
+                                        <label class="checkbox-label" for="settingLaunchCountdownEnabled">
+                                            <input type="checkbox" id="settingLaunchCountdownEnabled" checked>
+                                            Enable launch countdown
+                                        </label>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="settingLaunchCountdownTitle">Countdown label</label>
+                                            <input type="text" id="settingLaunchCountdownTitle" class="input" maxlength="60" placeholder="DROP 001 LAUNCHES IN">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="settingLaunchCountdownTarget">Launch date &amp; time</label>
+                                            <input type="datetime-local" id="settingLaunchCountdownTarget" class="input">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-section">
                                     <h4>Currency Settings</h4>
                                     <p style="color: var(--color-text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
                                         LA VAGUE uses Nigerian Naira (₦) as the base currency for all transactions.
@@ -672,6 +692,33 @@
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Save Settings</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top: 1.5rem;">
+                        <div class="card-header">
+                            <h3>Admin Security &amp; Handover</h3>
+                        </div>
+                        <div class="card-body">
+                            <p id="adminPasswordStatus" class="text-muted" style="margin-bottom: 1rem;">
+                                Set your own private admin password. Once updated, the initial setup password is permanently disabled.
+                            </p>
+                            <form id="changePasswordForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="currentAdminPassword">Current Password</label>
+                                        <input type="password" id="currentAdminPassword" class="input" required autocomplete="current-password">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newAdminPassword">New Password (min 12 chars)</label>
+                                        <input type="password" id="newAdminPassword" class="input" required minlength="12" autocomplete="new-password">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="confirmAdminPassword">Confirm New Password</label>
+                                        <input type="password" id="confirmAdminPassword" class="input" required minlength="12" autocomplete="new-password">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Update Admin Password</button>
                             </form>
                         </div>
                     </div>

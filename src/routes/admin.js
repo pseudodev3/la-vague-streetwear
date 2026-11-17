@@ -7,7 +7,7 @@ import { csrfProtection } from '../middleware/csrf.js';
 import { query, USE_POSTGRES } from '../config/db.js';
 import { logAudit } from '../utils/audit.js';
 import { cacheService } from '../utils/cache.js';
-import { validateUpdateOrderStatus, validateAdminLogin } from '../middleware/validation.js';
+import { validateUpdateOrderStatus, validateAdminLogin, validateAdminPasswordChange } from '../middleware/validation.js';
 import { upload } from '../middleware/upload.js';
 import { campaignKeys, validateAnnouncementSettings } from '../utils/announcements.js';
 import {
@@ -69,6 +69,35 @@ async function sendOrderEmailSafely(order, type = 'confirmation', status = null)
     }
 }
 
+async function getStoredAdminPasswordRecord() {
+    const result = await query('SELECT value FROM settings WHERE key = $1', ['admin_password_hash']);
+    const raw = result.rows[0]?.value;
+    if (!raw) return null;
+    const parsed = safeParseJSON(raw, null);
+    if (!parsed || typeof parsed.salt !== 'string' || typeof parsed.hash !== 'string') return null;
+    return parsed;
+}
+
+async function verifyAdminPassword(candidatePassword) {
+    const stored = await getStoredAdminPasswordRecord();
+    if (stored) {
+        const expected = Buffer.from(stored.hash, 'hex');
+        const derived = crypto.scryptSync(candidatePassword, stored.salt, 64);
+        if (expected.length !== derived.length) return false;
+        return crypto.timingSafeEqual(derived, expected);
+    }
+
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+        console.error('[AUTH] ADMIN_PASSWORD environment variable is not set');
+        throw new APIError('Server configuration error', 500, 'CONFIG_ERROR');
+    }
+
+    const passwordHash = crypto.createHash('sha256').update(candidatePassword).digest();
+    const adminHash = crypto.createHash('sha256').update(adminPassword).digest();
+    return crypto.timingSafeEqual(passwordHash, adminHash);
+}
+
 export default function (productService, inventoryService) {
     // Admin login
     router.post(
@@ -77,18 +106,9 @@ export default function (productService, inventoryService) {
         validateAdminLogin,
         asyncHandler(async (req, res) => {
             const { password } = req.body;
-            const adminPassword = process.env.ADMIN_PASSWORD;
+            const isValid = await verifyAdminPassword(password);
 
-            if (!adminPassword) {
-                console.error('[AUTH] ADMIN_PASSWORD environment variable is not set');
-                throw new APIError('Server configuration error', 500, 'CONFIG_ERROR');
-            }
-
-            // Use constant-time comparison on hashes to prevent timing attacks and handle different lengths safely
-            const passwordHash = crypto.createHash('sha256').update(password).digest();
-            const adminHash = crypto.createHash('sha256').update(adminPassword).digest();
-
-            if (!crypto.timingSafeEqual(passwordHash, adminHash)) {
+            if (!isValid) {
                 // Add a small random delay to further mitigate timing attacks
                 await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
                 throw new APIError('Invalid credentials', 401, 'AUTH_ERROR');
@@ -113,9 +133,55 @@ export default function (productService, inventoryService) {
     );
 
     // Session state
-    router.get('/session', verifyAdminSession, (req, res) => {
-        res.json({ success: true, authenticated: true });
-    });
+    router.get('/session', verifyAdminSession, asyncHandler(async (req, res) => {
+        const stored = await getStoredAdminPasswordRecord();
+        res.json({
+            success: true,
+            authenticated: true,
+            customPasswordConfigured: Boolean(stored)
+        });
+    }));
+
+    // Change admin password (handover / owner credential rotation)
+    router.post(
+        '/change-password',
+        verifyAdminSession,
+        authLimiter,
+        validateAdminPasswordChange,
+        asyncHandler(async (req, res) => {
+            const { currentPassword, newPassword } = req.body;
+            const isValid = await verifyAdminPassword(currentPassword);
+            if (!isValid) {
+                await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+                throw new APIError('Current password is incorrect', 401, 'AUTH_ERROR');
+            }
+
+            const salt = crypto.randomBytes(16).toString('hex');
+            const hash = crypto.scryptSync(newPassword, salt, 64).toString('hex');
+            const payload = JSON.stringify({
+                salt,
+                hash,
+                updatedAt: new Date().toISOString()
+            });
+
+            if (USE_POSTGRES) {
+                await query(
+                    'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP',
+                    ['admin_password_hash', payload]
+                );
+                await query('DELETE FROM admin_sessions WHERE session_key != $1', [req.adminSessionKey]);
+            } else {
+                await query(
+                    "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))",
+                    ['admin_password_hash', payload]
+                );
+                await query('DELETE FROM admin_sessions WHERE session_key != ?', [req.adminSessionKey]);
+            }
+
+            await logAudit(req, 'admin_password_changed', 'settings', 'admin_password_hash', {});
+            res.json({ success: true, message: 'Admin password updated. Other sessions have been signed out.' });
+        })
+    );
 
     // Logout
     router.post(
@@ -446,7 +512,9 @@ export default function (productService, inventoryService) {
             const result = await query('SELECT * FROM settings');
             const settings = {};
             result.rows.forEach(row => {
-                settings[row.key] = row.value;
+                if (row.key !== 'admin_password_hash') {
+                    settings[row.key] = row.value;
+                }
             });
             res.json({ success: true, settings });
         })
@@ -460,12 +528,13 @@ export default function (productService, inventoryService) {
             if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
                 throw new APIError('Settings must be an object.', 400, 'VALIDATION_ERROR');
             }
-            let settingsToSave = settings;
-            if (campaignKeys.some(key => Object.hasOwn(settings, key))) {
+            const { admin_password_hash: _ignored, ...safeSettings } = settings;
+            let settingsToSave = safeSettings;
+            if (campaignKeys.some(key => Object.hasOwn(safeSettings, key))) {
                 const result = await query('SELECT * FROM settings');
                 const existing = Object.fromEntries(result.rows.map(row => [row.key, row.value]));
                 try {
-                    settingsToSave = { ...settings, ...validateAnnouncementSettings({ ...existing, ...settings }) };
+                    settingsToSave = { ...safeSettings, ...validateAnnouncementSettings({ ...existing, ...safeSettings }) };
                 } catch (error) {
                     throw new APIError(error.message, 400, 'VALIDATION_ERROR');
                 }

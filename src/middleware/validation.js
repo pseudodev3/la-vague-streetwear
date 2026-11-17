@@ -122,6 +122,24 @@ export const validateAdminLogin = [
     handleValidationErrors
 ];
 
+export const validateAdminPasswordChange = [
+    body('currentPassword')
+        .isString()
+        .isLength({ min: 1, max: 200 })
+        .withMessage('Current password is required'),
+    body('newPassword')
+        .isString()
+        .isLength({ min: 12, max: 200 })
+        .withMessage('New password must be between 12 and 200 characters')
+        .custom((value, { req }) => {
+            if (value === req.body.currentPassword) {
+                throw new Error('New password must be different from current password');
+            }
+            return true;
+        }),
+    handleValidationErrors
+];
+
 export const validateUpdateOrderStatus = [
     param('id')
         .trim()
