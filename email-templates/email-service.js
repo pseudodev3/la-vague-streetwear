@@ -354,22 +354,33 @@ export function getEmailConfig() {
 /**
  * Send review confirmation email to customer
  */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 export async function sendReviewConfirmationEmail({ customerEmail, customerName, productName, rating, title }) {
     if (!isEmailConfigured()) {
         return { success: false, reason: 'email_not_configured' };
     }
     
-    const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    const safeRating = Math.min(5, Math.max(1, parseInt(rating, 10) || 5));
+    const stars = '★'.repeat(safeRating) + '☆'.repeat(5 - safeRating);
     
     const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2 style="color: #dc2626;">Thank You for Your Review!</h2>
-            <p>Hi ${customerName || 'there'},</p>
-            <p>We've received your review for <strong>${productName}</strong>. Our team will review it shortly and it will be published once approved.</p>
+            <p>Hi ${escapeHtml(customerName) || 'there'},</p>
+            <p>We've received your review for <strong>${escapeHtml(productName)}</strong>. Our team will review it shortly and it will be published once approved.</p>
             
             <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
                 <div style="color: #f59e0b; font-size: 18px; margin-bottom: 10px;">${stars}</div>
-                <p style="font-weight: bold; margin: 0 0 10px 0;">${title || 'No title'}</p>
+                <p style="font-weight: bold; margin: 0 0 10px 0;">${escapeHtml(title) || 'No title'}</p>
             </div>
             
             <p>We appreciate you taking the time to share your feedback with us!</p>
@@ -403,7 +414,8 @@ export async function sendNewReviewNotification({ reviewId, productName, custome
     }
     
     const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER;
-    const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    const safeRating = Math.min(5, Math.max(1, parseInt(rating, 10) || 5));
+    const stars = '★'.repeat(safeRating) + '☆'.repeat(5 - safeRating);
     
     const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -411,11 +423,11 @@ export async function sendNewReviewNotification({ reviewId, productName, custome
             <p>A new review has been submitted and is pending approval.</p>
             
             <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p><strong>Product:</strong> ${productName}</p>
-                <p><strong>Customer:</strong> ${customerName || 'Anonymous'}</p>
-                <p><strong>Rating:</strong> <span style="color: #f59e0b;">${stars}</span> (${rating}/5)</p>
-                <p><strong>Title:</strong> ${title || 'No title'}</p>
-                <p><strong>Review:</strong> ${reviewText || 'No text'}</p>
+                <p><strong>Product:</strong> ${escapeHtml(productName)}</p>
+                <p><strong>Customer:</strong> ${escapeHtml(customerName) || 'Anonymous'}</p>
+                <p><strong>Rating:</strong> <span style="color: #f59e0b;">${stars}</span> (${safeRating}/5)</p>
+                <p><strong>Title:</strong> ${escapeHtml(title) || 'No title'}</p>
+                <p><strong>Review:</strong> ${escapeHtml(reviewText) || 'No text'}</p>
             </div>
             
             <p>

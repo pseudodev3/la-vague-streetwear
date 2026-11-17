@@ -103,7 +103,7 @@ export const validateCreateOrder = [
         .withMessage('Invalid total'),
     body('paymentMethod')
         .trim()
-        .isIn(['manual', 'paystack', 'cash'])
+        .isIn(['paystack'])
         .withMessage('Invalid payment method'),
     body('notes')
         .optional()
@@ -119,6 +119,24 @@ export const validateAdminLogin = [
         .isString()
         .isLength({ min: 1, max: 200 })
         .withMessage('Password is required'),
+    handleValidationErrors
+];
+
+export const validateAdminPasswordChange = [
+    body('currentPassword')
+        .isString()
+        .isLength({ min: 1, max: 200 })
+        .withMessage('Current password is required'),
+    body('newPassword')
+        .isString()
+        .isLength({ min: 12, max: 200 })
+        .withMessage('New password must be between 12 and 200 characters')
+        .custom((value, { req }) => {
+            if (value === req.body.currentPassword) {
+                throw new Error('New password must be different from current password');
+            }
+            return true;
+        }),
     handleValidationErrors
 ];
 
@@ -165,5 +183,50 @@ export const validateId = (field = 'id') => [
         .trim()
         .matches(/^[\w-]{3,50}$/)
         .withMessage(`Invalid ${field} format`),
+    handleValidationErrors
+];
+
+export const validateReview = [
+    param('id')
+        .trim()
+        .matches(/^[\w-]{1,100}$/)
+        .withMessage('Invalid product ID format'),
+    body('customerEmail')
+        .trim()
+        .isEmail()
+        .normalizeEmail({ gmail_remove_dots: false, gmail_remove_plus_address: false })
+        .withMessage('Valid email is required'),
+    body('customerName')
+        .trim()
+        .isLength({ min: 1, max: 100 })
+        .withMessage('Name must be between 1 and 100 characters'),
+    body('rating')
+        .isInt({ min: 1, max: 5 })
+        .toInt()
+        .withMessage('Rating must be an integer between 1 and 5'),
+    body('title')
+        .optional({ values: 'falsy' })
+        .trim()
+        .isLength({ max: 150 })
+        .withMessage('Title must be less than 150 characters'),
+    body('reviewText')
+        .trim()
+        .isLength({ min: 1, max: 2000 })
+        .withMessage('Review text must be between 1 and 2000 characters'),
+    body('orderId')
+        .optional({ values: 'falsy' })
+        .trim()
+        .matches(/^[\w-]{3,50}$/)
+        .withMessage('Invalid order ID format'),
+    body('photos')
+        .optional()
+        .isArray({ max: 5 })
+        .withMessage('Photos must be an array of at most 5 items'),
+    body('photos.*')
+        .optional()
+        .isString()
+        .trim()
+        .isURL({ protocols: ['http', 'https'], require_protocol: true })
+        .withMessage('Invalid photo URL'),
     handleValidationErrors
 ];

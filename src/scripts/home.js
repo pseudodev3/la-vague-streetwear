@@ -145,6 +145,7 @@ async function initHome() {
     };
 
     initMarquee();
+    initLaunchCountdown();
     await renderFeaturedProducts();
     
     updateCartCount();
@@ -152,6 +153,68 @@ async function initHome() {
     bindEvents();
     initRevealAnimations();
     initLookbookMotion();
+}
+
+let countdownInterval = null;
+
+async function initLaunchCountdown() {
+    const container = document.getElementById('launchCountdown');
+    if (!container) return;
+
+    const titleEl = document.getElementById('launchCountdownTitle');
+    const daysEl = document.getElementById('countdownDays');
+    const hoursEl = document.getElementById('countdownHours');
+    const minutesEl = document.getElementById('countdownMinutes');
+    const secondsEl = document.getElementById('countdownSeconds');
+    if (!daysEl || !hoursEl || !minutesEl || !secondsEl) return;
+
+    try {
+        const response = await fetch(`${API_URL}/config/settings`, { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        const countdown = data?.settings?.launchCountdown;
+        if (!countdown || !countdown.enabled || !countdown.targetDate) {
+            container.hidden = true;
+            return;
+        }
+
+        const targetMs = new Date(countdown.targetDate).getTime();
+        if (!Number.isFinite(targetMs) || targetMs <= Date.now()) {
+            container.hidden = true;
+            return;
+        }
+
+        if (titleEl) {
+            titleEl.textContent = countdown.title || 'WEBSITE LAUNCHES IN';
+        }
+
+        const renderTick = () => {
+            const diff = targetMs - Date.now();
+            if (diff <= 0) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+                container.hidden = true;
+                return;
+            }
+            const totalSeconds = Math.floor(diff / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            daysEl.textContent = String(days).padStart(2, '0');
+            hoursEl.textContent = String(hours).padStart(2, '0');
+            minutesEl.textContent = String(minutes).padStart(2, '0');
+            secondsEl.textContent = String(seconds).padStart(2, '0');
+        };
+
+        renderTick();
+        container.hidden = false;
+        if (countdownInterval) clearInterval(countdownInterval);
+        countdownInterval = setInterval(renderTick, 1000);
+    } catch (error) {
+        console.warn('Launch countdown unavailable:', error);
+    }
 }
 
 // ==========================================

@@ -205,6 +205,7 @@ window.Components = {
                 if (wishlistSidebar) wishlistSidebar.innerHTML = this.templates.wishlistSidebar;
                 if (searchOverlay) searchOverlay.innerHTML = this.templates.searchOverlay;
 
+                initPrelaunchGate();
                 
                 // Dispatch event to signal that DOM is now ready for JS listeners
                 window.dispatchEvent(new CustomEvent('componentsLoaded'));
@@ -219,3 +220,145 @@ window.Components = {
         });
     }
 };
+
+async function initPrelaunchGate() {
+    try {
+        const res = await fetch('/api/config/settings', { cache: 'no-store', credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const countdown = data?.settings?.launchCountdown;
+        if (!countdown || !countdown.lockEnabled || countdown.unlocked) return;
+        if (document.getElementById('prelaunchGate')) return;
+
+        const targetMs = new Date(countdown.targetDate).getTime();
+        if (!Number.isFinite(targetMs) || targetMs <= Date.now()) return;
+
+        const gate = document.createElement('div');
+        gate.id = 'prelaunchGate';
+        gate.className = 'prelaunch-gate';
+        gate.setAttribute('role', 'dialog');
+        gate.setAttribute('aria-modal', 'true');
+        gate.setAttribute('aria-labelledby', 'prelaunchGateTitle');
+
+        const card = document.createElement('div');
+        card.className = 'prelaunch-gate-card';
+
+        const brand = document.createElement('div');
+        brand.className = 'prelaunch-gate-brand';
+        brand.textContent = 'LA VAGUE';
+
+        const title = document.createElement('h1');
+        title.id = 'prelaunchGateTitle';
+        title.className = 'prelaunch-gate-title';
+        title.textContent = countdown.title || 'WEBSITE LAUNCHES IN';
+
+        const timer = document.createElement('div');
+        timer.className = 'prelaunch-gate-timer';
+        const units = ['Days', 'Hrs', 'Min', 'Sec'].map(label => {
+            const unit = document.createElement('div');
+            unit.className = 'prelaunch-gate-unit';
+            const value = document.createElement('span');
+            value.className = 'prelaunch-gate-value';
+            value.textContent = '00';
+            const caption = document.createElement('span');
+            caption.className = 'prelaunch-gate-caption';
+            caption.textContent = label;
+            unit.appendChild(value);
+            unit.appendChild(caption);
+            timer.appendChild(unit);
+            return value;
+        });
+
+        const copy = document.createElement('p');
+        copy.className = 'prelaunch-gate-copy';
+        copy.textContent = 'Enter the early-access password to preview the store before launch.';
+
+        const form = document.createElement('form');
+        form.className = 'prelaunch-gate-form';
+
+        const input = document.createElement('input');
+        input.type = 'password';
+        input.className = 'prelaunch-gate-input';
+        input.placeholder = 'Enter access password';
+        input.required = true;
+        input.autocomplete = 'current-password';
+
+        const btn = document.createElement('button');
+        btn.type = 'submit';
+        btn.className = 'prelaunch-gate-btn';
+        btn.textContent = 'Enter Store';
+
+        const errEl = document.createElement('p');
+        errEl.className = 'prelaunch-gate-error';
+        errEl.setAttribute('role', 'alert');
+
+        form.appendChild(input);
+        form.appendChild(btn);
+        form.appendChild(errEl);
+
+        card.appendChild(brand);
+        card.appendChild(title);
+        card.appendChild(timer);
+        card.appendChild(copy);
+        card.appendChild(form);
+        gate.appendChild(card);
+
+        document.body.classList.add('prelaunch-locked');
+        document.body.appendChild(gate);
+
+        let intervalId = null;
+        const tick = () => {
+            const diff = targetMs - Date.now();
+            if (diff <= 0) {
+                clearInterval(intervalId);
+                document.body.classList.remove('prelaunch-locked');
+                gate.remove();
+                return;
+            }
+            const total = Math.floor(diff / 1000);
+            units[0].textContent = String(Math.floor(total / 86400)).padStart(2, '0');
+            units[1].textContent = String(Math.floor((total % 86400) / 3600)).padStart(2, '0');
+            units[2].textContent = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+            units[3].textContent = String(total % 60).padStart(2, '0');
+        };
+        tick();
+        intervalId = setInterval(tick, 1000);
+
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            errEl.textContent = '';
+            btn.disabled = true;
+            try {
+                let csrfToken = '';
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'include' });
+                if (csrfRes.ok) {
+                    const csrfData = await csrfRes.json();
+                    csrfToken = csrfData.csrfToken || '';
+                }
+                const unlockRes = await fetch('/api/config/prelaunch-unlock', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(csrfToken ? { 'x-csrf-token': csrfToken } : {})
+                    },
+                    body: JSON.stringify({ password: input.value })
+                });
+                const unlockData = await unlockRes.json().catch(() => ({}));
+                if (!unlockRes.ok || !unlockData.success) {
+                    errEl.textContent = unlockData.error || 'Invalid access password';
+                    btn.disabled = false;
+                    return;
+                }
+                clearInterval(intervalId);
+                document.body.classList.remove('prelaunch-locked');
+                gate.remove();
+            } catch {
+                errEl.textContent = 'Unable to verify password. Please try again.';
+                btn.disabled = false;
+            }
+        });
+    } catch {
+        // Keep storefront accessible if settings endpoint is unavailable
+    }
+}

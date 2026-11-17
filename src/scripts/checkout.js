@@ -247,7 +247,7 @@ async function handlePlaceOrder(event) {
     }
 
     const selectedPayment =
-        document.querySelector('input[name="payment"]:checked')?.value || 'manual';
+        document.querySelector('input[name="payment"]:checked')?.value || 'paystack';
     const subtotal = state.cart.reduce(
         (sum, item) => sum + Number(item.price) * Number(item.quantity),
         0
