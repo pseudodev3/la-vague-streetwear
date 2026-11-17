@@ -180,7 +180,9 @@ describe('Admin handover & launch countdown', () => {
         expect(defaultRes.status).toBe(200);
         const defaultData = await defaultRes.json();
         expect(defaultData.settings.launchCountdown.enabled).toBe(true);
-        expect(defaultData.settings.launchCountdown.title).toBe('DROP 001 LAUNCHES IN');
+        expect(defaultData.settings.launchCountdown.title).toBe('WEBSITE LAUNCHES IN');
+        expect(defaultData.settings.launchCountdown.lockEnabled).toBe(false);
+        expect(defaultData.settings.launchCountdown.unlocked).toBe(true);
 
         const login = await fetch(`${base}/api/admin/login`, {
             method: 'POST',
@@ -195,8 +197,10 @@ describe('Admin handover & launch countdown', () => {
             body: JSON.stringify({
                 settings: {
                     launchCountdownEnabled: 'true',
-                    launchCountdownTitle: 'CAPSULE 02 DROPS IN',
-                    launchCountdownTarget: '2027-01-15T18:00:00.000Z'
+                    prelaunchLockEnabled: 'true',
+                    launchCountdownTitle: 'OFFICIAL LAUNCH IN',
+                    launchCountdownTarget: '2027-01-15T18:00:00.000Z',
+                    prelaunchPassword: 'vip-preview-password'
                 }
             })
         });
@@ -206,8 +210,36 @@ describe('Admin handover & launch countdown', () => {
         const updatedData = await updatedRes.json();
         expect(updatedData.settings.launchCountdown).toEqual({
             enabled: true,
-            title: 'CAPSULE 02 DROPS IN',
-            targetDate: '2027-01-15T18:00:00.000Z'
+            title: 'OFFICIAL LAUNCH IN',
+            targetDate: '2027-01-15T18:00:00.000Z',
+            lockEnabled: true,
+            unlocked: false
         });
+
+        // Wrong visitor password is rejected
+        const badUnlock = await fetch(`${base}/api/config/prelaunch-unlock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: 'wrong-visitor-password' })
+        });
+        expect(badUnlock.status).toBe(401);
+
+        // Correct visitor password sets prelaunch cookie and unlocks storefront
+        const goodUnlock = await fetch(`${base}/api/config/prelaunch-unlock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: 'vip-preview-password' })
+        });
+        expect(goodUnlock.status).toBe(200);
+        const unlockCookieMatch = (goodUnlock.headers.get('set-cookie') || '').match(
+            /la_vague_prelaunch_access=([^;]+)/
+        );
+        expect(unlockCookieMatch).not.toBeNull();
+
+        const unlockedRes = await fetch(`${base}/api/config/settings`, {
+            headers: { Cookie: `la_vague_prelaunch_access=${unlockCookieMatch[1]}` }
+        });
+        const unlockedData = await unlockedRes.json();
+        expect(unlockedData.settings.launchCountdown.unlocked).toBe(true);
     });
 });

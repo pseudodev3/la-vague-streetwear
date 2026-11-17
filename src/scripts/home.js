@@ -184,8 +184,8 @@ async function initLaunchCountdown() {
             return;
         }
 
-        if (titleEl && countdown.title) {
-            titleEl.textContent = countdown.title;
+        if (titleEl) {
+            titleEl.textContent = countdown.title || 'WEBSITE LAUNCHES IN';
         }
 
         const renderTick = () => {

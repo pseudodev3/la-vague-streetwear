@@ -2730,18 +2730,158 @@ body .launch-countdown-sep {
   }
 
   body .about-image {
-    order: -1;
-    aspect-ratio: 16 / 10;
-    max-height: 240px;
-    overflow: hidden;
-    border-radius: 16px;
+    display: none;
   }
+}
 
-  body .about-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    border-radius: 16px;
-  }
+/* Align About stat numbers (including infinity symbol) on a shared baseline */
+body .about-stats .stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+body .about-stats .stat-number {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1em;
+  line-height: 1;
+}
+
+body .about-stats .stat-number--symbol {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Pre-launch password gate overlay */
+body.prelaunch-locked {
+  overflow: hidden;
+}
+
+.prelaunch-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(227, 38, 46, .14), transparent 55%),
+    #09090b;
+  color: #f4f4f5;
+}
+
+.prelaunch-gate-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 2.25rem 1.75rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(18, 18, 21, .92);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .65);
+  text-align: center;
+}
+
+.prelaunch-gate-brand {
+  font-size: .8rem;
+  font-weight: 800;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: #e3262e;
+  margin-bottom: .75rem;
+}
+
+.prelaunch-gate-title {
+  font-size: clamp(1.35rem, 3.5vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin: 0 0 1.25rem;
+}
+
+.prelaunch-gate-timer {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .5rem;
+  margin-bottom: 1.5rem;
+}
+
+.prelaunch-gate-unit {
+  padding: .65rem .4rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(255, 255, 255, .08);
+}
+
+.prelaunch-gate-value {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.prelaunch-gate-caption {
+  display: block;
+  margin-top: .25rem;
+  font-size: .62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+}
+
+.prelaunch-gate-copy {
+  font-size: .9rem;
+  color: #a1a1aa;
+  margin: 0 0 1.1rem;
+}
+
+.prelaunch-gate-form {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.prelaunch-gate-input {
+  width: 100%;
+  padding: .85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(255, 255, 255, .04);
+  color: #fff;
+  font-size: .95rem;
+  text-align: center;
+}
+
+.prelaunch-gate-input:focus {
+  outline: none;
+  border-color: #e3262e;
+}
+
+.prelaunch-gate-btn {
+  width: 100%;
+  padding: .85rem 1.25rem;
+  border: none;
+  border-radius: 10px;
+  background: #e3262e;
+  color: #fff;
+  font-size: .85rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.prelaunch-gate-btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.prelaunch-gate-error {
+  min-height: 1.2rem;
+  margin: .25rem 0 0;
+  font-size: .82rem;
+  color: #f87171;
 }

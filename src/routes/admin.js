@@ -511,11 +511,17 @@ export default function (productService, inventoryService) {
         asyncHandler(async (req, res) => {
             const result = await query('SELECT * FROM settings');
             const settings = {};
+            let prelaunchPasswordConfigured = false;
             result.rows.forEach(row => {
+                if (row.key === 'prelaunch_password_hash') {
+                    prelaunchPasswordConfigured = Boolean(row.value);
+                    return;
+                }
                 if (row.key !== 'admin_password_hash') {
                     settings[row.key] = row.value;
                 }
             });
+            settings.prelaunchPasswordConfigured = String(prelaunchPasswordConfigured);
             res.json({ success: true, settings });
         })
     );
@@ -528,13 +534,28 @@ export default function (productService, inventoryService) {
             if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
                 throw new APIError('Settings must be an object.', 400, 'VALIDATION_ERROR');
             }
-            const { admin_password_hash: _ignored, ...safeSettings } = settings;
+            const {
+                admin_password_hash: _ignoredAdminHash,
+                prelaunch_password_hash: _ignoredPrelaunchHash,
+                prelaunchPasswordConfigured: _ignoredFlag,
+                prelaunchPassword,
+                ...safeSettings
+            } = settings;
             let settingsToSave = safeSettings;
+            if (typeof prelaunchPassword === 'string' && prelaunchPassword.trim().length > 0) {
+                const salt = crypto.randomBytes(16).toString('hex');
+                const hash = crypto.scryptSync(prelaunchPassword.trim(), salt, 64).toString('hex');
+                settingsToSave = {
+                    ...settingsToSave,
+                    prelaunch_password_hash: JSON.stringify({ salt, hash, updatedAt: new Date().toISOString() }),
+                    prelaunch_password_version: String(Date.now())
+                };
+            }
             if (campaignKeys.some(key => Object.hasOwn(safeSettings, key))) {
                 const result = await query('SELECT * FROM settings');
                 const existing = Object.fromEntries(result.rows.map(row => [row.key, row.value]));
                 try {
-                    settingsToSave = { ...safeSettings, ...validateAnnouncementSettings({ ...existing, ...safeSettings }) };
+                    settingsToSave = { ...settingsToSave, ...validateAnnouncementSettings({ ...existing, ...safeSettings }) };
                 } catch (error) {
                     throw new APIError(error.message, 400, 'VALIDATION_ERROR');
                 }

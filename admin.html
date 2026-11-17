@@ -576,23 +576,34 @@
                                     <p class="text-muted">Dates use your device's local time. Leave the start blank to begin immediately. An enabled campaign needs an end date and stops automatically.</p>
                                 </div>
                                 <div class="form-section">
-                                    <h4>Launch Day Countdown</h4>
-                                    <p class="text-muted">Display a live countdown timer in the homepage hero before launch. It automatically hides once the target date passes.</p>
+                                    <h4>Website Launch Countdown &amp; Pre-Launch Lock</h4>
+                                    <p class="text-muted">Show a live countdown timer before website launch, and optionally lock the entire storefront behind an early-access password until launch day.</p>
                                     <div class="form-group">
                                         <label class="checkbox-label" for="settingLaunchCountdownEnabled">
                                             <input type="checkbox" id="settingLaunchCountdownEnabled" checked>
                                             Enable launch countdown
                                         </label>
                                     </div>
+                                    <div class="form-group">
+                                        <label class="checkbox-label" for="settingPrelaunchLockEnabled">
+                                            <input type="checkbox" id="settingPrelaunchLockEnabled">
+                                            Lock website until launch day (require early-access password)
+                                        </label>
+                                    </div>
                                     <div class="form-row">
                                         <div class="form-group">
                                             <label for="settingLaunchCountdownTitle">Countdown label</label>
-                                            <input type="text" id="settingLaunchCountdownTitle" class="input" maxlength="60" placeholder="DROP 001 LAUNCHES IN">
+                                            <input type="text" id="settingLaunchCountdownTitle" class="input" maxlength="60" placeholder="WEBSITE LAUNCHES IN">
                                         </div>
                                         <div class="form-group">
                                             <label for="settingLaunchCountdownTarget">Launch date &amp; time</label>
                                             <input type="datetime-local" id="settingLaunchCountdownTarget" class="input">
                                         </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="settingPrelaunchAccessPassword">Early-Access Visitor Password</label>
+                                        <input type="password" id="settingPrelaunchAccessPassword" class="input" placeholder="Leave blank to keep existing password" autocomplete="new-password">
+                                        <small id="prelaunchPasswordHint" class="text-muted">Visitors enter this password to preview the website before launch.</small>
                                     </div>
                                 </div>
                                 <div class="form-section">
