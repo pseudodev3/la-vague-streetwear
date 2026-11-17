@@ -65,13 +65,16 @@ beforeAll(async () => {
     const cookieParser = (await import('cookie-parser')).default;
     const { globalErrorHandler, notFoundHandler } = await import('../../src/middleware/errorHandler.js');
     const adminRouterFactory = (await import('../../src/routes/admin.js')).default;
-    const configRouter = (await import('../../src/routes/config.js')).default;
+    const { default: configRouter, requirePrelaunchUnlocked } = await import('../../src/routes/config.js');
 
     const app = express();
     app.use(express.json());
     app.use(cookieParser());
     app.use('/api/admin', adminRouterFactory({}, {}));
     app.use('/api/config', configRouter);
+    app.get('/api/protected-store-check', requirePrelaunchUnlocked, (req, res) => {
+        res.json({ success: true });
+    });
     app.use(notFoundHandler);
     app.use(globalErrorHandler);
 
@@ -180,9 +183,10 @@ describe('Admin handover & launch countdown', () => {
         expect(defaultRes.status).toBe(200);
         const defaultData = await defaultRes.json();
         expect(defaultData.settings.launchCountdown.enabled).toBe(true);
-        expect(defaultData.settings.launchCountdown.title).toBe('WEBSITE LAUNCHES IN');
-        expect(defaultData.settings.launchCountdown.lockEnabled).toBe(false);
-        expect(defaultData.settings.launchCountdown.unlocked).toBe(true);
+        expect(defaultData.settings.launchCountdown.title).toBe('DROP 001 LAUNCHES IN');
+        expect(defaultData.settings.prelaunchGate.lockEnabled).toBe(false);
+        expect(defaultData.settings.prelaunchGate.unlocked).toBe(true);
+        expect(defaultData.settings.prelaunchGate.title).toBe('WEBSITE LAUNCHES IN');
 
         const login = await fetch(`${base}/api/admin/login`, {
             method: 'POST',
@@ -197,9 +201,11 @@ describe('Admin handover & launch countdown', () => {
             body: JSON.stringify({
                 settings: {
                     launchCountdownEnabled: 'true',
+                    launchCountdownTitle: 'DROP 002 LAUNCHES IN',
+                    launchCountdownTarget: '2027-02-01T18:00:00.000Z',
                     prelaunchLockEnabled: 'true',
-                    launchCountdownTitle: 'OFFICIAL LAUNCH IN',
-                    launchCountdownTarget: '2027-01-15T18:00:00.000Z',
+                    prelaunchTitle: 'OFFICIAL WEBSITE LAUNCH',
+                    prelaunchTarget: '2027-01-15T18:00:00.000Z',
                     prelaunchPassword: 'vip-preview-password'
                 }
             })
@@ -210,11 +216,20 @@ describe('Admin handover & launch countdown', () => {
         const updatedData = await updatedRes.json();
         expect(updatedData.settings.launchCountdown).toEqual({
             enabled: true,
-            title: 'OFFICIAL LAUNCH IN',
-            targetDate: '2027-01-15T18:00:00.000Z',
-            lockEnabled: true,
-            unlocked: false
+            title: 'DROP 002 LAUNCHES IN',
+            targetDate: '2027-02-01T18:00:00.000Z'
         });
+        expect(updatedData.settings.prelaunchGate).toEqual({
+            lockEnabled: true,
+            unlocked: false,
+            title: 'OFFICIAL WEBSITE LAUNCH',
+            targetDate: '2027-01-15T18:00:00.000Z'
+        });
+
+        // Protected API route returns 403 PRELAUNCH_LOCKED without cookie
+        const blockedRes = await fetch(`${base}/api/protected-store-check`);
+        expect(blockedRes.status).toBe(403);
+        expect((await blockedRes.json()).code).toBe('PRELAUNCH_LOCKED');
 
         // Wrong visitor password is rejected
         const badUnlock = await fetch(`${base}/api/config/prelaunch-unlock`, {
@@ -224,7 +239,7 @@ describe('Admin handover & launch countdown', () => {
         });
         expect(badUnlock.status).toBe(401);
 
-        // Correct visitor password sets prelaunch cookie and unlocks storefront
+        // Correct visitor password sets prelaunch cookie and unlocks storefront + API
         const goodUnlock = await fetch(`${base}/api/config/prelaunch-unlock`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -240,6 +255,11 @@ describe('Admin handover & launch countdown', () => {
             headers: { Cookie: `la_vague_prelaunch_access=${unlockCookieMatch[1]}` }
         });
         const unlockedData = await unlockedRes.json();
-        expect(unlockedData.settings.launchCountdown.unlocked).toBe(true);
+        expect(unlockedData.settings.prelaunchGate.unlocked).toBe(true);
+
+        const allowedRes = await fetch(`${base}/api/protected-store-check`, {
+            headers: { Cookie: `la_vague_prelaunch_access=${unlockCookieMatch[1]}` }
+        });
+        expect(allowedRes.status).toBe(200);
     });
 });

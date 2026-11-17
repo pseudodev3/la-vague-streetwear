@@ -390,13 +390,17 @@ async function loadSettings() {
 
         const countdownEnabled = document.getElementById('settingLaunchCountdownEnabled');
         const prelaunchLockEnabled = document.getElementById('settingPrelaunchLockEnabled');
+        const prelaunchTitle = document.getElementById('settingPrelaunchTitle');
+        const prelaunchTarget = document.getElementById('settingPrelaunchTarget');
         const countdownTitle = document.getElementById('settingLaunchCountdownTitle');
         const countdownTarget = document.getElementById('settingLaunchCountdownTarget');
         const prelaunchPasswordInput = document.getElementById('settingPrelaunchAccessPassword');
         const prelaunchPasswordHint = document.getElementById('prelaunchPasswordHint');
         if (countdownEnabled) countdownEnabled.checked = settings.launchCountdownEnabled !== 'false';
         if (prelaunchLockEnabled) prelaunchLockEnabled.checked = settings.prelaunchLockEnabled === 'true';
-        if (countdownTitle) countdownTitle.value = settings.launchCountdownTitle || 'WEBSITE LAUNCHES IN';
+        if (prelaunchTitle) prelaunchTitle.value = settings.prelaunchTitle || 'WEBSITE LAUNCHES IN';
+        if (prelaunchTarget) prelaunchTarget.value = localDateTimeInput(settings.prelaunchTarget || '2026-12-01T12:00:00+01:00');
+        if (countdownTitle) countdownTitle.value = settings.launchCountdownTitle || 'DROP 001 LAUNCHES IN';
         if (countdownTarget) countdownTarget.value = localDateTimeInput(settings.launchCountdownTarget || '2026-12-01T12:00:00+01:00');
         if (prelaunchPasswordInput) prelaunchPasswordInput.value = '';
         if (prelaunchPasswordHint) {
@@ -2325,7 +2329,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const countdownEnabled = document.getElementById('settingLaunchCountdownEnabled')?.checked ?? true;
             const prelaunchLockEnabled = document.getElementById('settingPrelaunchLockEnabled')?.checked ?? false;
-            const countdownTitle = document.getElementById('settingLaunchCountdownTitle')?.value.trim() || 'WEBSITE LAUNCHES IN';
+            const prelaunchTitle = document.getElementById('settingPrelaunchTitle')?.value.trim() || 'WEBSITE LAUNCHES IN';
+            const prelaunchTarget = document.getElementById('settingPrelaunchTarget')?.value;
+            const countdownTitle = document.getElementById('settingLaunchCountdownTitle')?.value.trim() || 'DROP 001 LAUNCHES IN';
             const countdownTarget = document.getElementById('settingLaunchCountdownTarget')?.value;
             const prelaunchPassword = document.getElementById('settingPrelaunchAccessPassword')?.value || '';
 
@@ -2341,6 +2347,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 announcementEndsAt: end ? new Date(end).toISOString() : '',
                 launchCountdownEnabled: String(countdownEnabled),
                 prelaunchLockEnabled: String(prelaunchLockEnabled),
+                prelaunchTitle: prelaunchTitle,
+                prelaunchTarget: prelaunchTarget ? new Date(prelaunchTarget).toISOString() : '',
                 launchCountdownTitle: countdownTitle,
                 launchCountdownTarget: countdownTarget ? new Date(countdownTarget).toISOString() : '',
                 ...(prelaunchPassword.trim() ? { prelaunchPassword: prelaunchPassword.trim() } : {})
