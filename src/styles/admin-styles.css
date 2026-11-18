@@ -142,7 +142,7 @@ textarea:focus-visible {
   background:
     radial-gradient(circle at 20% 10%, rgba(227,38,46,.13), transparent 23rem),
     radial-gradient(circle at 80% 80%, rgba(255,255,255,.025), transparent 24rem),
-    linear-gradient(145deg, #070707 0%, #0b0b0c 58%, #0f0f11 100%);
+    var(--admin-bg);
 }
 
 .login-box {
@@ -1135,7 +1135,7 @@ textarea {
   right: max(1rem, env(safe-area-inset-right));
   bottom: max(1rem, env(safe-area-inset-bottom));
   z-index: 2000;
-  width: min(380px, calc(100vw - 2rem));
+  width: min(380px, calc(100% - 2rem));
   display: grid;
   gap: .55rem;
 }
@@ -1411,6 +1411,13 @@ textarea {
 /* ==========================================================================
    ULTIMATE UI/UX — ADMIN APP-SCREEN DENSITY, TABULAR DATA & FEEL
    ========================================================================== */
+
+.table th,
+.stat-label {
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+}
 
 .stat-value,
 .stat-change,

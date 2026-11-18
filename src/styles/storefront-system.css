@@ -373,7 +373,7 @@ body .hero {
 body .hero-bg {
   background:
     radial-gradient(circle at 50% 24%, rgba(227,38,46,.1), transparent 27rem),
-    linear-gradient(180deg, #0b0b0c 0%, #080808 72%);
+    var(--lv-bg);
 }
 
 body .hero-gradient {
@@ -1357,7 +1357,7 @@ body .footer-bottom .payment-icon {
 /* Toasts -------------------------------------------------------------- */
 
 body .toast-container {
-  width: min(360px, calc(100vw - 2rem));
+  width: min(360px, calc(100% - 2rem));
   gap: .6rem;
 }
 
@@ -2920,6 +2920,21 @@ body.prelaunch-locked {
 /* ==========================================================================
    ULTIMATE UI/UX SYSTEM — TYPOGRAPHY, CONCENTRIC SURFACES, FEEL & FLOOR
    ========================================================================== */
+
+/* §3.9 Untracked body-face labels, tags, captions & nav links */
+body .section-tag,
+body .collection-tag,
+body .stat-label,
+body .launch-countdown-header,
+body .launch-countdown-caption,
+body .prelaunch-gate-caption,
+body .lookbook-mobile-hint,
+body .nav-link,
+body .policy-kicker {
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+}
 
 /* §5 Typography: balance headings, pretty body copy, tabular-nums on all dynamic numbers */
 body h1,

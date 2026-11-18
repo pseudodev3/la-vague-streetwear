@@ -70,7 +70,7 @@
     bottom: 50%;
     transform: translate(8px, 50%);
     width: max-content;
-    max-width: min(220px, calc(100vw - 110px));
+    max-width: 220px;
     padding: 0.72rem 0.95rem;
     border: 1px solid rgba(255, 255, 255, 0.11);
     border-radius: 12px;

@@ -19,7 +19,7 @@ body .featured-products {
     padding: clamp(5rem, 8vw, 7.5rem) 0;
     background:
         radial-gradient(ellipse at 16% 8%, rgba(227, 38, 46, 0.065), transparent 36rem),
-        linear-gradient(180deg, #0b0b0c 0%, #080809 100%);
+        var(--lv-bg, #080808);
     border-bottom: 1px solid rgba(255, 255, 255, 0.075);
 }
 
@@ -56,7 +56,7 @@ body .featured-products .featured-grid .product-card {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: linear-gradient(180deg, #131316 0%, #0d0d0f 100%);
+    background: var(--lv-surface, #121214);
     border: 1px solid rgba(255, 255, 255, 0.09);
     border-radius: 18px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
@@ -1067,7 +1067,7 @@ body .collections .collection-card .collection-link {
     color: #f2f0eb;
     background:
         radial-gradient(ellipse at 78% 18%, rgba(104, 26, 24, 0.14), transparent 34%),
-        linear-gradient(145deg, #090909 0%, #111 48%, #080808 100%);
+        var(--lv-bg, #080808);
 }
 .lookbook::before {
     position: absolute;

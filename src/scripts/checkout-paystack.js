@@ -242,7 +242,7 @@
                 .paystack-modal-icon--pending { background: rgba(245,158,11,0.1); color: #f59e0b; animation: paystack-pulse 2s ease-in-out infinite; }
                 .paystack-modal-icon--success { background: rgba(34,197,94,0.1); color: #22c55e; }
                 .paystack-modal-progress { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin: 1.5rem 0; overflow: hidden; }
-                .paystack-modal-progress-bar { height: 100%; background: linear-gradient(90deg,#dc2626,#ef4444); width: 0%; transition: width 0.4s ease; }
+                .paystack-modal-progress-bar { height: 100%; background: #e3262e; width: 0%; transition: opacity 200ms cubic-bezier(0.23,1,0.32,1); }
                 .paystack-modal-title { font-family: 'Oswald', sans-serif; font-size: 1.75rem; color: #fff; margin-bottom: 1rem; text-transform: uppercase; }
                 .paystack-modal-text { color: rgba(255,255,255,0.7); margin-bottom: 1.5rem; }
                 .paystack-modal-order { background: rgba(255,255,255,0.05); padding: 1rem; display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
