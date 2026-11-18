@@ -163,4 +163,42 @@ test.describe('Homepage visual polish', () => {
       expect(kickerDisplay).toBe('none');
     }
   });
+
+  test('enforces Ultimate UI/UX Floor invariants (overflow-x clip, solid announcement bar, tabular-nums, touch targets)', async ({ page }) => {
+    await mockStorefrontAPI(page);
+    await page.goto('/');
+
+    const floorState = await page.evaluate(() => {
+      const htmlOverflowX = getComputedStyle(document.documentElement).overflowX;
+      const bodyOverflowX = getComputedStyle(document.body).overflowX;
+      const announcementBgImage = getComputedStyle(document.querySelector('.announcement-bar')).backgroundImage;
+      const logoOutlineStyle = getComputedStyle(document.querySelector('.nav-logo-img')).outlineStyle;
+      const cartCountNumeric = getComputedStyle(document.getElementById('cartCount')).fontVariantNumeric;
+      const statNumberNumeric = getComputedStyle(document.querySelector('.stat-number')).fontVariantNumeric;
+      const navBtnRect = document.querySelector('.nav-btn').getBoundingClientRect();
+      const isTouchOrMobile = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
+      return {
+        htmlOverflowX,
+        bodyOverflowX,
+        announcementBgImage,
+        logoOutlineStyle,
+        cartCountNumeric,
+        statNumberNumeric,
+        navBtnWidth: Math.round(navBtnRect.width),
+        navBtnHeight: Math.round(navBtnRect.height),
+        isTouchOrMobile
+      };
+    });
+
+    expect(floorState.htmlOverflowX).toBe('clip');
+    expect(floorState.bodyOverflowX).toBe('clip');
+    expect(floorState.announcementBgImage).toBe('none');
+    expect(floorState.logoOutlineStyle).toBe('none');
+    expect(floorState.cartCountNumeric).toContain('tabular-nums');
+    expect(floorState.statNumberNumeric).toContain('tabular-nums');
+    if (floorState.isTouchOrMobile) {
+      expect(floorState.navBtnWidth).toBeGreaterThanOrEqual(44);
+      expect(floorState.navBtnHeight).toBeGreaterThanOrEqual(44);
+    }
+  });
 });

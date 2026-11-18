@@ -36,6 +36,8 @@
   --color-accent-hover: var(--lv-red-hover);
   --color-border: var(--lv-border);
   --color-border-light: var(--lv-border-strong);
+  --font-heading: 'Oswald', sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --transition-fast: 150ms var(--lv-ease);
   --transition-medium: 220ms var(--lv-ease);
   --transition-slow: 280ms var(--lv-ease);
@@ -44,9 +46,12 @@
 
 html {
   background: var(--lv-bg);
+  overflow-x: clip;
 }
 
 body {
+  overflow-x: clip;
+  font-family: var(--font-body);
   background:
     radial-gradient(circle at 12% 0%, rgba(227,38,46,.055), transparent 24rem),
     var(--lv-bg);
@@ -57,12 +62,17 @@ body {
 
 ::selection {
   background: rgba(227,38,46,.34);
-  color: #fff;
+  color: var(--lv-text);
 }
 
 img {
-  outline: 1px solid rgba(255,255,255,.08);
+  outline: 1px solid rgba(255,255,255,.1);
   outline-offset: -1px;
+}
+
+img.nav-logo-img,
+img.footer-logo-img {
+  outline: none;
 }
 
 button,
@@ -91,8 +101,9 @@ body .announcement-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(90deg, #c91921, var(--lv-red) 45%, #c91921);
-  color: #fff;
+  background: var(--lv-red);
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  color: var(--lv-text);
   font-size: .68rem;
   font-weight: 700;
   letter-spacing: .115em;
@@ -2904,4 +2915,184 @@ body.prelaunch-locked {
   margin: .25rem 0 0;
   font-size: .82rem;
   color: #f87171;
+}
+
+/* ==========================================================================
+   ULTIMATE UI/UX SYSTEM — TYPOGRAPHY, CONCENTRIC SURFACES, FEEL & FLOOR
+   ========================================================================== */
+
+/* §5 Typography: balance headings, pretty body copy, tabular-nums on all dynamic numbers */
+body h1,
+body h2,
+body h3,
+body h4,
+body .hero-title,
+body .section-title,
+body .page-title,
+body .product-title,
+body .summary-title,
+body .faq-question,
+body .modal-header h3,
+body .review-modal-header h3 {
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+body p,
+body .hero-description,
+body .product-description,
+body .review-text,
+body .faq-answer,
+body .legal-content p {
+  text-wrap: pretty;
+}
+
+body .product-price,
+body .current-price,
+body .original-price,
+body .price,
+body .cart-item-price,
+body .summary-item-price,
+body .summary-row span:last-child,
+body .total-price,
+body #cartSubtotal,
+body #subtotal,
+body #shippingCost,
+body #discountAmount,
+body #total,
+body #cartCount,
+body #wishlistCount,
+body #averageRating,
+body #ratingCount,
+body .product-rank,
+body .lookbook-number,
+body .stat-number,
+body .launch-countdown-value,
+body .prelaunch-gate-value,
+body .quantity-selector span {
+  font-variant-numeric: tabular-nums;
+}
+
+/* §8 Concentric radii (outer 20px = inner 10px + padding) & elevation across pages */
+body .product-card,
+body .collection-card,
+body .review-card,
+body .review-item,
+body .order-summary,
+body .checkout-section,
+body .faq-item,
+body .contact-form,
+body .contact-info-card,
+body .track-order-card,
+body .confirmation-card,
+body .modal-content,
+body .quick-view-content,
+body .review-modal {
+  border-radius: var(--lv-r-lg);
+}
+
+body .form-group input,
+body .form-group select,
+body .form-group textarea,
+body .input,
+body .coupon-input-group input,
+body .shipping-option,
+body .payment-option,
+body .summary-item-image {
+  border-radius: var(--lv-r-sm);
+}
+
+/* §11 Micro-interactions: standardized 0.96 press scale (100ms) across all interactive controls */
+body .btn,
+body .product-btn,
+body .nav-btn,
+body .qty-btn,
+body .size-btn,
+body .color-btn,
+body .filter-btn,
+body .filter-chip,
+body .prelaunch-gate-btn,
+body .cart-close,
+body .wishlist-close,
+body .search-close,
+body .modal-close,
+body .review-modal-close-x,
+body .lightbox-close,
+body .lightbox-nav {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: var(--lv-ease);
+}
+
+body .btn:active:not(:disabled),
+body .product-btn:active:not(:disabled),
+body .nav-btn:active:not(:disabled),
+body .qty-btn:active:not(:disabled),
+body .size-btn:active:not(:disabled),
+body .color-btn:active:not(:disabled),
+body .filter-btn:active:not(:disabled),
+body .filter-chip:active:not(:disabled),
+body .prelaunch-gate-btn:active:not(:disabled),
+body .cart-close:active:not(:disabled),
+body .wishlist-close:active:not(:disabled),
+body .search-close:active:not(:disabled),
+body .modal-close:active:not(:disabled),
+body .review-modal-close-x:active:not(:disabled),
+body .lightbox-close:active:not(:disabled),
+body .lightbox-nav:active:not(:disabled) {
+  transform: scale(0.96);
+  transition-duration: 100ms;
+}
+
+/* §11 Card lift on hover (-2px + elevated shadow) on fine pointer devices */
+@media (hover: hover) and (pointer: fine) {
+  body .product-card,
+  body .collection-card,
+  body .review-card,
+  body .faq-item {
+    transition: transform 200ms var(--lv-ease),
+                box-shadow 200ms var(--lv-ease),
+                border-color 200ms var(--lv-ease);
+  }
+
+  body .product-card:hover,
+  body .collection-card:hover,
+  body .review-card:hover,
+  body .faq-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--lv-shadow-2);
+  }
+}
+
+/* §13 Touch & interaction: minimum 44x44px hit areas on touch / mobile viewports */
+@media (max-width: 768px), (pointer: coarse) {
+  body .nav-btn,
+  body .cart-close,
+  body .wishlist-close,
+  body .search-close,
+  body .modal-close,
+  body .review-modal-close-x,
+  body .lightbox-close,
+  body .lightbox-nav,
+  body .size-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* §3.6 & §10 Reduced motion fallback */
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body {
+    scroll-behavior: auto !important;
+  }
+
+  body *,
+  body *::before,
+  body *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

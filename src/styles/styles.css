@@ -38,23 +38,23 @@
 
 /* CSS Variables */
 :root {
-    --color-bg: #0a0a0a;
-    --color-bg-secondary: #111111;
-    --color-text: #ffffff;
-    --color-text-muted: #888888;
-    --color-accent: #dc2626;
-    --color-accent-hover: #b91c1c;
-    --color-border: #222222;
-    --color-border-light: #333333;
+    --color-bg: #080808;
+    --color-bg-secondary: #0d0d0e;
+    --color-text: #f5f3ef;
+    --color-text-muted: #9b9994;
+    --color-accent: #e3262e;
+    --color-accent-hover: #f13b42;
+    --color-border: rgba(255, 255, 255, 0.085);
+    --color-border-light: rgba(255, 255, 255, 0.14);
     
     --font-heading: 'Oswald', sans-serif;
-    --font-body: 'Inter', sans-serif;
+    --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     
-    --transition-fast: 0.2s ease;
-    --transition-medium: 0.4s ease;
-    --transition-slow: 0.6s ease;
+    --transition-fast: 150ms cubic-bezier(0.23, 1, 0.32, 1);
+    --transition-medium: 220ms cubic-bezier(0.23, 1, 0.32, 1);
+    --transition-slow: 300ms cubic-bezier(0.23, 1, 0.32, 1);
     
-    --container-width: 1400px;
+    --container-width: 1360px;
     --container-padding: 2rem;
 }
 
@@ -66,7 +66,7 @@
 }
 
 html, body {
-    overflow-x: hidden;
+    overflow-x: clip;
     width: 100%;
     position: relative;
     scroll-behavior: smooth;
@@ -84,8 +84,10 @@ html, body {
     }
 
     .nav-btn {
-        width: 32px;
-        height: 32px;
+        min-width: 44px;
+        min-height: 44px;
+        width: 44px;
+        height: 44px;
     }
 
     .nav-actions {

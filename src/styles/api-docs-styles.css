@@ -1,27 +1,35 @@
 /**
  * LA VAGUE - API Documentation Styles
  */
+:root {
+    --lv-bg: #080808;
+    --lv-surface: #121214;
+    --lv-red: #e3262e;
+}
+
 body {
     margin: 0;
     padding: 0;
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
 }
 .swagger-ui .topbar {
-    background: #1a1a1a;
+    background: var(--lv-surface);
 }
 .swagger-ui .topbar .download-url-wrapper input[type=text] {
-    border-color: #dc2626;
+    border-color: var(--lv-red);
 }
 .swagger-ui .topbar .download-url-wrapper .download-url-button {
-    background: #dc2626;
+    background: var(--lv-red);
 }
 .swagger-ui .info .title {
-    color: #dc2626;
+    color: var(--lv-red);
 }
 .swagger-ui .btn.authorize {
-    background-color: #dc2626;
-    border-color: #dc2626;
+    background-color: var(--lv-red);
+    border-color: var(--lv-red);
 }
 .swagger-ui .btn.execute {
-    background-color: #dc2626;
-    border-color: #dc2626;
+    background-color: var(--lv-red);
+    border-color: var(--lv-red);
 }
