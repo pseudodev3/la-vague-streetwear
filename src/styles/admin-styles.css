@@ -75,6 +75,7 @@
 
 html {
   min-width: 320px;
+  overflow-x: clip;
   background: var(--admin-bg);
 }
 
@@ -82,11 +83,12 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
+  overflow-x: clip;
   background:
     radial-gradient(circle at 10% 0%, rgba(227,38,46,.05), transparent 30rem),
     var(--admin-bg);
   color: var(--admin-text);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -140,7 +142,7 @@ textarea:focus-visible {
   background:
     radial-gradient(circle at 20% 10%, rgba(227,38,46,.13), transparent 23rem),
     radial-gradient(circle at 80% 80%, rgba(255,255,255,.025), transparent 24rem),
-    linear-gradient(145deg, #070707 0%, #0b0b0c 58%, #0f0f11 100%);
+    var(--admin-bg);
 }
 
 .login-box {
@@ -1133,7 +1135,7 @@ textarea {
   right: max(1rem, env(safe-area-inset-right));
   bottom: max(1rem, env(safe-area-inset-bottom));
   z-index: 2000;
-  width: min(380px, calc(100vw - 2rem));
+  width: min(380px, calc(100% - 2rem));
   display: grid;
   gap: .55rem;
 }
@@ -1403,5 +1405,71 @@ textarea {
 
   .loading-spinner {
     animation-duration: 1.2s;
+  }
+}
+
+/* ==========================================================================
+   ULTIMATE UI/UX — ADMIN APP-SCREEN DENSITY, TABULAR DATA & FEEL
+   ========================================================================== */
+
+.table th,
+.stat-label {
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.stat-value,
+.stat-change,
+.nav-badge,
+.badge,
+.status-badge,
+.table td,
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
+}
+
+.card-header h3,
+.modal-header h3,
+.section-header h2 {
+  text-wrap: balance;
+}
+
+.btn,
+.nav-item,
+.modal-close,
+.mobile-menu-toggle {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: var(--admin-ease);
+}
+
+.btn:active:not(:disabled),
+.nav-item:active:not(:disabled),
+.modal-close:active:not(:disabled),
+.mobile-menu-toggle:active:not(:disabled) {
+  transform: scale(0.96);
+  transition-duration: 100ms;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .stat-card {
+    transition: transform 200ms var(--admin-ease),
+                box-shadow 200ms var(--admin-ease),
+                border-color 200ms var(--admin-ease);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--admin-shadow-2);
+  }
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  .btn,
+  .nav-item,
+  .modal-close,
+  .mobile-menu-toggle {
+    min-height: 44px;
   }
 }

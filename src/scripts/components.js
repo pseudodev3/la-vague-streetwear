@@ -276,7 +276,13 @@ async function initPrelaunchGate() {
         const form = document.createElement('form');
         form.className = 'prelaunch-gate-form';
 
+        const label = document.createElement('label');
+        label.className = 'prelaunch-gate-label';
+        label.setAttribute('for', 'prelaunchPasswordInput');
+        label.textContent = 'Early-access password';
+
         const input = document.createElement('input');
+        input.id = 'prelaunchPasswordInput';
         input.type = 'password';
         input.className = 'prelaunch-gate-input';
         input.placeholder = 'Enter access password';
@@ -292,6 +298,7 @@ async function initPrelaunchGate() {
         errEl.className = 'prelaunch-gate-error';
         errEl.setAttribute('role', 'alert');
 
+        form.appendChild(label);
         form.appendChild(input);
         form.appendChild(btn);
         form.appendChild(errEl);

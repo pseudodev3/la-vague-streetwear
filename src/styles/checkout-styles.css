@@ -703,7 +703,7 @@
     }
     
     .summary-items {
-        overflow-x: hidden;
+        overflow-x: clip;
     }
     
     .summary-item {

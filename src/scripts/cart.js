@@ -517,10 +517,10 @@ const CartState = {
     initProfessionalFeatures() {
         this.checkAbandonedCart();
         
-        let originalTitle = document.title;
+        const originalTitle = document.title;
         window.addEventListener('blur', () => {
             if (this.cart.length > 0) {
-                document.title = '🛒 Don\'t forget your wave!';
+                document.title = 'LA VAGUE — Items in your bag';
             }
         });
         

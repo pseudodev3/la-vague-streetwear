@@ -9,12 +9,15 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--lv-border-strong, rgba(255, 255, 255, 0.14));
     border-radius: 50%;
-    background: #151515;
-    color: #fff;
-    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(220, 38, 38, 0.08);
-    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+    background: var(--lv-surface, #121214);
+    color: var(--lv-text, #f5f3ef);
+    box-shadow: var(--lv-shadow-2, 0 14px 38px rgba(0, 0, 0, 0.42));
+    transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+                border-color 180ms cubic-bezier(0.23, 1, 0.32, 1),
+                background-color 180ms cubic-bezier(0.23, 1, 0.32, 1),
+                box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1);
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -22,21 +25,31 @@
     content: '';
     position: absolute;
     inset: -4px;
-    border: 1px solid rgba(220, 38, 38, 0.22);
+    border: 1px solid rgba(227, 38, 46, 0.25);
     border-radius: inherit;
     opacity: 0;
     transform: scale(0.92);
-    transition: opacity 180ms ease, transform 180ms ease;
+    transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
+                transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
     pointer-events: none;
 }
 
 .chat-support:hover,
 .chat-support:focus-visible {
-    transform: translateY(-3px);
-    background: #1b1b1b;
-    border-color: rgba(220, 38, 38, 0.65);
-    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5), 0 0 28px rgba(220, 38, 38, 0.12);
-    outline: none;
+    transform: translateY(-2px);
+    background: var(--lv-surface-hover, #1c1c1f);
+    border-color: var(--lv-red, #e3262e);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5), 0 0 28px rgba(227, 38, 46, 0.14);
+}
+
+.chat-support:focus-visible {
+    outline: 2px solid var(--lv-red, #e3262e);
+    outline-offset: 3px;
+}
+
+.chat-support:active {
+    transform: scale(0.96);
+    transition-duration: 100ms;
 }
 
 .chat-support:hover::after,
@@ -57,7 +70,7 @@
     bottom: 50%;
     transform: translate(8px, 50%);
     width: max-content;
-    max-width: min(220px, calc(100vw - 110px));
+    max-width: 220px;
     padding: 0.72rem 0.95rem;
     border: 1px solid rgba(255, 255, 255, 0.11);
     border-radius: 12px;
