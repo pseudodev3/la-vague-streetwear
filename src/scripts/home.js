@@ -347,7 +347,6 @@ async function renderFeaturedProducts() {
                 ${secondSrc ? `<img src="${secondSrc}" alt="${secondAlt}" class="product-image-hover" loading="lazy">` : ''}
                 <div class="product-quick-bar" aria-hidden="true">
                     <span>${isSoldOut ? 'Sold Out' : 'View Piece'}</span>
-                    <span class="product-quick-arrow">↗</span>
                 </div>
             </div>
             <div class="product-info">
