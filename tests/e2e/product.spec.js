@@ -51,4 +51,41 @@ test.describe('Product page', () => {
     await expect(related).toHaveAttribute('href', /product\.html\?slug=/);
     await expect(related).not.toHaveAttribute('onclick');
   });
+
+  test('scrolls the review modal cleanly so the Submit Review button is reachable on desktop and mobile', async ({ page }) => {
+    await page.locator('#writeReviewBtn').scrollIntoViewIfNeeded();
+    await page.locator('#writeReviewBtn').click();
+
+    const modal = page.locator('#reviewModal');
+    const content = page.locator('#reviewModal .review-modal-content');
+    const submitBtn = page.locator('#reviewForm button[type="submit"]');
+
+    await expect(modal).toHaveClass(/active/);
+    await expect(content).toHaveCSS('overflow-y', 'auto');
+
+    await submitBtn.scrollIntoViewIfNeeded();
+    await expect(submitBtn).toBeVisible();
+
+    const bounds = await page.evaluate(() => {
+      const m = document.getElementById('reviewModal').getBoundingClientRect();
+      const b = document.querySelector('#reviewForm button[type="submit"]').getBoundingClientRect();
+      const h = document.querySelector('#reviewModal .review-modal-header h3').getBoundingClientRect();
+      const x = document.getElementById('reviewModalCloseX').getBoundingClientRect();
+      return {
+        modalBottom: m.bottom,
+        btnTop: b.top,
+        btnBottom: b.bottom,
+        viewportHeight: window.innerHeight,
+        titleCenterY: h.top + h.height / 2,
+        closeCenterY: x.top + x.height / 2
+      };
+    });
+
+    expect(bounds.btnBottom).toBeLessThanOrEqual(bounds.modalBottom + 2);
+    expect(bounds.btnBottom).toBeLessThanOrEqual(bounds.viewportHeight + 2);
+    expect(Math.abs(bounds.closeCenterY - bounds.titleCenterY)).toBeLessThanOrEqual(2);
+
+    await page.locator('#reviewModalCloseX').click();
+    await expect(modal).not.toHaveClass(/active/);
+  });
 });
