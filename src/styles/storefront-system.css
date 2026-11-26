@@ -2355,16 +2355,53 @@ body .filter-sidebar {
 body .quick-view-modal,
 body .size-guide-modal,
 body .review-modal {
-  overflow: hidden;
   border: 1px solid var(--lv-border);
   border-radius: 16px;
   background: var(--lv-surface);
   box-shadow: var(--lv-shadow-2);
 }
 
+body .quick-view-modal,
+body .size-guide-modal {
+  overflow-y: auto;
+  overflow-x: clip;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+body .review-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: min(90dvh, 90vh);
+  overflow: hidden;
+}
+
+body .review-modal-header {
+  flex: 0 0 auto;
+  padding: 1.25rem 4rem 1.25rem 1.5rem;
+  background: var(--lv-surface);
+  border-bottom: 1px solid var(--lv-border);
+}
+
+body .review-modal-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.25rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+}
+
 body .modal-close,
 body .review-modal-close-x {
   border-radius: 10px;
+}
+
+body .review-modal-close-x {
+  position: absolute;
+  top: .85rem;
+  right: 1rem;
+  z-index: 20;
 }
 
 body .quick-view-modal .size-option {
