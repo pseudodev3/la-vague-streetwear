@@ -69,16 +69,21 @@ test.describe('Product page', () => {
     const bounds = await page.evaluate(() => {
       const m = document.getElementById('reviewModal').getBoundingClientRect();
       const b = document.querySelector('#reviewForm button[type="submit"]').getBoundingClientRect();
+      const h = document.querySelector('#reviewModal .review-modal-header h3').getBoundingClientRect();
+      const x = document.getElementById('reviewModalCloseX').getBoundingClientRect();
       return {
         modalBottom: m.bottom,
         btnTop: b.top,
         btnBottom: b.bottom,
-        viewportHeight: window.innerHeight
+        viewportHeight: window.innerHeight,
+        titleCenterY: h.top + h.height / 2,
+        closeCenterY: x.top + x.height / 2
       };
     });
 
     expect(bounds.btnBottom).toBeLessThanOrEqual(bounds.modalBottom + 2);
     expect(bounds.btnBottom).toBeLessThanOrEqual(bounds.viewportHeight + 2);
+    expect(Math.abs(bounds.closeCenterY - bounds.titleCenterY)).toBeLessThanOrEqual(2);
 
     await page.locator('#reviewModalCloseX').click();
     await expect(modal).not.toHaveClass(/active/);
