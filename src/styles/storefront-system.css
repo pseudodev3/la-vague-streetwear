@@ -3167,6 +3167,99 @@ body .lightbox-nav:active:not(:disabled) {
   }
 }
 
+/* Category Landing Editorial Copy (SEO + Fit/Fabric Notes) */
+body .category-editorial {
+  border-top: 1px solid var(--lv-border);
+  padding: clamp(2.5rem, 5vw, 4rem) 0;
+  background: var(--lv-bg);
+}
+
+body .category-editorial-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: clamp(1.75rem, 4vw, 3.5rem);
+  align-items: start;
+}
+
+body .category-editorial-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--lv-text);
+  margin: 0 0 0.85rem;
+}
+
+body .category-editorial-copy p {
+  color: var(--lv-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  max-width: 64ch;
+  margin: 0 0 0.85rem;
+}
+
+body .category-editorial-copy p:last-child {
+  margin-bottom: 0;
+}
+
+body .category-editorial-meta {
+  border-top: 1px solid var(--lv-border);
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+body .category-editorial-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1.25rem;
+  margin: 0;
+}
+
+body .category-editorial-facts dt {
+  color: var(--lv-text-muted);
+  font-size: 0.78rem;
+  margin-bottom: 0.2rem;
+}
+
+body .category-editorial-facts dd {
+  color: var(--lv-text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+body .category-editorial-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.15rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--lv-border);
+}
+
+body .category-editorial-links a {
+  color: var(--lv-text-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+  transition: color 150ms var(--lv-ease), border-color 150ms var(--lv-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  body .category-editorial-links a:hover {
+    color: var(--lv-text);
+    border-color: var(--lv-border-strong);
+  }
+}
+
+@media (max-width: 768px) {
+  body .category-editorial-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* §3.6 & §10 Reduced motion fallback */
 @media (prefers-reduced-motion: reduce) {
   html,

@@ -68,10 +68,10 @@ window.Components = {
                     <h4>Shop</h4>
                     <ul>
                         <li><a href="/shop">All Products</a></li>
-                        <li><a href="/shop?category=hoodies">Hoodies</a></li>
-                        <li><a href="/shop?category=tees">T-Shirts</a></li>
-                        <li><a href="/shop?category=bottoms">Bottoms</a></li>
-                        <li><a href="/shop?category=accessories">Accessories</a></li>
+                        <li><a href="/hoodies">Hoodies</a></li>
+                        <li><a href="/t-shirts">T-Shirts</a></li>
+                        <li><a href="/bottoms">Bottoms</a></li>
+                        <li><a href="/accessories">Accessories</a></li>
                     </ul>
                 </div>
                 <div class="footer-links">

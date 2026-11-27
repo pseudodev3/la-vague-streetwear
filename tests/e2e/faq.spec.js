@@ -14,7 +14,7 @@ test.describe('FAQ answers', () => {
       'Shipping', 'Returns & Exchanges', 'Sizing & Fit', 'Orders', 'Products'
     ]);
     const items = page.locator('.faq-grid .faq-item');
-    await expect(items).toHaveCount(13);
+    await expect(items).toHaveCount(14);
 
     for (const item of await items.all()) {
       const question = item.locator('.faq-question');
@@ -50,5 +50,13 @@ test.describe('FAQ answers', () => {
     await expect(question).toHaveAttribute('aria-expanded', 'false');
     await expect(answer).toBeHidden();
     await expect(question).toBeFocused();
+  });
+
+  test('includes valid FAQPage JSON-LD matching visible FAQ questions', async ({ page }) => {
+    const jsonLd = await page.locator('script[type="application/ld+json"]').textContent();
+    const schema = JSON.parse(jsonLd);
+    expect(schema['@type']).toBe('FAQPage');
+    expect(schema.mainEntity).toHaveLength(14);
+    expect(schema.mainEntity.some(entry => entry.name.includes('official website'))).toBe(true);
   });
 });

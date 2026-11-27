@@ -191,6 +191,10 @@ app.get('/api/sitemap.xml', async (req, res, next) => {
     const staticPaths = [
         '/',
         '/shop',
+        '/t-shirts',
+        '/hoodies',
+        '/bottoms',
+        '/accessories',
         '/contact',
         '/faq',
         '/shipping',
