@@ -171,20 +171,21 @@ async function initShop() {
     }
     
     state.filteredProducts = [...state.products];
-    
+
     hideLoading();
-    renderProducts();
     if (typeof CartState !== 'undefined') {
         CartState.updateCartCount();
         CartState.updateWishlistCount();
     }
-    
+
     bindEvents();
-const urlParams = new URLSearchParams(window.location.search);
-    const category = urlParams.get('category');
+    const urlParams = new URLSearchParams(window.location.search);
+    const requestedCategory = urlParams.get('category') || document.body.dataset.defaultCategory;
     // Sanitize input: only allow categories that actually exist
-    if (category && typeof CATEGORIES !== 'undefined' && CATEGORIES.find(c => c.id === category)) {
-        setCategory(category);
+    if (requestedCategory && typeof CATEGORIES !== 'undefined' && CATEGORIES.find(c => c.id === requestedCategory)) {
+        setCategory(requestedCategory);
+    } else {
+        renderProducts();
     }
 }
 
@@ -341,6 +342,70 @@ function filterProducts() {
     renderProducts();
 }
 
+const CATEGORY_SEO = {
+    all: {
+        title: 'Shop LA VAGUE | Official Nigerian Streetwear & Limited Drops',
+        description: 'Shop official LA VAGUE streetwear crafted in Nigeria: 100% organic cotton graphic tees, heavyweight hoodies, bottoms, accessories, and limited drops.',
+        canonical: 'https://la-vague.store/shop',
+        heading: 'Shop All',
+        subtitle: 'Premium streetwear crafted in Nigeria'
+    },
+    tees: {
+        title: 'LA VAGUE T-Shirts | Graphic Tees & Oversized Streetwear Shirts',
+        description: 'Shop official LA VAGUE t-shirts and graphic tees crafted in Nigeria from 100% organic cotton. Intentional oversized fit, limited drops, and nationwide delivery.',
+        canonical: 'https://la-vague.store/t-shirts',
+        heading: 'LA VAGUE T-Shirts',
+        subtitle: 'Graphic tees and oversized streetwear shirts crafted in Nigeria from 100% organic cotton'
+    },
+    hoodies: {
+        title: 'LA VAGUE Hoodies | Heavyweight Streetwear Hoodies from Nigeria',
+        description: 'Shop official LA VAGUE heavyweight hoodies designed in Lagos and crafted in Nigeria from 100% organic cotton. Relaxed oversized silhouettes and limited runs.',
+        canonical: 'https://la-vague.store/hoodies',
+        heading: 'LA VAGUE Hoodies',
+        subtitle: 'Heavyweight organic cotton hoodies designed in Lagos for everyday wear'
+    },
+    bottoms: {
+        title: 'LA VAGUE Bottoms | Streetwear Cargos, Trousers & Denim',
+        description: 'Shop official LA VAGUE bottoms: tailored streetwear cargos, relaxed trousers, and denim crafted in Nigeria. True-to-size fit and nationwide delivery.',
+        canonical: 'https://la-vague.store/bottoms',
+        heading: 'LA VAGUE Bottoms',
+        subtitle: 'True-to-size streetwear cargos, trousers, and denim made in Nigeria'
+    },
+    accessories: {
+        title: 'LA VAGUE Accessories | Streetwear Caps, Bags & Essentials',
+        description: 'Complete the look with official LA VAGUE streetwear accessories. Limited-run headwear, bags, and everyday essentials designed in Lagos, Nigeria.',
+        canonical: 'https://la-vague.store/accessories',
+        heading: 'LA VAGUE Accessories',
+        subtitle: 'Limited-run streetwear headwear and everyday essentials designed in Lagos'
+    }
+};
+
+function updateCategorySEO(category) {
+    const seo = CATEGORY_SEO[category] || CATEGORY_SEO.all;
+    document.title = seo.title;
+
+    const setMetaContent = (selector, value) => {
+        const el = document.querySelector(selector);
+        if (el) el.setAttribute('content', value);
+    };
+
+    setMetaContent('meta[name="description"]', seo.description);
+    setMetaContent('meta[property="og:title"]', seo.title);
+    setMetaContent('meta[property="og:description"]', seo.description);
+    setMetaContent('meta[property="og:url"]', seo.canonical);
+    setMetaContent('meta[name="twitter:title"]', seo.title);
+    setMetaContent('meta[name="twitter:description"]', seo.description);
+
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) canonical.setAttribute('href', seo.canonical);
+
+    const shopTitle = document.querySelector('.shop-title');
+    if (shopTitle) shopTitle.textContent = seo.heading;
+
+    const shopDescription = document.querySelector('.shop-description');
+    if (shopDescription) shopDescription.textContent = seo.subtitle;
+}
+
 function setCategory(category) {
     state.currentCategory = category;
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -349,6 +414,7 @@ function setCategory(category) {
     document.querySelectorAll('input[name="mobile-category"]').forEach(input => {
         input.checked = input.value === category;
     });
+    updateCategorySEO(category);
     filterProducts();
 }
 

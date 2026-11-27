@@ -122,4 +122,22 @@ test.describe('Product browsing', () => {
     await expect(page).toHaveURL(new RegExp(`product\\.html\\?slug=${product.slug}$`));
     await expect(page.locator('#productTitle')).toHaveText(product.name);
   });
+
+  test('updates title, heading, and canonical when filtering via query param', async ({ page }) => {
+    const expectedTees = mockStoreProducts.filter(product => product.category === 'tees');
+    await page.goto('/shop.html?category=tees');
+    await expect(page.locator('#productsGrid .product-name')).toHaveText(productNames(expectedTees));
+    await expect(page.locator('.shop-title')).toHaveText('LA VAGUE T-Shirts');
+    await expect(page).toHaveTitle(/LA VAGUE T-Shirts/);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://la-vague.store/t-shirts');
+  });
+
+  test('renders dedicated static category page pre-filtered to t-shirts', async ({ page }) => {
+    const expectedTees = mockStoreProducts.filter(product => product.category === 'tees');
+    await page.goto('/t-shirts.html');
+    await expect(page.locator('#productsGrid .product-name')).toHaveText(productNames(expectedTees));
+    await expect(page.locator('.shop-title')).toHaveText('LA VAGUE T-Shirts');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://la-vague.store/t-shirts');
+    await expect(page.locator('.category-editorial')).toBeVisible();
+  });
 });

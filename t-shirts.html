@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Error Tracking (Sentry) -->
+    <script src="src/config/sentry-env.js"></script>
+    <script src="src/config/sentry-browser.js" async></script>
+    <link rel="icon" href="/favicon.png" sizes="512x512" type="image/png">
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LA VAGUE T-Shirts | Graphic Tees &amp; Oversized Streetwear Shirts</title>
+    <meta name="description" content="Shop official LA VAGUE t-shirts and graphic tees crafted in Nigeria from 100% organic cotton. Intentional oversized fit, limited drops, and nationwide delivery.">
+    <meta name="twitter:image" content="https://la-vague.store/assets/tshirts.jpg">
+    <meta name="twitter:description" content="Shop official LA VAGUE t-shirts and graphic tees crafted in Nigeria from 100% organic cotton. Intentional oversized fit, limited drops, and nationwide delivery.">
+    <meta name="twitter:title" content="LA VAGUE T-Shirts | Graphic Tees &amp; Oversized Streetwear Shirts">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:image:alt" content="LA VAGUE T-Shirts Collection">
+    <meta property="og:image" content="https://la-vague.store/assets/tshirts.jpg">
+    <meta property="og:site_name" content="LA VAGUE">
+    <meta property="og:locale" content="en_NG">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://la-vague.store/t-shirts">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="LA VAGUE T-Shirts | Graphic Tees &amp; Oversized Streetwear Shirts">
+    <meta property="og:description" content="Shop official LA VAGUE t-shirts and graphic tees crafted in Nigeria from 100% organic cotton. Intentional oversized fit, limited drops, and nationwide delivery.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://la-vague.store/t-shirts">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "CollectionPage",
+                "@id": "https://la-vague.store/t-shirts#collection",
+                "url": "https://la-vague.store/t-shirts",
+                "name": "LA VAGUE T-Shirts",
+                "description": "Official LA VAGUE graphic tees and oversized streetwear t-shirts designed in Lagos and crafted in Nigeria from 100% organic cotton.",
+                "isPartOf": {
+                    "@id": "https://la-vague.store/#website"
+                }
+            },
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Home",
+                        "item": "https://la-vague.store/"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Shop",
+                        "item": "https://la-vague.store/shop"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": "T-Shirts",
+                        "item": "https://la-vague.store/t-shirts"
+                    }
+                ]
+            }
+        ]
+    }
+    </script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="src/styles/fonts.css?v=9.0">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/styles/styles.css?v=9.8">
+    <link rel="stylesheet" href="src/styles/shop-styles.css?v=9.0">
+    <link rel="stylesheet" href="src/styles/storefront-system.css?v=10.9">
+</head>
+<body class="no-announcement" data-default-category="tees">
+    <!-- Announcement Bar -->
+    <div class="announcement-bar">
+        <div class="announcement-content">
+            <span class="dynamic-free-shipping">FREE SHIPPING ON ORDERS OVER ₦150,000</span>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav" id="nav"></nav>
+
+    <!-- Shop Header -->
+    <header class="shop-header">
+        <div class="container">
+            <h1 class="shop-title reveal-up">LA VAGUE T-Shirts</h1>
+            <p class="shop-description reveal-up">Graphic tees and oversized streetwear shirts crafted in Nigeria from 100% organic cotton</p>
+        </div>
+    </header>
+
+    <!-- Shop Controls -->
+    <div class="shop-controls">
+        <div class="container">
+            <div class="controls-wrapper">
+                <!-- Category Filters -->
+                <div class="category-filters" id="categoryFilters">
+                    <button class="filter-btn" data-category="all">All</button>
+                    <button class="filter-btn" data-category="hoodies">Hoodies</button>
+                    <button class="filter-btn active" data-category="tees">T-Shirts</button>
+                    <button class="filter-btn" data-category="bottoms">Bottoms</button>
+                    <button class="filter-btn" data-category="accessories">Accessories</button>
+                </div>
+
+                <!-- Sort & Filter Toggle -->
+                <div class="controls-right">
+                    <button class="filter-toggle" id="filterToggle">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                        Filter
+                    </button>
+                    <div class="sort-dropdown">
+                        <select id="sortSelect" class="sort-select">
+                            <option value="featured">Featured</option>
+                            <option value="newest">Newest</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="name">Name</option>
+                        </select>
+                    </div>
+                    <span class="results-count" id="resultsCount">0 products</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Sidebar (Mobile) -->
+    <div class="filter-overlay" id="filterOverlay"></div>
+    <aside class="filter-sidebar" id="filterSidebar">
+        <div class="filter-header">
+            <h3>Filters</h3>
+            <button class="filter-close" id="filterClose">×</button>
+        </div>
+        <div class="filter-content">
+            <div class="filter-section">
+                <h4>Categories</h4>
+                <div class="filter-options" id="mobileCategoryFilters">
+                    <label class="filter-option">
+                        <input type="radio" name="mobile-category" value="all">
+                        <span>All Products</span>
+                    </label>
+                    <label class="filter-option">
+                        <input type="radio" name="mobile-category" value="hoodies">
+                        <span>Hoodies</span>
+                    </label>
+                    <label class="filter-option">
+                        <input type="radio" name="mobile-category" value="tees" checked>
+                        <span>T-Shirts</span>
+                    </label>
+                    <label class="filter-option">
+                        <input type="radio" name="mobile-category" value="bottoms">
+                        <span>Bottoms</span>
+                    </label>
+                    <label class="filter-option">
+                        <input type="radio" name="mobile-category" value="accessories">
+                        <span>Accessories</span>
+                    </label>
+                </div>
+            </div>
+            <div class="filter-section">
+                <h4>Price Range</h4>
+                <div class="price-range">
+                    <input type="range" id="priceRange" min="0" max="500000" value="500000" step="5000">
+                    <div class="price-labels">
+                        <span>₦0</span>
+                        <span id="priceValue">₦500,000</span>
+                    </div>
+                </div>
+            </div>
+            <div class="filter-section">
+                <h4>Tags</h4>
+                <div class="filter-options">
+                    <label class="filter-option">
+                        <input type="checkbox" value="sale" id="filterSale">
+                        <span>On Sale</span>
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" value="new" id="filterNew">
+                        <span>New Arrivals</span>
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" value="bestseller" id="filterBestseller">
+                        <span>Bestsellers</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="filter-footer">
+            <button class="btn btn-secondary btn-full" id="clearFilters">Clear All</button>
+            <button class="btn btn-primary btn-full" id="applyFilters">Apply Filters</button>
+        </div>
+    </aside>
+
+    <!-- Product Grid -->
+    <main class="shop-products">
+        <div class="container">
+            <div class="products-grid" id="productsGrid">
+                <!-- Products will be loaded dynamically -->
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <h3>No products found</h3>
+                <p>Try adjusting your filters or search criteria</p>
+                <button class="btn btn-secondary" id="clearAllFilters">Clear All Filters</button>
+            </div>
+
+            <!-- Loading State -->
+            <div class="loading-state" id="loadingState">
+                <div class="skeleton-grid">
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Category Editorial Notes -->
+    <section class="category-editorial" aria-labelledby="categoryGuideTitle">
+        <div class="container">
+            <div class="category-editorial-grid">
+                <div class="category-editorial-copy">
+                    <h2 class="category-editorial-title" id="categoryGuideTitle">About LA VAGUE T-Shirts</h2>
+                    <p>
+                        Every LA VAGUE t-shirt is designed in our Lagos studio and crafted in Nigeria using
+                        100% organic cotton. Built for everyday wear in limited runs, our graphic tees and
+                        essential shirts balance bold artwork with structured drape that holds its shape
+                        wash after wash.
+                    </p>
+                    <p>
+                        LA VAGUE tees carry an intentional oversized streetwear fit. If you prefer a closer
+                        cut or fall between sizes, check the size guide on each product page or size down.
+                        Orders process within 24 hours with standard and express courier delivery across
+                        Nigeria, plus free standard shipping on orders over ₦150,000.
+                    </p>
+                </div>
+                <div class="category-editorial-meta">
+                    <dl class="category-editorial-facts">
+                        <div>
+                            <dt>Material</dt>
+                            <dd>100% Organic Cotton</dd>
+                        </div>
+                        <div>
+                            <dt>Fit</dt>
+                            <dd>Intentional Oversized</dd>
+                        </div>
+                        <div>
+                            <dt>Origin</dt>
+                            <dd>Designed in Lagos, Made in Nigeria</dd>
+                        </div>
+                        <div>
+                            <dt>Delivery</dt>
+                            <dd>Nationwide across Nigeria</dd>
+                        </div>
+                    </dl>
+                    <nav class="category-editorial-links" aria-label="Explore more collections">
+                        <a href="/hoodies">Hoodies</a>
+                        <a href="/bottoms">Bottoms</a>
+                        <a href="/accessories">Accessories</a>
+                        <a href="/shop">Shop All</a>
+                        <a href="/shipping">Shipping Info</a>
+                        <a href="/faq">Sizing FAQ</a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick View Modal -->
+    <div class="modal-overlay" id="quickViewOverlay"></div>
+    <div class="quick-view-modal" id="quickViewModal">
+        <button class="modal-close" id="quickViewClose">×</button>
+        <div class="quick-view-content" id="quickViewContent">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+
+    <!-- Page Transition Skeleton -->
+    <div class="page-skeleton" id="pageSkeleton" style="display: none;">
+        <div class="page-skeleton-content">
+            <div class="page-skeleton-image"></div>
+            <div class="page-skeleton-details">
+                <div class="page-skeleton-title"></div>
+                <div class="page-skeleton-price"></div>
+                <div class="page-skeleton-text"></div>
+                <div class="page-skeleton-text short"></div>
+                <div class="page-skeleton-button"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Size Guide Modal -->
+    <div class="modal-overlay" id="sizeGuideOverlay"></div>
+    <div class="size-guide-modal" id="sizeGuideModal">
+        <div class="size-guide-header">
+            <h3>Size Guide</h3>
+            <button class="modal-close" id="sizeGuideClose">×</button>
+        </div>
+        <div class="size-guide-content" id="sizeGuideContent">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Footer -->
+    <footer class="footer footer-compact"></footer>
+
+    <!-- Universal UI Components (Injected by components.js) -->
+    <div id="searchOverlay" class="search-overlay"></div>
+    <div id="cartOverlay" class="cart-overlay"></div>
+    <div id="cartSidebar" class="cart-sidebar"></div>
+    <div id="wishlistOverlay" class="wishlist-overlay"></div>
+    <div id="wishlistSidebar" class="wishlist-sidebar"></div>
+
+    <!-- Scripts -->
+    <script src="src/scripts/products.js?v=9.0"></script>
+    <script src="src/scripts/utils.js?v=10.0"></script>
+    <script src="src/scripts/cart.js?v=10.1"></script>
+    <script src="src/scripts/components.js?v=10.9"></script>
+    <script src="src/scripts/shop.js?v=9.1"></script>
+    <script src="src/scripts/cookie-consent.js?v=9.0"></script>
+    <script src="src/scripts/pwa-register.js?v=1.0"></script>
+</body>
+</html>

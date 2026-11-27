@@ -18,6 +18,10 @@ export default defineConfig({
       input: {
         main: page('index.html'),
         shop: page('shop.html'),
+        tShirts: page('t-shirts.html'),
+        hoodies: page('hoodies.html'),
+        bottoms: page('bottoms.html'),
+        accessories: page('accessories.html'),
         product: page('product.html'),
         checkout: page('checkout.html'),
         admin: page('admin.html'),
