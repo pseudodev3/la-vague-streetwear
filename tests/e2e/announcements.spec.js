@@ -26,7 +26,7 @@ test.describe('Store announcements', () => {
     // The body carries the no-announcement class so the nav lifts to top:0.
     await expect(page.locator('body')).toHaveClass(/\bno-announcement\b/);
     await expect(page.locator('[data-campaign-message]').first()).toHaveText('PREMIUM STREETWEAR. LIMITED RUNS.');
-    await expect(page).toHaveTitle('LA VAGUE | Premium Streetwear & Limited Drops');
+    await expect(page).toHaveTitle('LA VAGUE — Official Website | Nigerian Streetwear, Graphic Tees & Hoodies');
     await expect(page.locator('body')).not.toContainText('NEW DROP AVAILABLE NOW');
   });
 
